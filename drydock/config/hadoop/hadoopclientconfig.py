@@ -18,7 +18,7 @@ import sys
 import sh
 from string import Template
 from drydock.docker.fabric import DockerFabric
-from drydock.config.hiveconfig import *
+from drydock.config.hadoop.hiveconfig import *
 
 class HadoopClientInitializer(object):
     """

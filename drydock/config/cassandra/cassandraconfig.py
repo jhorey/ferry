@@ -18,7 +18,7 @@ import sys
 import sh
 from string import Template
 from drydock.docker.fabric import DockerFabric
-from drydock.config.titanconfig import *
+from drydock.config.titan.titanconfig import *
 
 class CassandraInitializer(object):
     """

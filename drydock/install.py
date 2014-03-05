@@ -116,7 +116,7 @@ class Installer(object):
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
         logging.info("starting http servers on port 4000 and mongo %s" % ip)
-        cmd = 'gunicorn -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 httpapi:app &'
+        cmd = 'gunicorn -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 drydock.http.httpapi:app &'
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def stop_web(self):

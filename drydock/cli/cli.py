@@ -116,21 +116,25 @@ class CLI(object):
         return ascii.read(lines, data_start=1, delimiter='&')
 
     def _read_stacks(self, show_all=False, args=None):
-        res = requests.get(self.drydock_server + '/query')
-        query_reply = json.loads(res.text)
+        try:
+            res = requests.get(self.drydock_server + '/query')
+            query_reply = json.loads(res.text)
 
-        deployed_reply = {}
-        if show_all:
-            mode = self._parse_deploy_arg('mode', args, default='local')
-            conf = self._parse_deploy_arg('conf', args, default='default')
-            payload = { 'mode' : mode,
-                        'conf' : conf }
+            deployed_reply = {}
+            if show_all:
+                mode = self._parse_deploy_arg('mode', args, default='local')
+                conf = self._parse_deploy_arg('conf', args, default='default')
+                payload = { 'mode' : mode,
+                            'conf' : conf }
 
-            res = requests.get(self.drydock_server + '/deployed', params=payload)
-            deployed_reply = json.loads(res.text)
+                res = requests.get(self.drydock_server + '/deployed', params=payload)
+                deployed_reply = json.loads(res.text)
 
-        # Merge the replies and format.
-        return self._format_table_query(dict(query_reply.items() + deployed_reply.items()))
+            # Merge the replies and format.
+            return self._format_table_query(dict(query_reply.items() + deployed_reply.items()))
+        except ConnectionError:
+            logging.error("could not connect to drydock server")
+            return 'could not connect to drydock server'
 
     def _list_snapshots(self):
         res = requests.get(self.drydock_server + '/snapshots')

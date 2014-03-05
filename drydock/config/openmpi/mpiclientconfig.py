@@ -17,7 +17,7 @@ import logging
 import sh
 import sys
 from string import Template
-from drydock.config.mpiconfig import *
+from drydock.config.openmpi.mpiconfig import *
 
 class OpenMPIClientInitializer(object):
     """

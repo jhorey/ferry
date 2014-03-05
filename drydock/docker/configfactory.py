@@ -18,17 +18,17 @@ from gevent import monkey;  monkey.patch_all()
 import os
 import logging
 from pymongo import MongoClient
-from drydock.docker.docker              import DockerInstance
-from drydock.docker.fabric              import DockerFabric
-from drydock.config.glusterconfig       import *
-from drydock.config.hadoopconfig        import *
-from drydock.config.hadoopclientconfig  import *
-from drydock.config.metastore           import *
-from drydock.config.cassandraconfig     import *
-from drydock.config.mpiconfig           import *
-from drydock.config.mpiclientconfig     import *
-from drydock.config.titanconfig         import *
-from drydock.config.cassandraclientconfig   import *
+from drydock.docker.docker import DockerInstance
+from drydock.docker.fabric import DockerFabric
+from drydock.config.gluster.glusterconfig     import *
+from drydock.config.hadoop.hadoopconfig       import *
+from drydock.config.hadoop.hadoopclientconfig import *
+from drydock.config.hadoop.metastore          import *
+from drydock.config.openmpi.mpiconfig         import *
+from drydock.config.openmpimpiclientconfig    import *
+from drydock.config.titan.titanconfig         import *
+from drydock.config.cassandra.cassandraconfig import *
+from drydock.config.cassandra.cassandraclientconfig import *
 
 class ConfigFactory(object):
     def __init__(self):

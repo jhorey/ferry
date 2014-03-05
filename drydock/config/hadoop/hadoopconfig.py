@@ -19,8 +19,8 @@ import time
 import sh
 from string import Template
 from drydock.docker.fabric import DockerFabric
-from drydock.config.hiveconfig import *
-from drydock.config.metastore  import *
+from drydock.config.hadoop.hiveconfig import *
+from drydock.config.hadoop.metastore  import *
 
 class HadoopInitializer(object):
     """
