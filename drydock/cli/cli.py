@@ -22,7 +22,7 @@ import re
 from subprocess import Popen, PIPE
 from astropy.io import ascii
 from drydock.options import CmdHelp
-from drydock.install import Installer
+from drydock.install import Installer, DRYDOCK_HOME
 
 class CLI(object):
     def __init__(self):
@@ -259,8 +259,8 @@ class CLI(object):
                 json_string = self._read_file_arg(arg)
                 json_arg = json.loads(json_string)
             else:
-                # Check if the user wants to use one of the global plans.                 
-                global_path = os.path.dirname(os.path.dirname(__file__)) + '/plans/' + arg
+                # Check if the user wants to use one of the global plans.
+                global_path = DRYDOCK_HOME + '/plans/' + arg
 
                 # Check if the user has passed in a file extension.
                 # If not go ahead and add one. 

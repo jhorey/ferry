@@ -18,6 +18,7 @@ import sys
 import time
 import sh
 from string import Template
+from drydock.install import DRYDOCK_HOME
 from drydock.docker.fabric import DockerFabric
 from drydock.config.hadoop.hiveconfig import *
 from drydock.config.hadoop.metastore  import *
@@ -36,8 +37,8 @@ class HadoopInitializer(object):
 
         self.hive_client = HiveClientInitializer()
         self.hive_ms = MetaStoreInitializer()
-        self.hive_client.template_dir = os.path.dirname(os.path.dirname(__file__)) + '/templates/hive-metastore/'
-        self.hive_ms.template_dir = os.path.dirname(os.path.dirname(__file__)) + 'templates/hive-metastore/'
+        self.hive_client.template_dir = DRYDOCK_HOME + '/templates/hive-metastore/'
+        self.hive_ms.template_dir = DRYDOCK_HOME + 'templates/hive-metastore/'
 
     """
     Generate a new hostname

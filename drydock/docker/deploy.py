@@ -43,7 +43,9 @@ class DeployEngine(object):
     Dynamically load all the deployment engines
     """
     def _load_engines(self):
-        engine_dir = os.path.dirname(os.path.dirname(__file__)) + '/engines'
+        engine_dir = os.environ['DRYDOCK_HOME'] + '/engines'
+        logging.info("engine dir: " + engine_dir)
+
         files = os.listdir(engine_dir)
         for f in files:
             p = engine_dir + os.sep + f
@@ -55,6 +57,7 @@ class DeployEngine(object):
     Dynamically load a class from a string
     """
     def _load_class(self, full_name):
+        logging.info("full name: " + full_name)
         class_info = full_name.split(".")
         module_name = class_info[0].split("/")[-1]
 

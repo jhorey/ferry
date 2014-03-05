@@ -18,6 +18,7 @@ from gevent import monkey;  monkey.patch_all()
 import os
 import logging
 from pymongo import MongoClient
+from drydock.install import DRYDOCK_HOME
 from drydock.docker.docker import DockerInstance
 from drydock.docker.fabric import DockerFabric
 from drydock.config.gluster.glusterconfig     import *
@@ -25,7 +26,7 @@ from drydock.config.hadoop.hadoopconfig       import *
 from drydock.config.hadoop.hadoopclientconfig import *
 from drydock.config.hadoop.metastore          import *
 from drydock.config.openmpi.mpiconfig         import *
-from drydock.config.openmpimpiclientconfig    import *
+from drydock.config.openmpi.mpiclientconfig   import *
 from drydock.config.titan.titanconfig         import *
 from drydock.config.cassandra.cassandraconfig import *
 from drydock.config.cassandra.cassandraclientconfig import *
@@ -45,7 +46,7 @@ class ConfigFactory(object):
         self.hadoop_client = HadoopClientInitializer()
 
         # Get the Drydock home to find the templates.
-        template_dir = os.path.dirname(os.path.dirname(__file__)) + '/templates'
+        template_dir = DRYDOCK_HOME + '/templates'
         self.hadoop.template_dir =        template_dir + '/hadoop/'
         self.yarn.template_dir =          template_dir + '/hadoop/'
         self.hadoop_client.template_dir = template_dir + '/hadoop/'

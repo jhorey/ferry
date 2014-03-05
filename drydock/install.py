@@ -29,9 +29,9 @@ from string import Template
 from subprocess import Popen, PIPE
 from drydock.options import CmdHelp
 
-DRYDOCK_HOME=os.path.dirname(os.path.dirname(__file__))
-DEFAULT_IMAGE_DIR= DRYDOCK_HOME + '/drydock/dockerfiles'
-DEFAULT_KEY_DIR= DRYDOCK_HOME + '/drydock/key'
+DRYDOCK_HOME=os.path.dirname(os.path.dirname(__file__)) + '/drydock'
+DEFAULT_IMAGE_DIR= DRYDOCK_HOME + '/dockerfiles'
+DEFAULT_KEY_DIR= DRYDOCK_HOME + '/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
 # DEFAULT_DOCKER_REPO='%s' % os.environ['USER']
 DEFAULT_DOCKER_REPO='drydock'
@@ -116,7 +116,7 @@ class Installer(object):
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
         logging.info("starting http servers on port 4000 and mongo %s" % ip)
-        cmd = 'gunicorn -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 drydock.http.httpapi:app &'
+        cmd = 'gunicorn -e DRYDOCK_HOME=%s -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 drydock.http.httpapi:app &' % DRYDOCK_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def stop_web(self):
