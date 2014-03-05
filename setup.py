@@ -37,13 +37,8 @@ def find_drydock_data_files():
     tuples.extend(find_data_files('key').items())
     tuples.extend(find_data_files('plans').items())
     tuples.extend(find_data_files('templates').items())
-    tuples.extend(find_data_files('deploy').items())
+    tuples.extend(find_data_files('conf').items())
     tuples.extend(find_data_files('dockerfiles').items())
-
-    # Bit of a hack, but we want to load the deployment engines
-    # dynamically and not part of a module.
-    engine_files = find_data_files('drydock/deploy').popitem()[1]
-    tuples.append( ('drydock/engines', engine_files) )
 
     return tuples
 

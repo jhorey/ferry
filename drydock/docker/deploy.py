@@ -21,8 +21,8 @@ import logging
 import importlib
 import inspect
 from pymongo import MongoClient
-from drydock.docker.fabric  import DockerFabric
-from drydock.docker.docker  import DockerInstance
+from drydock.docker.fabric import DockerFabric
+from drydock.docker.docker import DockerInstance
 
 class DeployEngine(object):
     def __init__(self, docker):
@@ -43,9 +43,7 @@ class DeployEngine(object):
     Dynamically load all the deployment engines
     """
     def _load_engines(self):
-        engine_dir = os.environ['DRYDOCK_HOME'] + '/engines'
-        logging.info("engine dir: " + engine_dir)
-
+        engine_dir = os.environ['DRYDOCK_HOME'] + '/deploy'
         files = os.listdir(engine_dir)
         for f in files:
             p = engine_dir + os.sep + f
@@ -57,18 +55,17 @@ class DeployEngine(object):
     Dynamically load a class from a string
     """
     def _load_class(self, full_name):
-        logging.info("full name: " + full_name)
-        class_info = full_name.split(".")
-        module_name = class_info[0].split("/")[-1]
+        class_info = full_name.split("/")[-1].split(".")
+        module_name = class_info[0]
+        file_extension = class_info[1]
 
-        # Ignore the init and backup files. 
-        if module_name == "__init__" or class_info[-1] == ".py~":
+        # Ignore the init and compiled files. 
+        if module_name == "__init__" or file_extension == "pyc":
             return None
 
-        # Construct the full module path. This lets us
-        # filter out only the deployment engines and ignore
-        # all the other imported packages. 
-        module_path = "engines.%s" % module_name
+        # Construct the full module path. This lets us filter out only
+        # the deployment engines and ignore all the other imported packages. 
+        module_path = "drydock.deploy.%s" % module_name
         module = importlib.import_module(module_path)
         for n, o in inspect.getmembers(module):
             if inspect.isclass(o):

@@ -25,7 +25,8 @@ import time
 import datetime
 import uuid
 import shutil
-from pymongo       import MongoClient
+from pymongo import MongoClient
+from drydock.install import DRYDOCK_HOME
 from drydock.docker.docker        import DockerInstance
 from drydock.docker.fabric        import DockerFabric
 from drydock.docker.configfactory import ConfigFactory
@@ -835,7 +836,7 @@ class DockerManager(object):
     Get the default deployment conf file. 
     """
     def _get_default_conf(self):        
-        return os.path.dirname(os.path.dirname(__file__)) + '/deploy/deploy_default.json'
+        return DRYDOCK_HOME + '/conf/deploy_default.json'
 
     """
     Get the deployment configuration parameters. 
