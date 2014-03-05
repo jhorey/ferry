@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="google-site-verification" content="UxV66EKuPe87dgnH1sbrldrx6VsoWMrx5NjwkgUFxXI" />
+    <title>Drydock | Big Data Development Environment Using Docker</title>
+    <meta name="description" content="Drydock lets you define, run, and deploy big data applications
+				      on your local machine using Docker. Drydock supports
+				      Hadoop, Cassandra, GlusterFS, and OpenMPI" />
+    <meta name="keywords" content="drydock, docker, hadoop, cassandra, glusterfs, openmpi, big data" />
+
+    {%- set url_root = pathto('', 1) %}
+    {%- if url_root == '#' %}{% set url_root = '' %}{% endif %}
+
+    <script type="text/javascript">
+        // This is included here for Javascript that doesn't have access to the templates.
+        var doc_version = "{{ current_version }}";
+        var doc_slug = "{{ slug }}";
+    </script>
+
+    {%- set css_files = css_files + ['_static/css/bootstrap.css'] %}
+    {%- set css_files = css_files + ['_static/pygments.css'] %}
+    {%- set css_files = css_files + ['_static/css/main.css'] %}
+
+    {%- set script_files =
+    ['//code.jquery.com/jquery-1.10.1.min.js']
+    + ['//fonts.googleapis.com/css?family=Cabin:400,700,400italic']
+    %}
+
+    {%- for cssfile in css_files %}
+    <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
+    {%- endfor %}
+
+    {%- for scriptfile in script_files if scriptfile != '_static/jquery.js' %}
+    <script type="text/javascript" src="{{ pathto(scriptfile, 1) }}"></script>
+    {%- endfor %}
+    <link rel="shortcut icon" href="{{ pathto('_static/favicon.png', 1) }}"/>
+    {%- block extrahead %}{% endblock %}
+
+</head>
+
+<body>
+
+<div id="wrap">
+
+<div class="container-fluid">
+
+    <div class="box">
+      <div class="row-fluid">
+        <div class="column span3 nav-column">
+          <div class="container-fluid">
+	    <div class="row-fluid nav-title">
+	       Drydock
+	    </div>
+
+	    <div class="row-fluid">
+              <div class="sidebar bs-docs-sidebar">
+                {{ toctree(collapse=False, maxdepth=2) }}
+              </div>
+              <div class="footer-sidebar">
+		<ul>
+		  <li class="github">
+		    <a href="https://github.com/opencore/drydock">Follow on GitHub</a>
+		  </li>
+		  <li class="twitter">
+		    <a href="https://twitter.com/open_core_io">Follow on Twitter</a>
+		  </li>
+		</ul>
+	      	
+              </div>
+	    </div>
+          </div>
+	</div>
+
+	<div class="column span9">
+          <div class="main-content">
+            <section id="global" class="containerblock">
+              {% block body %}{% endblock %}
+            </section>
+          </div>
+	</div>
+      </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="{{ pathto('_static/js/docs.js', 1) }}"></script>
+
+<!-- Google analytics -->
+<script type="text/javascript">
+
+    var _gaq = _gaq || [];
+    <!-- _gaq.push(['_setAccount', 'UA-6096819-11']); -->
+    <!-- _gaq.push(['_setDomainName', 'docker.io']); -->
+    _gaq.push(['_setAllowLinker', true]);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+#! /bin/bash
+
+# Run these commands on the head node
+if [ $$1 = "start" ]; then
+   python /connector/bin/mounthelper.py mount $VOLUME_IP:/$VOLUME_ID
+   echo "volume mounted successfully"
+elif [ $$1 == "stop" ];
+   echo "not implemented yet"
+   python /connector/bin/mounthelper.py umount $VOLUME_IP:/$VOLUME_ID
+fi

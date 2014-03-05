@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [ $1 == "listen" ]; then
+    # We need to fix the "hosts" file so that we can route to our new
+    # hostname. This is a necessary fix for Cassandra.
+    echo 127.0.0.1 $(hostname) >> /etc/hosts
+    
+    # Keep ssh open so that we can interact with the container
+    /usr/sbin/sshd -D
+elif [ $1 == "start" ]; then 
+    su drydock -c 'nohup /titan/packages/rexster-server/bin/rexster.sh -s -c /titan/conf/rexster.xml > /titan/data/rexster.log 2> /titan/data/rexster.err &'
+elif [ $1 == "stop" ]; then 
+    su drydock -c 'pkill -f rexster'
+
+    # Killing the ssh daemon should automatically exit the container,
+    # since the sshd is the only thing running in the foreground. 
+    pkill -f sshd
+fi

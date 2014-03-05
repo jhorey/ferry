@@ -1,0 +1,21 @@
+{
+  "backend":[
+   {
+    "storage":
+        {
+  	   "personality":"gluster",
+  	   "instances":2
+	},
+    "compute":[
+	{
+	  "personality":"mpi",
+	  "instances":2
+	}]
+   }],
+  "connectors":[
+	{
+	  "personality":"mpi-client",
+	  "name":"control-0"
+	}
+  ]
+}

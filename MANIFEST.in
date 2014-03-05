@@ -1,0 +1,12 @@
+include LICENSE
+include requirements.txt
+include *.md
+include templates/*
+include plans/*
+include dockerfiles/*
+include deploy/*
+include docker/*
+include key/*
+recursive-exclude tests *
+global-exclude *.pyc
+global-exclude *.pyo

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ $1 == "listen" ]; then 
+    /usr/sbin/sshd -D
+else
+    for f in /service/runscripts/$1/*
+    do
+	$f $2 $3
+    done
+fi

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ $1 == "listen" ]; then 
+    # We need to fix the "hosts" file so that we can route to our new
+    # hostname. This is a necessary fix for Cassandra.
+    echo 127.0.0.1 $(hostname) >> /etc/hosts
+
+    # Keep ssh open so that we can interact with the container
+    /usr/sbin/sshd -D
+else
+    for f in /service/runscripts/$1/*
+    do
+	$f $2
+    done
+fi

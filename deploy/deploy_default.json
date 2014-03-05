@@ -1,0 +1,12 @@
+{
+   "local":
+    {
+     "start-on-create":false
+    },
+   "remote":
+    {
+     "start-on-create":true,
+     "registry":"localhost:5000",
+     "mongo":"localhost:27017"
+    }
+}

@@ -1,0 +1,58 @@
+#!/bin/bash
+
+source /etc/profile
+if [ $1 == "start" ]; then 
+    # Copy all the instance addresses and empty the file
+    # afterwards so we only copy it over once. 
+    input=/service/conf/instances
+    host=$(hostname)
+    while read line
+    do
+	split=( $line )
+	name=${split[1]}
+	if [ "$host" != "$name" ]; then
+	    echo $line >> /etc/hosts
+	fi
+    done < "$input"
+    echo '' > /service/conf/instances
+
+    # Record the services running on this node.
+    echo $2 >> /tmp/hadoop_services.log
+
+    if [ $2 == "namenode" ]; then
+	su drydock -c '/service/packages/hadoop/bin/hdfs --config /service/conf namenode -format HADOOP_CLUSTER'
+	su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start namenode'
+    elif [ $2 == "datanode" ]; then
+	su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
+    elif [ $2 == "yarnmaster" ]; then	
+	su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
+    elif [ $2 == "yarnslave" ]; then	
+	su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
+    fi
+elif [ $1 == "mount" ]; then 
+    if [ $2 == "gluster" ]; then
+	python /service/scripts/mounthelper.py mount $3	
+	chown -R drydock:docker /service/data
+    fi
+elif [ $1 == "listen" ]; then 
+    # Keep ssh open so that we can interact with the container
+    /usr/sbin/sshd -D
+elif [ $1 == "stop" ]; then 
+    input=/tmp/hadoop_services.log
+    while read line
+    do
+	if [ "$line" == "namenode" ]; then
+	    su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop namenode'
+	elif [ "$line" == "datanode" ]; then
+	    su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop datanode'
+	elif [ "$line" == "yarnmaster" ]; then	
+	    su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop resourcemanager'
+	elif [ "$line" == "yarnslave" ]; then	
+	    su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop nodemanager'
+	fi
+    done < "$input"
+
+
+    # Stop the ssh daemon. This should automatically stop this container. 
+    pkill -f sshd
+fi

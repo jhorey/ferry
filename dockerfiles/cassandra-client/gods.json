@@ -1,0 +1,164 @@
+{
+    "graph": {
+        "mode":"NORMAL",
+	"vertices": [
+	    {
+	       "name":"saturn",
+	       "type":"titan",
+	       "_id":0,
+	       "_type":"vertex"
+	    },
+	    {
+		"name":"jupiter",
+		"type":"god",
+		"_id":1,
+	       	"_type":"vertex"
+	    },
+	    {
+		"name":"neptune",
+		"type":"god",
+		"_id":2,
+	       "_type":"vertex"
+	    },
+	    {
+		"name":"pluto",
+		"type":"god",
+		"_id":3,
+	       "_type":"vertex"
+	    },
+	    {
+		"name":"sky",
+		"type":"location",
+		"_id":4,
+	       "_type":"vertex"
+	    },
+	    {
+		"name":"sea",
+		"type":"location",
+		"_id":5,
+	       "_type":"vertex"
+	    },
+	    {
+		"name":"tartarus",
+		"type":"location",
+		"_id":6,
+	       "_type":"vertex"
+	   },
+	   {
+		"name":"hercules",
+		"type":"demigod",
+		"_id":7,
+	       "_type":"vertex"
+	   },
+	   {
+		"name":"alcmene",
+		"type":"human",
+		"_id":8,
+	       "_type":"vertex"
+	   },
+	   {
+		"name":"nemean",
+		"type":"monster",
+		"_id":9,
+	       "_type":"vertex"
+	   },
+	   {
+		"name":"hydra",
+		"type":"monster",
+		"_id":10,
+	       "_type":"vertex"
+	   },
+	   {
+		"name":"cerberus",
+		"type":"monster",
+		"_id":11,
+	       	"_type":"vertex"
+	   }],
+       "edges":[
+	   {
+		"_id": 12,
+                "_type": "edge",
+                "_outV": 1,
+                "_inV": 0,
+                "_label": "father"
+	   },
+	   {
+		"_id": 13,
+                "_type": "edge",
+                "_outV": 4,
+                "_inV": 1,
+                "_label": "lives"
+	   },
+	   {
+		"_id": 14,
+                "_type": "edge",
+                "_outV": 3,
+                "_inV": 1,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 15,
+                "_type": "edge",
+                "_outV": 1,
+                "_inV": 3,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 16,
+                "_type": "edge",
+                "_outV": 2,
+                "_inV": 1,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 17,
+                "_type": "edge",
+                "_outV": 1,
+                "_inV": 2,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 18,
+                "_type": "edge",
+                "_outV": 0,
+                "_inV": 1,
+                "_label": "father"
+	   },
+	   {
+		"_id": 19,
+                "_type": "edge",
+                "_outV": 5,
+                "_inV": 2,
+                "_label": "lives"
+	   },
+	   {
+		"_id": 20,
+                "_type": "edge",
+                "_outV": 3,
+                "_inV": 2,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 21,
+                "_type": "edge",
+                "_outV": 2,
+                "_inV": 3,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 22,
+                "_type": "edge",
+                "_outV": 2,
+                "_inV": 1,
+                "_label": "brother"
+	   },
+	   {
+		"_id": 23,
+                "_type": "edge",
+                "_outV": 1,
+                "_inV": 2,
+                "_label": "brother"
+	   }
+       ]
+   }
+}

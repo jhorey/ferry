@@ -1,0 +1,22 @@
+{
+  "backend":[
+   {
+    "storage":
+        {
+  	   "personality":"cassandra",
+  	   "instances":2,
+	   "layers":["titan"],
+  	   "args":{
+	      "db":"users"
+  	   }
+	}
+   }], 
+  "connectors":[
+	{
+	   "personality":"cassandra-client",
+  	   "args":{
+	      "db":"users"
+  	   }
+	}
+  ]
+}

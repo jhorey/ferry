@@ -1,0 +1,14 @@
+#! /bin/bash
+
+# Run these commands on the head node
+if [ $$1 == "start" ]; then
+   $PEER_PROBE
+   echo "peer probe success";sleep 2
+   $VOLUME_LIST force >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
+   echo "volume create success";sleep 2
+   gluster volume set $VOLUME_ID nfs.disable on >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
+   gluster volume start $VOLUME_ID >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
+   echo "volume start success"
+elif [ $$1 == "stop" ]; then
+   yes | gluster volume stop $VOLUME_ID >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
+fi

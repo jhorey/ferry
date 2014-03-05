@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ $1 == "listen" ]; then 
+    # We need to fix the "hosts" file so that we can route to our new
+    # hostname. This is a necessary fix for Cassandra.
+    echo 127.0.0.1 $(hostname) >> /etc/hosts
+
+    # Keep ssh open so that we can interact with the container
+    /usr/sbin/sshd -D
+elif [ $1 == "start" ]; then 
+    # Start the Cassandra server in daemon mode
+    # Need to pass in argument to specify the options directory
+    su drydock -c '/service/bin/cassandra'
+elif [ $1 == "stop" ]; then 
+    # Stop the Cassandra daemon.
+    pkill -f CassandraDaemon
+
+    # Killing the ssh daemon should automatically exit the container,
+    # since the sshd is the only thing running in the foreground. 
+    pkill -f sshd
+fi

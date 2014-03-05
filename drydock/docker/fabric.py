@@ -1,0 +1,149 @@
+# Copyright 2014 OpenCore LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import gevent
+from gevent import monkey;  monkey.patch_all()
+import logging
+from subprocess import Popen, PIPE
+from drydock.docker.docker import DockerCLI
+
+"""
+Allocate local docker instances
+"""
+class DockerFabric(object):
+    def __init__(self):
+        self.repo = 'public'
+        self.docker_user = 'root'
+        self.cli = DockerCLI()
+
+    """
+    Fetch the current docker version.
+    """
+    def version(self):
+        return self.cli.version()
+
+    """
+    Get the filesystem type associated with docker. 
+    """
+    def get_fs_type(self):
+        return self.cli.get_fs_type()
+
+    """
+    Restart the stopped containers.
+    """
+    def restart(self, container_info):
+        container = self.cli.start(container_info['container'],
+                                   container_info['type'],
+                                   container_info['args'])
+        container.default_user = self.docker_user
+        return container
+
+    """
+    Allocate several instances.
+    """
+    def alloc(self, container_info):
+        containers = []
+        
+        for c in container_info:
+            # Start a container with a specific image, in daemon mode,
+            # without TTY, and on a specific port
+            container = self.cli.run(service_type = c['type'], 
+                                     image = c['image'], 
+                                     volumes = c['volumes'],
+                                     phys_net = None, 
+                                     security_group = c['ports'],
+                                     expose_group = c['exposed'], 
+                                     hostname = c['hostname'],
+                                     args= c['args'])
+            container.default_user = self.docker_user
+
+            # Not all containers have a unique name. 
+            if 'name' in c:
+                container.name = c['name']
+
+            containers.append(container)
+        return containers
+
+    """
+    Stop the running instances
+    """
+    def stop(self, containers):
+        for c in containers:
+            self.cli.stop(c.container)
+
+    """
+    Remove the running instances
+    """
+    def remove(self, containers):
+        for c in containers:
+            self.cli.remove(c.container)
+
+    """
+    Save/commit the running instances
+    """
+    def snapshot(self, containers, cluster_uuid, num_snapshots):
+        snapshots = []
+        for c in containers:
+            snapshot_name = '%s-%s-%s:SNAPSHOT-%s' % (c.image, 
+                                                      cluster_uuid,
+                                                      c.host_name,
+                                                      num_snapshots)
+            snapshots.append( {'image' : snapshot_name,
+                               'base' : c.image,
+                               'type' : c.service_type, 
+                               'name' : c.name, 
+                               'args' : c.args} )
+            self.cli.commit(c, snapshot_name)
+        return snapshots
+
+    """
+    Upload these containers to the specified registry.
+    """
+    def deploy(self, containers, registry=None):
+        deployed = []
+        for c in containers:
+            image_name = '%s-%s:DEPLOYED' % (c.image, 
+                                             c.host_name)
+            deployed.append( {'image' : image_name,
+                              'base' : c.image,
+                              'type' : c.service_type, 
+                              'name' : c.name, 
+                              'args' : c.args} )
+            if not registry:
+                self.cli.commit(c, image_name)
+            else:
+                self.cli.push(c, registry)
+        return deployed
+
+    """
+    Copy over the contents to each container
+    """
+    def copy(self, containers, from_dir, to_dir):
+        for c in containers:
+            scp_cmd = 'scp -r ' + from_dir + ' ' + self.docker_user + '@' + c.internal_ip + ':' + to_dir
+            output = Popen(scp_cmd, stdout=PIPE, shell=True).stdout.read()
+
+    """
+    Run a command on all the containers and collect the output. 
+    """
+    def cmd(self, containers, cmd):
+        all_output = {}
+        for c in containers:
+            ssh_cmd = 'ssh -t -t ' + self.docker_user + '@' + c.internal_ip + ' \'%s\'' % cmd
+            logging.info(ssh_cmd)
+            output = Popen(ssh_cmd, stdout=PIPE, shell=True).stdout.read()
+            all_output[c] = output.strip()
+
+        return all_output

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+source /etc/profile
+if [ $1 == "start" ]; then 
+    if [ $2 == "metastore" ]; then
+        # Start the PostGres service
+	service postgresql start
+
+        # Now create the Hive metastore
+	su postgres -c 'psql -f /service/sbin/createstore.sql'
+
+        # Finally start the metastore service. Give it a couple seconds to start 
+	# before stopping the script otherwise sometimes it doesn't start. 
+	su drydock -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
+	sleep 2
+    fi
+elif [ $1 == "listen" ]; then 
+    # echo 127.0.0.1 localhost >> /etc/hosts
+    # Keep ssh open so that we can interact with the container
+    /usr/sbin/sshd -D
+elif [ $1 == "stop" ]; then 
+    # Stop Hive and PostGres
+    pkill -f hive 
+    service postgresql stop
+
+    # Now stop ssh (which should stop the container)
+    pkill -f sshd
+fi

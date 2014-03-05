@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# These are Gluster commands to pass into the image. 
+if [ $1 == "create" ]; then 
+    ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null
+    cat /root/.ssh/id_rsa.pub
+elif [ $1 == "start" ]; then 
+    # Configure the master node. 
+    /service/configuration/configure start
+elif [ $1 == "listen" ]; then 
+    # Start the gluster server
+    /usr/sbin/glusterd &
+    /usr/sbin/sshd -D
+elif [ $1 == "stop" ]; then 
+    # Stop the gluster volume
+    /service/configuration/configure stop
+
+    # Stop the gluster daemon
+    pkill -f glusterd
+
+    # Now stop the ssh daemon. 
+    pkill -f sshd
+fi

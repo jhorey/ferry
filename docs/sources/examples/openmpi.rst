@@ -1,0 +1,188 @@
+:title: OpenMPI example
+:description: A simple example using GlusterFS and OpenMPI
+:keywords: drydock, example, glusterfs, openmpi
+
+.. _mpi:
+
+Getting started with OpenMPI
+============================
+
+MPI is a popular parallel programming tool that abstracts various communication 
+patterns and makes it relatively simple to coordinate code running across many 
+machines. Unlike platforms such as Hadoop, MPI relies on a separate shared filesystem. 
+In our case, we'll use GlusterFS, a distributed filesystem from Redhat. 
+
+The first thing to do is define our stack in a file (let's call it ``openmpi.json``). 
+The file should look something like this:
+
+.. code-block:: javascript
+
+    {
+      "backend":[
+       {
+        "storage":
+            {
+  	       "personality":"gluster",
+  	       "instances":2
+	    },
+        "compute":[
+	    {
+	      "personality":"mpi",
+	      "instances":2
+	    }]
+       }],
+      "connectors":[
+	    {"personality":"mpi-client"}
+      ]
+    }
+
+There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
+``storage`` backend and a single ``compute`` backend. In theory, we could also create multiple ``compute`` backends
+like this:
+
+.. code-block:: javascript
+
+    {
+      "backend":[
+       {
+        "compute":[
+	    {
+	      "personality":"mpi",
+	      "instances":2
+	    },
+	    {
+	      "personality":"yarn",
+	      "instances":2
+	    }]
+       }],
+    }
+
+We won't do this in this example though. This backend is going to run two instances of ``gluster`` and
+``mpi``. We'll also instantiate an MPI client. The client will automatically mount the Gluster volume
+and contain all the necessary configuration to launch new MPI jobs. 
+
+Running an example
+------------------
+
+Now that we've defined our stack, let's start it up. Just type the following in your terminal:
+
+.. code-block:: bash
+
+   $ drydock start openmpi
+   sa-0
+
+   $ drydock ps
+   UUID Storage  Compute  Connectors  Status   Base  Time
+   ---- ------- --------- ---------- ------- ------- ----
+   sa-0    se-0 [u'se-1']       se-2 running openmpi   --
+
+The entire process should take about 20 seconds. Before we continue, let's take a step back to 
+examine what just happened. After typing ``start``, ``drydock`` created the following Docker
+containers:
+
+- Two Gluster data nodes (sometimes called a "brick")
+- Two OpenMPI compute nodes
+- A Linux client
+
+Now that the environment is created, let's interact with it by connecting to the Linux client. 
+Just type ``docker ssh sa-0`` in your terminal. From there you'll can check your backend connection 
+and install whatever you need. 
+
+Now let's check what environment variables have been created. Remember
+this is all being run from the connector. 
+
+.. code-block:: bash
+
+   $ env | grep BACKEND
+   BACKEND_STORAGE_TYPE=gluster
+   BACKEND_STORAGE_IP=10.1.0.3
+   BACKEND_COMPUTE_TYPE=openmpi
+   BACKEND_COMPUTE_IP=10.1.0.5
+
+Notice there are two sets of environment variables, once for the storage and the other for the compute. 
+Ok, now let's actually compile some code and run it. Here's a super simple ``hello world`` example:
+
+.. code-block:: c++
+
+    #include <mpi.h>
+
+    int main(int argc, char **argv)
+    {
+        int numprocs, rank, namelen;
+
+        MPI_Init(&argc, &argv);
+        MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if(rank == 0) {
+	    std::cout << "master (" << rank << "/" << numprocs << ")\n";
+        }
+	else {
+            std::cout << "slave (" << rank << "/" << numprocs << ")\n";
+	}
+
+        MPI_Finalize();
+     }
+
+All it does is initialize MPI, determine who the masters & slaves are, and prints
+out some information to the console. We can compile and run this example by typing the following in a terminal:
+
+.. code-block:: bash
+
+    $ su drydock 
+    $ mpic++ -W -Wall /service/examples/helloworld.cpp -o /service/data/binaries/helloworld.o
+    $ mpirun -np 4 --hostfile /usr/local/etc/instances /service/data/binaries/helloworld.o
+
+Note that the we must pass in the ``instances`` file to ``mpirun``. This file contains the set
+of OpenMPI hosts that can execute the code. 
+
+Although this example does not read or write to shared storage, everything under ``/service/data`` 
+is shared across all the OpenMPI nodes and the Linux client. 
+
+Events and customization
+------------------------
+
+Connectors are customized using scripts that reside under ``/service/runscripts``. You should see a set of
+directories, one for each type of ``event`` that Drydock produces. For example, the ``start`` directory contains
+scripts that are executed when the connector is first started. Likewise, there are events for:
+
+- ``start``: triggered when the connector is first started
+- ``restart``: triggered when the connector is restarted
+- ``stop``: triggered when the connector is stopped
+- ``test``: triggered when the connector is asked to perform a test
+
+You can add your own scripts to these directories, and they'll be executed in alphanumeric order. 
+
+Saving everything
+-----------------
+
+Once you've installed all your packages and customized the ``runscripts``, you'll probably want to save your
+progress. You can do this by typing:
+
+.. code-block:: bash
+
+   $ drydock snapshot sa-0
+     sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
+
+   $ drydock snapshots
+                        UUID                      Base          Date
+     -------------------------------------------- ------- --------------------
+     sn-sa-4-81a67d8e-b75b-4919-9a65-50554d183b83 openmpi 02/5/2014 (02:02 PM)   
+
+   $ drydock start sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
+     sa-1
+
+This will produce a ``snapshot`` that you can restart later. You can create as many snapshots as you want. 
+
+*Note that due to some underlying issues with Docker, data saved outside the connector (i.e., in Gluster) will not be saved across restarts.*
+
+More resources
+--------------
+
+MPI is relatively complex compared to other more recent frameworks such as Hadoop, but is very useful for
+applications that require complex coordination. Here are some additional resources you can use to learn
+more. 
+
+- `OpenMPI <http://www.open-mpi.org/>`_
+- `Using MPI Examples <http://www.mcs.anl.gov/research/projects/mpi/usingmpi/>`_
+- `MPI Scientific Computing <http://www.mcs.anl.gov/research/projects/mpi/tutorials/mpibasics/index.htm/>`_

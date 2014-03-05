@@ -1,0 +1,14 @@
+{
+  "backend":[
+   {
+    "storage":
+        {
+  	   "personality":"hadoop",
+  	   "instances":1,
+  	   "layers":["hive"]
+	}
+   }], 
+  "connectors":[
+	{"personality":"hadoop-client"}
+  ]
+}

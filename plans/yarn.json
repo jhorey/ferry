@@ -1,0 +1,19 @@
+{
+   "backend":[
+   {
+    "storage":
+        {
+  	   "personality":"gluster",
+  	   "instances":2
+	},
+    "compute":[
+	{
+	  "personality":"yarn",
+	  "instances":1,
+	  "layers":["hive"]
+	}]
+   }],
+   "connectors":[
+	{"personality":"hadoop-client"}
+   ]
+}
