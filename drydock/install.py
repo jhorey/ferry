@@ -206,7 +206,7 @@ class Installer(object):
                     self._transform_dockerfile(image_dir, f, repo)
 
             for f in os.listdir("/tmp/dockerfiles/"):
-                dockerfile = image_dir + '/' + f + '/Dockerfile'
+                dockerfile = '/tmp/dockerfiles/' + f + '/Dockerfile'
                 self._build_image(dockerfile, repo, built_images)
 
             # After building everything, get rid of the temp dir.
