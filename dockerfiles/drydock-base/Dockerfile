@@ -12,7 +12,7 @@ RUN mkdir -p /service/keys /var/run/sshd
 RUN apt-get update;apt-get --yes install openssh-server
 
 # Create drydock user
-RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-password --gecos "" drydock;usermod -a -G sudo drydock;usermod -a -G docker drydock;usermod -a -G supergroup drydock;chown -R drydock:docker /service
+RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-password --gecos "" drydock;usermod -a -G sudo drydock;usermod -a -G docker drydock;usermod -a -G supergroup drydock;chown -R drydock:docker /service;chown -R drydock:drydock /home/drydock
 
 # Generate an ssh key for this image.
 RUN ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null
