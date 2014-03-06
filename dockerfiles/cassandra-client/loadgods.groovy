@@ -1,3 +1,3 @@
-g = TitanFactory.open('/cassandra/conf/titan.properties');
-g.loadGraphSON('/cassandra/scripts/gods.json');
-g.V('name','pluto').out('brother').name;
+g = TitanFactory.open('/service/conf/titan.properties');
+g.loadGraphSON('/service/scripts/gods.json');
+println g.V('name','pluto').out('brother').name;

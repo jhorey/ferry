@@ -5,7 +5,7 @@ NAME cassandra
 RUN apt-get --yes install openjdk-7-jdk
 
 # Create necessary directories
-RUN mkdir -p /service/data/main /service/data/logs /service/data/cache /service/data/commits /service/sbin /service/package;chown -R drydock:docker /service/data
+RUN mkdir -p /service/data/main /service/logs /service/data/cache /service/data/commits /service/sbin /service/package;chown -R drydock:docker /service/data;chown -R drydock:docker /service/logs
 
 # Download the latest package
 RUN wget http://mirrors.ibiblio.org/apache/cassandra/2.0.5/apache-cassandra-2.0.5-bin.tar.gz -P /service/package/;cd /service/package;tar -xzf apache-cassandra-2.0.5-bin.tar.gz

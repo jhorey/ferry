@@ -2,7 +2,7 @@ FROM $USER/cassandra
 NAME titan
 
 # Download the various packages needed
-RUN apt-get --yes install openjdk-7-jdk unzip
+RUN apt-get --yes install unzip
 
 # Create necessary directories
 RUN mkdir -p /service/packages /service/conf /service/keys /service/sbin /service/bin /service/scripts /service/ext

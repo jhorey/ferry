@@ -15,16 +15,18 @@
 
 import gevent
 from gevent import monkey;  monkey.patch_all()
-import sh
-import os
-import os.path
-import sys
+import datetime
+import grp
 import json
 import logging
-import time
-import datetime
-import uuid
+import os
+import os.path
+import pwd
+import sh
 import shutil
+import sys
+import time
+import uuid
 from pymongo import MongoClient
 from drydock.install import DRYDOCK_HOME, DEFAULT_DOCKER_REPO
 from drydock.docker.docker        import DockerInstance
@@ -376,6 +378,17 @@ class DockerManager(object):
         new_dir = 'tmp/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         try:
             sh.mkdir('-p', new_dir)
+            uid = pwd.getpwnam("root").pw_uid
+            gid = grp.getgrnam("docker").gr_gid
+            os.chown(new_dir, uid, gid)
+            os.chmod(new_dir, 
+                     stat.S_IRUSR |
+                     stat.S_IWUSR |
+                     stat.S_IXUSR | 
+                     stat.S_IRGRP |
+                     stat.S_IWGRP |
+                     stat.S_IXGRP |
+                     stat.S_IROTH)
         except:
             print "dir already exists"
         return os.path.abspath(new_dir)
@@ -389,6 +402,17 @@ class DockerManager(object):
         new_dir = 'tmp/%s/log_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         try:
             sh.mkdir('-p', new_dir)
+            uid = pwd.getpwnam("root").pw_uid
+            gid = grp.getgrnam("docker").gr_gid
+            os.chown(new_dir, uid, gid)
+            os.chmod(new_dir, 
+                     stat.S_IRUSR |
+                     stat.S_IWUSR |
+                     stat.S_IXUSR | 
+                     stat.S_IRGRP |
+                     stat.S_IWGRP |
+                     stat.S_IXGRP |
+                     stat.S_IROTH)
         except:
             print "dir already exists"
         return os.path.abspath(new_dir)

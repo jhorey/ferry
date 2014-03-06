@@ -1,4 +1,4 @@
-g = TitanFactory.open('/titan/conf/titan.properties');
+g = TitanFactory.open('/service/conf/titan.properties');
 
 size = 100; ids = [g.addVertex().id]; rand = new Random();
 (1..size).each{

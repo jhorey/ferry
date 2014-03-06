@@ -104,6 +104,36 @@ class CassandraInitializer(object):
     def _apply_titan(self, config, cass_entry, cass_containers):
         return self.titan.apply(config, cass_containers, cass_entry)
 
+    def _generate_yaml_config(self, container, seed, host_dir, config):
+        yaml_in_file = open(self.template_dir + '/cassandra.yaml.template', 'r')
+        yaml_out_file = open(host_dir + '/cassandra.yaml', 'w+')
+
+        changes = { "LOCAL_ADDRESS":container['data_ip'], 
+                    "DATA_DIR":config.data_directory,
+                    "CACHE_DIR":config.cache_directory,
+                    "COMMIT_DIR":config.commit_directory,
+                    "SEEDS":seed}
+
+        for line in yaml_in_file:
+            s = Template(line).substitute(changes)
+            yaml_out_file.write(s)
+
+        yaml_out_file.close()
+        yaml_in_file.close()
+
+    def _generate_log4j_config(self, host_dir, config):
+        log4j_in_file = open(self.template_dir + '/log4j-server.properties', 'r')
+        log4j_out_file = open(host_dir + '/log4j-server.properties', 'w+')
+
+        changes = { "LOG_DIR":config.log_directory } 
+
+        for line in log4j_in_file:
+            s = Template(line).substitute(changes)
+            log4j_out_file.write(s)
+
+        log4j_out_file.close()
+        log4j_in_file.close()
+
     """
     Apply the configuration to the instances
     """
@@ -149,47 +179,8 @@ class CassandraInitializer(object):
                                     host_dir + '/*', 
                                     config.config_directory])
 
-                # Write out the bind mounts. This will be used to mount
-                # the directories from the host to the container. This file
-                # is only used in the AWS mode (not the SDK mode). 
-                mounts_file = open(host_dir + '/mounts', 'w+')
-
-                # Assign the data directory. Prefer EBS over instance. 
-                data_directory = '/tmp/cassandra/data'
-                if 'ebs_block'in c:
-                    data_directory = c['ebs_block']
-                elif 'instance_block' in c:
-                    data_directory = c['instance_block']
-
-                # Assign the log directory. Prefer instance over root, but
-                # only if the data isn't using the same instance store. 
-                log_directory = '/tmp/cassandra/logs'
-                if 'instance_block' in c and data_directory != c['instance_block']:
-                    log_directory = c['instance_block']
-
-                mounts_file.write("%s:%s:%s\n" % (c['manage_ip'], config.data_directory, data_directory))
-                mounts_file.write("%s:%s:%s\n" % (c['manage_ip'], config.log_directory, log_directory))
-                
-                # Cassandra is weird because each node will need its own
-                # configuration file (because we must define the local bind address). 
-                yaml_in_file = open(self.template_dir + '/cassandra.yaml.template', 'r')
-                yaml_out_file = open(host_dir + '/cassandra.yaml', 'w+')
-
-                # Now make the changes to the template file. 
-                changes = { "LOCAL_ADDRESS":c['data_ip'], 
-                            "DATA_DIR":config.data_directory,
-                            "CACHE_DIR":config.cache_directory,
-                            "COMMIT_DIR":config.commit_directory,
-                            "SEEDS":seed}
-
-                for line in yaml_in_file:
-                    s = Template(line).substitute(changes)
-                    yaml_out_file.write(s)
-
-                yaml_out_file.close()
-
-            yaml_in_file.close()
-            mounts_file.close()
+                self._generate_yaml_config(c, seed, host_dir, config)
+                self._generate_log4j_config(host_dir, config)
         except IOError as err:
             sys.stderr.write('' + str(err))
 
@@ -205,7 +196,7 @@ class CassandraInitializer(object):
 
 class CassandraConfig(object):
     data_directory = '/service/data/main'
-    log_directory = '/service/data/logs'
+    log_directory = '/service/logs'
     commit_directory = '/service/data/commits'
     cache_directory = '/service/data/cache'
     config_directory = '/service/conf'
