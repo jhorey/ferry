@@ -62,6 +62,7 @@ class Installer(object):
 
         if '-u' in args:
             # We want to re-build all the images. 
+            logging.info("performing forced rebuild")
             self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO )
         else:
             # We want to be selective about which images
