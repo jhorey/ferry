@@ -129,10 +129,13 @@ class OpenMPIInitializer(object):
                     instances_file.write("%s %s\n" % (server['data_ip'], server['host_name']))
                     entry_point['instances'].append([server['data_ip'], server['host_name']])
             else:
+                # This is the MPI client. The instance file only contains the IP
+                # address of the compute nodes (instead of the IP + hostname) so that
+                # MPI will remain happy. 
                 entry_point['ip'] = containers[0]['data_ip']
                 compute = containers[0]['compute'][0]
                 for s in compute['instances']:
-                    instances_file.write("%s %s\n" % (s[0], s[1]))
+                    instances_file.write("%s\n" % s[0])
                 instances_file.close()
 
             self._generate_mca_params(config, new_config_dir)
