@@ -29,9 +29,15 @@ from string import Template
 from subprocess import Popen, PIPE
 from drydock.options import CmdHelp
 
-DRYDOCK_HOME=os.path.dirname(os.path.dirname(__file__)) + '/drydock'
-DEFAULT_IMAGE_DIR= DRYDOCK_HOME + '/dockerfiles'
-DEFAULT_KEY_DIR= DRYDOCK_HOME + '/key'
+def get_drydock_home():
+    if 'DRYDOCK_HOME' in os.environ:
+        return os.environ['DRYDOCK_HOME']
+    else:
+        return os.path.dirname(os.path.dirname(__file__)) + '/drydock'
+
+DRYDOCK_HOME=get_drydock_home()
+DEFAULT_IMAGE_DIR=DRYDOCK_HOME + '/dockerfiles'
+DEFAULT_KEY_DIR=DRYDOCK_HOME + '/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
 # DEFAULT_DOCKER_REPO='%s' % os.environ['USER']
 DEFAULT_DOCKER_REPO='drydock'

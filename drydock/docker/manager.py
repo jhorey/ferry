@@ -26,7 +26,7 @@ import datetime
 import uuid
 import shutil
 from pymongo import MongoClient
-from drydock.install import DRYDOCK_HOME
+from drydock.install import DRYDOCK_HOME, DEFAULT_DOCKER_REPO
 from drydock.docker.docker        import DockerInstance
 from drydock.docker.fabric        import DockerFabric
 from drydock.docker.configfactory import ConfigFactory
@@ -37,15 +37,15 @@ class DockerManager(object):
 
     def __init__(self):
         # Image names
-        self.DOCKER_GLUSTER = os.environ['USER'] + '/gluster'
-        self.DOCKER_HADOOP = os.environ['USER'] + '/hadoop'
-        self.DOCKER_HADOOP_CLIENT = os.environ['USER'] + '/hadoop-client'
-        self.DOCKER_HIVE = os.environ['USER'] + '/hive-metastore'
-        self.DOCKER_CASSANDRA = os.environ['USER'] + '/cassandra'
-        self.DOCKER_CASSANDRA_CLIENT = os.environ['USER'] + '/cassandra-client'
-        self.DOCKER_TITAN = os.environ['USER'] + '/titan'
-        self.DOCKER_MPI = os.environ['USER'] + '/openmpi'
-        self.DOCKER_MPI_CLIENT = os.environ['USER'] + '/openmpi'
+        self.DOCKER_GLUSTER = DEFAULT_DOCKER_REPO + '/gluster'
+        self.DOCKER_HADOOP = DEFAULT_DOCKER_REPO + '/hadoop'
+        self.DOCKER_HADOOP_CLIENT = DEFAULT_DOCKER_REPO + '/hadoop-client'
+        self.DOCKER_HIVE = DEFAULT_DOCKER_REPO + '/hive-metastore'
+        self.DOCKER_CASSANDRA = DEFAULT_DOCKER_REPO + '/cassandra'
+        self.DOCKER_CASSANDRA_CLIENT = DEFAULT_DOCKER_REPO + '/cassandra-client'
+        self.DOCKER_TITAN = DEFAULT_DOCKER_REPO + '/titan'
+        self.DOCKER_MPI = DEFAULT_DOCKER_REPO + '/openmpi'
+        self.DOCKER_MPI_CLIENT = DEFAULT_DOCKER_REPO + '/openmpi'
 
         # Generate configuration.
         self.config = ConfigFactory()

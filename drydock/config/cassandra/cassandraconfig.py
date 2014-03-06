@@ -62,6 +62,12 @@ class CassandraInitializer(object):
     Get the ports necessary. 
     """
     def get_necessary_ports(self, num_instances):
+        return []
+
+    """
+    Get the internal ports. 
+    """
+    def get_exposed_ports(self, num_instances):
         ports = []
         
         ports.append(CassandraConfig.CLUSTER_COM_PORT)
@@ -71,12 +77,6 @@ class CassandraInitializer(object):
         ports.append(CassandraConfig.JMX_PORT)
 
         return ports
-
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
-        return []
 
     """
     Get total number of instances.

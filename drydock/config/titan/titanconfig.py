@@ -52,16 +52,15 @@ class TitanInitializer(object):
     Get the ports necessary. 
     """
     def get_necessary_ports(self, num_instances):
-        return [TitanConfig.REXSTER_PORT, 
-                TitanConfig.REXPRO_PORT, 
-                TitanConfig.THRIFT_COM_PORT,
-                TitanConfig.NATIVE_COM_PORT]
-
+        return []
     """
     Get the internal ports. 
     """
     def get_exposed_ports(self, num_instances):
-        return []
+        return [TitanConfig.REXSTER_PORT, 
+                TitanConfig.REXPRO_PORT, 
+                TitanConfig.THRIFT_COM_PORT,
+                TitanConfig.NATIVE_COM_PORT]
 
     """
     Generate a new configuration

@@ -14,7 +14,10 @@ RUN wget http://mirrors.ibiblio.org/apache/cassandra/2.0.5/apache-cassandra-2.0.
 RUN ln -s /service/package/apache-cassandra-2.0.5/bin /service;ln -s /service/package/apache-cassandra-2.0.5/conf /service
 
 # Environment variables.
-RUN echo export CASSANDRA_HOME=/service/packages/apache-cassandra-2.0.5 >> /etc/profile
+RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile
+RUN echo export CASSANDRA_HOME=/service/package/apache-cassandra-2.0.5 >> /etc/profile
+RUN echo export CASSANDRA_CONF=/service/conf >> /etc/profile
+RUN echo export CASSANDRA_INCLUDE=/service/bin/cassandra.in.sh >> /etc/profile
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
