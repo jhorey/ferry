@@ -38,7 +38,7 @@ class HadoopInitializer(object):
         self.hive_client = HiveClientInitializer()
         self.hive_ms = MetaStoreInitializer()
         self.hive_client.template_dir = DRYDOCK_HOME + '/templates/hive-metastore/'
-        self.hive_ms.template_dir = DRYDOCK_HOME + 'templates/hive-metastore/'
+        self.hive_ms.template_dir = DRYDOCK_HOME + '/templates/hive-metastore/'
 
     """
     Generate a new hostname
@@ -130,9 +130,6 @@ class HadoopInitializer(object):
             instances.append('hive')
 
         return instances
-
-    def get_num_instances(self, num_instances):
-        return num_instances + 1
 
     """
     Generate a new configuration
@@ -418,7 +415,6 @@ class HadoopInitializer(object):
         # First configure the metastore service
         ms_config = MetaStoreConfig(1)
         ms_config.uuid = config.uuid
-        ms_config.namenode = hadoop_entry['hdfs']
         ms_config.hadoop_dirs = hadoop_dirs
         ms_dirs, ms_entry = self._apply_hive_metastore(ms_config, hive_containers)
 
@@ -428,7 +424,6 @@ class HadoopInitializer(object):
         hive_config.uuid = config.uuid
         hive_config.hadoop_config_dir = config.config_directory
         hive_config.metastore = ms_entry['db']
-        hive_config.namenode = hadoop_entry['hdfs']
         hive_dirs, hive_entry = self._apply_hive_client(hive_config, hadoop_containers)
         hive_dirs.extend(ms_dirs)
         return hive_dirs, hive_config

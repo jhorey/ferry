@@ -73,8 +73,7 @@ class HiveClientInitializer(object):
         in_file = open(self.template_dir + '/hive-site.xml.template', 'r')
         out_file = open(new_config_dir + '/hive-site.xml', 'w+')
         
-        changes = { "DB":config.metastore,
-                    "HDFS_MASTER":config.namenode }
+        changes = { "DB":config.metastore }
         for line in in_file:
             s = Template(line).substitute(changes)
             out_file.write(s)
@@ -118,5 +117,4 @@ class HiveClientConfig(object):
         self.num = num
         self.config_directory = '/service/packages/hive/conf'
         self.hadoop_config_dir = None
-        self.namenode = None
         self.metastore = None

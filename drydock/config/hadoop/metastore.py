@@ -111,8 +111,7 @@ class MetaStoreInitializer(object):
         in_file = open(self.template_dir + '/hive-site.xml.template', 'r')
         out_file = open(new_config_dir + '/hive-site.xml', 'w+')
         
-        changes = { "DB":entry_point['db'],
-                    "HDFS_MASTER":config.namenode }
+        changes = { "DB":entry_point['db'] }
         for line in in_file:
             s = Template(line).substitute(changes)
             out_file.write(s)
@@ -190,5 +189,4 @@ class MetaStoreConfig(object):
         self.num = num
         self.system_info = None
         self.hadoop_dirs = None
-        self.namenode = None
         self.metastore = None

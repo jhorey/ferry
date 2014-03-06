@@ -130,10 +130,15 @@ def _allocate_fresh_compute(computes, storage_uuid):
         if 'args' in c:
             args = c['args']
 
+        layers = []
+        if 'layers' in c:
+            layers = c['layers']
+
         compute_uuid = docker.allocate_compute(compute_type = compute_type,
                                                storage_uuid = storage_uuid, 
                                                args = args, 
-                                               num_instances = num_instances)
+                                               num_instances = num_instances,
+                                               layers = layers)
         uuids.append(compute_uuid)
     return uuids
 

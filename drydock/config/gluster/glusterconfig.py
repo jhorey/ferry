@@ -72,6 +72,12 @@ class GlusterInitializer(object):
     Get the ports necessary for Gluster. 
     """
     def get_necessary_ports(self, num_instances):
+        return []
+
+    """
+    Get the internal ports. 
+    """
+    def get_exposed_ports(self, num_instances):
         ports = []
         
         ports.append(GlusterConfig.MANAGEMENT_PORT)
@@ -79,12 +85,6 @@ class GlusterInitializer(object):
             ports.append(GlusterConfig.BRICK_PORT + i)
 
         return ports
-
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
-        return []
 
     """
     Get total number of instances.

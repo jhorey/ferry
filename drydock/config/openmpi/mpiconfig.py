@@ -67,6 +67,14 @@ class OpenMPIInitializer(object):
         OOB_PORTS = '%s-%s' % (MPIConfig.OOB_PORT_MIN, OOB_PORT_END)
         return [BTL_PORTS, OOB_PORTS]
 
+    def get_total_instances(self, num_instances, layers):
+        instances = []
+
+        for i in range(num_instances):
+            instances.append('mpi')
+
+        return instances
+
     """
     Generate a new configuration
     Param num Number of instances that need to be configured

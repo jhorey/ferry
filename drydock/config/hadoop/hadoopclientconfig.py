@@ -187,11 +187,15 @@ class HadoopClientInitializer(object):
 
         if compute:
             config.yarn_master = compute['yarn']
+            if 'db' in compute:
+                config.hive_meta = compute['db']                
         else:
             # Use the storage backend for the YARN info. However, first
             # check if the storage is compatible.
             if 'yarn' in storage:
                 config.yarn_master = storage['yarn']
+            if 'db' in storage:
+                config.hive_meta = storage['db']
 
         # Check what sort of storage we are using.
         entry_point['storage_type'] = storage['type']
@@ -227,11 +231,11 @@ class HadoopClientInitializer(object):
                                 config.config_directory])
 
         # Now configure the Hive client.
-        if 'db' in storage:
+        if config.hive_meta:
             hive_config = HiveClientConfig(1)
             hive_config.uuid = config.uuid
             hive_config.hadoop_config_dir = config.config_directory
-            hive_config.metastore = storage['db']
+            hive_config.metastore = config.hive_meta
             hive_dirs, hive_entry = self._apply_hive_client(hive_config, containers)
             config_dirs.extend(hive_dirs)
 
@@ -249,3 +253,4 @@ class HadoopClientConfig(object):
         self.system_info = None
         self.yarn_master = None
         self.hdfs_master = None
+        self.hive_meta = None

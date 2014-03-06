@@ -24,6 +24,7 @@ import os.path
 import pwd
 import sh
 import shutil
+import stat
 import sys
 import time
 import uuid
@@ -381,14 +382,7 @@ class DockerManager(object):
             uid = pwd.getpwnam("root").pw_uid
             gid = grp.getgrnam("docker").gr_gid
             os.chown(new_dir, uid, gid)
-            os.chmod(new_dir, 
-                     stat.S_IRUSR |
-                     stat.S_IWUSR |
-                     stat.S_IXUSR | 
-                     stat.S_IRGRP |
-                     stat.S_IWGRP |
-                     stat.S_IXGRP |
-                     stat.S_IROTH)
+            os.chmod(new_dir, 0774)
         except:
             print "dir already exists"
         return os.path.abspath(new_dir)
@@ -405,14 +399,7 @@ class DockerManager(object):
             uid = pwd.getpwnam("root").pw_uid
             gid = grp.getgrnam("docker").gr_gid
             os.chown(new_dir, uid, gid)
-            os.chmod(new_dir, 
-                     stat.S_IRUSR |
-                     stat.S_IWUSR |
-                     stat.S_IXUSR | 
-                     stat.S_IRGRP |
-                     stat.S_IWGRP |
-                     stat.S_IXGRP |
-                     stat.S_IROTH)
+            os.chmod(new_dir, 0774)
         except:
             print "dir already exists"
         return os.path.abspath(new_dir)
@@ -488,6 +475,7 @@ class DockerManager(object):
                                      service_uuid, 
                                      num_instances, 
                                      compute_type,
+                                     layers, 
                                      args = None):
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
@@ -498,23 +486,26 @@ class DockerManager(object):
 
         # Get the actual number of containers needed. 
         if compute_type == 'yarn':
-            num_instances = self.config.yarn.get_num_instances(num_instances)
+            instances = self.config.yarn.get_total_instances(num_instances, layers)
+        elif compute_type == 'mpi':
+            instances = self.config.mpi.get_total_instances(num_instances, layers)
 
-        for i in range(num_instances):
-            instance_type = self._get_instance_image(compute_type)
-            service = self._get_service(compute_type)
+        i = 0
+        for t in instances:
+            instance_type = self._get_instance_image(t)
+            service = self._get_service(t)
             container_dir, log_dir, host_name, ports, exposed = self._get_service_environment(service, i, num_instances)
-            new_log_dir = self._new_log_dir(service_uuid, compute_type, i)
+            new_log_dir = self._new_log_dir(service_uuid, t, i)
             dir_info = { new_log_dir : log_dir }
             container_info = {'image':instance_type,
                               'volumes':dir_info,
-                              'type':compute_type, 
+                              'type':t, 
                               'ports':ports,
                               'exposed':exposed, 
                               'hostname':host_name,
                               'args':args}
             plan['localhost']['containers'].append(container_info)
-
+            i += 1
         return plan
 
     """
@@ -755,14 +746,15 @@ class DockerManager(object):
                          compute_type, 
                          storage_uuid,
                          args, 
-                         num_instances=1):
+                         num_instances=1,
+                         layers=[]):
         # Allocate a UUID.
         service_uuid = self._new_service_uuid()
         service = self._get_service(compute_type)
 
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
-        plan = self._prepare_compute_environment(service_uuid, num_instances, compute_type, args)
+        plan = self._prepare_compute_environment(service_uuid, num_instances, compute_type, layers, args)
 
         # Get the entry point for the storage layer. 
         storage_entry = self._get_service_configuration(storage_uuid)
