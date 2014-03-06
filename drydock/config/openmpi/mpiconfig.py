@@ -150,7 +150,7 @@ class MPIConfig(object):
     log_directory = '/service/logs'
     config_directory = '/usr/local/etc/'
 
-    BTL_PORT_MIN = 1000
+    BTL_PORT_MIN = 2000
     OOB_PORT_MIN = 6000
     PORT_RANGE = 4
 
