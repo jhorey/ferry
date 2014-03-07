@@ -148,7 +148,7 @@ class DockerManager(object):
         elif service_type == 'mpi-client':
             service = self.config.mpi_client
         else:
-            print "unknown service: " + service_type
+            logging.error("unknown service " + service_type)
         return service
 
     """
@@ -384,7 +384,7 @@ class DockerManager(object):
             os.chown(new_dir, uid, gid)
             os.chmod(new_dir, 0774)
         except:
-            print "dir already exists"
+            logging.warning(new_dir +  " already exists")
         return os.path.abspath(new_dir)
 
     """
@@ -401,7 +401,7 @@ class DockerManager(object):
             os.chown(new_dir, uid, gid)
             os.chmod(new_dir, 0774)
         except:
-            print "dir already exists"
+            logging.warning(new_dir + " already exists")
         return os.path.abspath(new_dir)
 
     def _get_service_environment(self,

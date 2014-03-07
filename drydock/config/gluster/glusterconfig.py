@@ -118,7 +118,7 @@ class GlusterInitializer(object):
         try:
             sh.mkdir('-p', new_config_dir)
         except:
-            print "dir already exists"
+            logging.warning("gluster " + new_config_dir + " already exists")
 
         # Choose one of the instances as the "head" node. 
         # The head node is special since it "runs" the installation. 
@@ -169,9 +169,8 @@ class GlusterInitializer(object):
                      stat.S_IWGRP |
                      stat.S_IXGRP |
                      stat.S_IROTH)
-
-        except IOError as err:
-            print 'Could not configure', err
+        except IOError as e:
+            logging.error(e.explanation)
 
         # We need to assign a configuration to each container. 
         config_dirs = []
