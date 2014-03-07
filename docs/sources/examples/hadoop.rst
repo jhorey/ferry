@@ -1,6 +1,6 @@
 :title: Hadoop example
 :description: A simple example using Hadoop
-:keywords: drydock, example, hadoop
+:keywords: ferry, example, hadoop
 
 .. _hadoop:
 
@@ -45,16 +45,16 @@ Now that we've defined our stack, let's start it up. Just type the following in 
 
 .. code-block:: bash
 
-   $ drydock start hadoop
+   $ ferry start hadoop
    sa-0
 
-   $ drydock ps
+   $ ferry ps
    UUID Storage  Compute  Connectors  Status   Base  Time
    ---- ------- --------- ---------- ------- ------- ----
    sa-0    se-0 [u'se-1']       se-2 running hadoop    --
 
 The entire process should take about 20 seconds. Before we continue, let's take a step back to 
-examine what just happened. After typing ``start``, ``drydock`` created the following Docker
+examine what just happened. After typing ``start``, ``ferry`` created the following Docker
 containers:
 
 - Two Hadoop data/yarn nodes
@@ -63,7 +63,7 @@ containers:
 - A Hive metadata server
 - A Linux client
 
-For those that already run ``docker`` for other reasons, don't worry, ``drydock`` uses a 
+For those that already run ``docker`` for other reasons, don't worry, ``ferry`` uses a 
 separate Docker daemon so that you're environment is left unaffected. 
 
 Now that the environment is created, let's interact with it by connecting to the Linux client. 
@@ -80,11 +80,11 @@ this is all being run from the connector.
    BACKEND_STORAGE_IP=10.1.0.3
 
 Now let's actually run some Hadoop jobs to confirm that everything is working. We're going 
-download a dataset from internet. We want to do this as the ``drydock`` user (as opposed to ``root``). 
+download a dataset from internet. We want to do this as the ``ferry`` user (as opposed to ``root``). 
 
 .. code-block:: bash
 
-    $ su drydock
+    $ su ferry
     $ wget http://files.grouplens.org/datasets/movielens/ml-100k/u.data -P /tmp/movielens/
 
 Then we're going to copy that dataset into the Hadoop filesystem. This is a necessary pre-condition
@@ -159,7 +159,7 @@ Events and customization
 ------------------------
 
 Connectors are customized using scripts that reside under ``/service/runscripts``. You should see a set of
-directories, one for each type of ``event`` that Drydock produces. For example, the ``start`` directory contains
+directories, one for each type of ``event`` that Ferry produces. For example, the ``start`` directory contains
 scripts that are executed when the connector is first started. Likewise, there are events for:
 
 - ``start``: triggered when the connector is first started
@@ -177,15 +177,15 @@ progress. You can do this by typing:
 
 .. code-block:: bash
 
-   $ drydock snapshot sa-0
+   $ ferry snapshot sa-0
      sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
 
-   $ drydock snapshots
+   $ ferry snapshots
                         UUID                      Base          Date
      -------------------------------------------- ------ --------------------
      sn-sa-4-81a67d8e-b75b-4919-9a65-50554d183b83 hadoop 02/5/2014 (02:02 PM)   
 
-   $ drydock start sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
+   $ ferry start sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
      sa-1
 
 This will produce a ``snapshot`` that you can restart later. You can create as many snapshots as you want. 
@@ -198,7 +198,7 @@ More resources
 Most of these examples can also be found in the ``hadoop-client`` connector. Just navigate to ``/service/runscripts/test``
 and you'll find a couple scripts that basically do what we just documented. 
 
-Hadoop is fairly complicated with many moving pieces and libraries. Hopefully ``drydock`` will make it easier
+Hadoop is fairly complicated with many moving pieces and libraries. Hopefully ``ferry`` will make it easier
 for you to get started. Once you're comfortable with these examples, here are some additional resources to 
 learn more. 
 

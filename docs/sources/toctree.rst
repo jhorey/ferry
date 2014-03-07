@@ -1,6 +1,6 @@
 :title: Documentation
-:description: Drydock documentation
-:keywords: drydock, documentation
+:description: Ferry documentation
+:keywords: ferry, documentation
 
 Documentation
 =============

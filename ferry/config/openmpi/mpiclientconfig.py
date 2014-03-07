@@ -17,7 +17,7 @@ import logging
 import sh
 import sys
 from string import Template
-from drydock.config.openmpi.mpiconfig import *
+from ferry.config.openmpi.mpiconfig import *
 
 class OpenMPIClientInitializer(object):
     """

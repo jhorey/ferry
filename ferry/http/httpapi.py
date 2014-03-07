@@ -16,7 +16,7 @@
 import json
 import logging
 from flask import Flask, request
-from drydock.docker.manager import DockerManager
+from ferry.docker.manager import DockerManager
 
 # Initialize logging
 logging.basicConfig(format='%(asctime)s %(message)s', 

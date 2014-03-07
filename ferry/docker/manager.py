@@ -29,11 +29,11 @@ import sys
 import time
 import uuid
 from pymongo import MongoClient
-from drydock.install import DRYDOCK_HOME, DEFAULT_DOCKER_REPO
-from drydock.docker.docker        import DockerInstance
-from drydock.docker.fabric        import DockerFabric
-from drydock.docker.configfactory import ConfigFactory
-from drydock.docker.deploy        import DeployEngine
+from ferry.install import FERRY_HOME, DEFAULT_DOCKER_REPO
+from ferry.docker.docker        import DockerInstance
+from ferry.docker.fabric        import DockerFabric
+from ferry.docker.configfactory import ConfigFactory
+from ferry.docker.deploy        import DeployEngine
 
 class DockerManager(object):
     SSH_PORT = 22
@@ -852,7 +852,7 @@ class DockerManager(object):
     Get the default deployment conf file. 
     """
     def _get_default_conf(self):        
-        return DRYDOCK_HOME + '/conf/deploy_default.json'
+        return FERRY_HOME + '/conf/deploy_default.json'
 
     """
     Get the deployment configuration parameters. 

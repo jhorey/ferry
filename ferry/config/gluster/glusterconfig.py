@@ -18,7 +18,7 @@ import os
 import stat
 import logging
 from string import Template
-from drydock.docker.fabric import DockerFabric
+from ferry.docker.fabric import DockerFabric
 
 """
 Create Gluster configurations and apply them to a set of instances

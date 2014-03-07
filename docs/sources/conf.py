@@ -51,7 +51,7 @@ html_add_permalinks = u'¶'
 master_doc = 'toctree'
 
 # General information about the project.
-project = u'Drydock'
+project = u'Ferry'
 copyright = u'2014 OpenCore LLC'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -102,7 +102,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'drydock'
+html_theme = 'ferry'
 # html_theme = 'nature'
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -176,7 +176,7 @@ html_show_copyright = True
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Drydockdoc'
+htmlhelp_basename = 'Ferrydoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------

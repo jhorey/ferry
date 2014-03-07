@@ -1,6 +1,6 @@
-:title: Drydock Reference
-:description: Reference Drydock commands
-:keywords: drydock, reference
+:title: Ferry Reference
+:description: Reference Ferry commands
+:keywords: ferry, reference
 
 .. _reference:
 

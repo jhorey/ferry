@@ -25,13 +25,13 @@ def find_data_files(dir_path):
     all_files = {}
     for root, dirs, files in os.walk(dir_path):
         for f in files:
-            key = 'drydock/' + root
+            key = 'ferry/' + root
             if not key in all_files:
                 all_files[key] = []
             all_files[key].append(root + os.sep + f)
     return all_files
 
-def find_drydock_data_files():
+def find_ferry_data_files():
     tuples = []
 
     tuples.extend(find_data_files('key').items())
@@ -46,20 +46,20 @@ with open('requirements.txt') as f:
     install_requires = f.read().splitlines()
 
 setup(
-    name='drydock',
-    version=find_version("drydock", "__init__.py"),
+    name='ferry',
+    version=find_version("ferry", "__init__.py"),
     description=('Big data development environments using Docker'),
-    url='http://drydock.opencore.io',
+    url='http://ferry.opencore.io',
     author='OpenCore LLC',
     author_email='jlh@opencore.io',
     license='Apache License 2.0',
     packages=find_packages(),
     include_package_data=True,
     install_requires=install_requires,
-    scripts=['docker/docker-drydock'], 
-    data_files=find_drydock_data_files(),
+    scripts=['docker/docker-ferry'], 
+    data_files=find_ferry_data_files(),
     entry_points="""
     [console_scripts]
-    drydock=drydock.cli.cli:main
+    ferry=ferry.cli.cli:main
     """
 )

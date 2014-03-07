@@ -17,7 +17,7 @@ import gevent
 from gevent import monkey;  monkey.patch_all()
 import logging
 from subprocess import Popen, PIPE
-from drydock.docker.docker import DockerCLI
+from ferry.docker.docker import DockerCLI
 
 """
 Allocate local docker instances

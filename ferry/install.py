@@ -27,24 +27,24 @@ import time
 from distutils import spawn
 from string import Template
 from subprocess import Popen, PIPE
-from drydock.options import CmdHelp
+from ferry.options import CmdHelp
 
-def get_drydock_home():
-    if 'DRYDOCK_HOME' in os.environ:
-        return os.environ['DRYDOCK_HOME']
+def get_ferry_home():
+    if 'FERRY_HOME' in os.environ:
+        return os.environ['FERRY_HOME']
     else:
-        return os.path.dirname(os.path.dirname(__file__)) + '/drydock'
+        return os.path.dirname(os.path.dirname(__file__)) + '/ferry'
 
-DRYDOCK_HOME=get_drydock_home()
-DEFAULT_IMAGE_DIR=DRYDOCK_HOME + '/dockerfiles'
-DEFAULT_KEY_DIR=DRYDOCK_HOME + '/key'
+FERRY_HOME=get_ferry_home()
+DEFAULT_IMAGE_DIR=FERRY_HOME + '/dockerfiles'
+DEFAULT_KEY_DIR=FERRY_HOME + '/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
 # DEFAULT_DOCKER_REPO='%s' % os.environ['USER']
 DEFAULT_DOCKER_REPO='drydock'
-DOCKER_CMD='docker-drydock'
-DOCKER_SOCK='unix:////var/run/drydock.sock'
+DOCKER_CMD='docker-ferry'
+DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_DIR='/var/lib/drydock'
-DOCKER_PID='/var/run/drydock.pid'
+DOCKER_PID='/var/run/ferry.pid'
 DEFAULT_MONGO_DB='/var/lib/drydock/mongo'
 DEFAULT_MONGO_LOG='/var/lib/drydock/mongolog'
 DEFAULT_REGISTRY_DB='/var/lib/drydock/registry'
@@ -87,7 +87,7 @@ class Installer(object):
                 os.makedirs(DEFAULT_MONGO_LOG)
                 self._change_permission(DEFAULT_MONGO_LOG)
         except OSError as e:
-            logging.error("Could not start drydock servers.\n") 
+            logging.error("Could not start ferry servers.\n") 
             logging.error(e.explanation)
             sys.exit(1)
 
@@ -101,10 +101,10 @@ class Installer(object):
         child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         output = child.stderr.read().strip()
         if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(output):
-            logging.error("Drydock docker daemon does not appear to be running")
+            logging.error("Ferry docker daemon does not appear to be running")
             sys.exit(1)
         elif re.compile('Unable to find image[\'\s\w]*').match(output):
-            logging.error("Drydock mongo image not present")
+            logging.error("Ferry mongo image not present")
             sys.exit(1)
 
         # Need to get Mongo connection info and store in temp file. 
@@ -123,7 +123,7 @@ class Installer(object):
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)
-        cmd = 'gunicorn -e DRYDOCK_HOME=%s -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 drydock.http.httpapi:app &' % DRYDOCK_HOME
+        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def stop_web(self):
@@ -196,7 +196,7 @@ class Installer(object):
                     build_images.append(image_name)
             return build_images
         else:
-            logging.error("drydock daemon not started")
+            logging.error("ferry daemon not started")
 
     """
     Build the docker images
@@ -219,7 +219,7 @@ class Installer(object):
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
         else:
-            logging.error("drydock daemon not started")
+            logging.error("ferry daemon not started")
 
     """
     Build the docker images
@@ -236,10 +236,10 @@ class Installer(object):
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
         else:
-            logging.error("drydock daemon not started")
+            logging.error("ferry daemon not started")
 
     def _docker_running(self):
-        return os.path.exists('/var/run/drydock.sock')
+        return os.path.exists('/var/run/ferry.sock')
 
     def _check_dockerfile(self, dockerfile, repo):
         image = self._get_image(dockerfile)
@@ -340,9 +340,9 @@ class Installer(object):
     def _stop_docker_daemon(self):
         if self._docker_running():
             logging.warning("stopping docker daemon")
-            cmd = 'pkill -f drydock'
+            cmd = 'pkill -f ferry'
             Popen(cmd, stdout=PIPE, shell=True)
-            os.remove('/var/run/drydock.sock')
+            os.remove('/var/run/ferry.sock')
 
     def _touch_file(self, file_name, content):
         f = open(file_name, 'w+')

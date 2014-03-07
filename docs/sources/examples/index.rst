@@ -1,6 +1,6 @@
-:title: Drydock Examples
-:description: Examples running Drydock
-:keywords: drydock, examples
+:title: Ferry Examples
+:description: Examples running Ferry
+:keywords: ferry, examples
 
 .. _examples:
 

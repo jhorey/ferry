@@ -1,13 +1,13 @@
-:title: Drydock Basics
+:title: Ferry Basics
 :description: Basic examples
-:keywords: drydock, examples
+:keywords: ferry, examples
 
 .. _basics:
 
 Quick start
 ===========
 
-Let's get a basic Hadoop cluster up and running using Drydock. First you'll need to 
+Let's get a basic Hadoop cluster up and running using Ferry. First you'll need to 
 install Docker. If you're running the latest version of Ubuntu, it's fairly straightforward. 
 
 .. code-block:: bash
@@ -18,29 +18,29 @@ install Docker. If you're running the latest version of Ubuntu, it's fairly stra
     $ sudo apt-get install lxc-docker
 
 You'll also want to create a new group called ``docker`` to simplify interacting with Docker and
-Drydock as a non-root user. There are more detailed instructions on the Docker_ homepage. 
+Ferry as a non-root user. There are more detailed instructions on the Docker_ homepage. 
 
 .. _Docker: http://docs.docker.io/en/latest/installation/
 
-Next you'll want to install Drydock. 
+Next you'll want to install Ferry. 
 
 .. code-block:: bash
 
-    $ sudo pip install -U drydock
+    $ sudo pip install -U ferry
 
-Now you'll want to start the ``drydock`` daemon by typing:
+Now you'll want to start the ``ferry`` daemon by typing:
 
 .. code-block:: bash
 
-    $ sudo drydock -d
+    $ sudo ferry -d
 
-Once the daemon is running, you'll need to build the various Drydock images.
+Once the daemon is running, you'll need to build the various Ferry images.
 These images contain the actual logic for running Hadoop, Cassandra, etc. Now as
 either using ``sudo`` or as a ``docker`` user, in a separate terminal type:
 
 .. code-block:: bash
 
-    $ drydock -i
+    $ ferry -i
 
 This will automatically build everything you need. This may take a while, so
 sit back and relax. 

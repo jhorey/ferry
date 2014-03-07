@@ -12,9 +12,9 @@ ALLSPHINXOPTS = -d $(BUILDDIR)/doctrees $(SPHINXOPTS) sources
 clean:
 	-rm -rf $(BUILDDIR)/*
 image:
-	$(DOCKER) build -t $(USER)/drydock-doc .
+	$(DOCKER) build -t $(USER)/ferry-doc .
 run:
-	$(DOCKER) run -d -v ./:/docs $(USER)/drydock-doc
+	$(DOCKER) run -d -v ./:/docs $(USER)/ferry-doc
 docs:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo

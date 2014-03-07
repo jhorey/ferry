@@ -17,9 +17,9 @@ import os
 import sys
 import sh
 from string import Template
-from drydock.install import DRYDOCK_HOME
-from drydock.docker.fabric import DockerFabric
-from drydock.config.hadoop.hiveconfig import *
+from ferry.install import FERRY_HOME
+from ferry.docker.fabric import DockerFabric
+from ferry.config.hadoop.hiveconfig import *
 
 class HadoopClientInitializer(object):
     """
@@ -31,7 +31,7 @@ class HadoopClientInitializer(object):
         self.template_repo = None
 
         self.hive_client = HiveClientInitializer()
-        self.hive_client.template_dir = DRYDOCK_HOME + '/templates/hive-metastore/'
+        self.hive_client.template_dir = FERRY_HOME + '/templates/hive-metastore/'
 
         self.container_data_dir = None
         self.container_log_dir = HadoopClientConfig.log_directory

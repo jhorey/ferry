@@ -1,4 +1,4 @@
-Drydock documentation
+Ferry documentation
 =====================
 
 Overview
@@ -23,11 +23,11 @@ you'll want to create the image:
 ```bash
 make image
 
-This will create an image called $USER/drydock-doc. Next you'll want to generate
+This will create an image called $USER/ferry-doc. Next you'll want to generate
 the documentation and start the HTML server. 
 
 ```bash
-docker run -d -v ./:/docs $USER/drydock-doc
+docker run -d -v ./:/docs $USER/ferry-doc
 # Or equivalently
 make run
 

@@ -16,7 +16,7 @@
 import sys
 import sh
 from string import Template
-from drydock.docker.fabric import DockerFabric
+from ferry.docker.fabric import DockerFabric
 
 class CassandraClientInitializer(object):
     """

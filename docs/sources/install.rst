@@ -1,11 +1,11 @@
-:title: Drydock Installation
-:description: Installing Drydock on your local machine
-:keywords: drydock, installation
+:title: Ferry Installation
+:description: Installing Ferry on your local machine
+:keywords: ferry, installation
 
 Install
 =======
 
-Drydock is written in Python and available via ``pip``, but before we can run some
+Ferry is written in Python and available via ``pip``, but before we can run some
 applications, we'll need to install a few prerequisites. First you'll need to install Docker. 
 If you're running the latest version of Ubuntu, it's fairly straightforward. 
 
@@ -22,53 +22,53 @@ the Docker_ homepage for more detailed instructions.
 .. _Docker: http://docs.docker.io/en/latest/installation/
 
 After installing Docker, you'll want to create a new group called ``docker`` to simplify interacting with Docker and
-Drydock as a non-root user. 
+Ferry as a non-root user. 
 
 .. code-block:: bash
 
     $ sudo groupadd docker
     $ sudo usermod -a -G docker $USER
 
-Make sure that Docker is running before installing the rest of Drydock. You can do that by typing in your terminal: 
+Make sure that Docker is running before installing the rest of Ferry. You can do that by typing in your terminal: 
 
 .. code-block:: bash
 
     $ sudo service docker start
     $ docker info
 
-You should see some versioning information printed to the screen. Next you'll want to install Drydock. 
+You should see some versioning information printed to the screen. Next you'll want to install Ferry. 
 You can do this via ``pip``. 
 
 .. code-block:: bash
 
-    $ sudo pip install -U drydock
+    $ sudo pip install -U ferry
 
-If you don't have ``pip`` installed, you can also clone Drydock from the GitHub repo and manually
-install the packages (look for ``setup.py``). After installing Drydock, check if everything is working 
-and start the ``drydock`` daemon by typing:
+If you don't have ``pip`` installed, you can also clone Ferry from the GitHub repo and manually
+install the packages (look for ``setup.py``). After installing Ferry, check if everything is working 
+and start the ``ferry`` daemon by typing:
 
 .. code-block:: bash
 
-    $ drydock info
-    $ sudo drydock -d
+    $ ferry info
+    $ sudo ferry -d
 
-Once the daemon is running, you'll need to build the various Drydock images.
+Once the daemon is running, you'll need to build the various Ferry images.
 These images contain the actual logic for running Hadoop, Cassandra, etc. Now as
 either using ``sudo`` or as a ``docker`` user, in a separate terminal type:
 
 .. code-block:: bash
 
-    $ drydock -i
+    $ ferry -i
 
 This will prompt you for your public keys. This ensures that only you will be able
 to ``ssh`` into the containers. If you don't specify a directory containing your public
 key, default keys will be used so that you can still interact with your containers.
 
-Afterwards all the Drydock images will automatically build. This 
+Afterwards all the Ferry images will automatically build. This 
 may take a while, so sit back and relax. 
 
-Once Drydock is installed you'll want to head over to the Getting Started documents. 
-Currently Drydock supports the following backends:
+Once Ferry is installed you'll want to head over to the Getting Started documents. 
+Currently Ferry supports the following backends:
 
 - :ref:`Hadoop <hadoop>` (version 2.3.0) with Hive (version 0.12)
 - :ref:`Cassandra <cassandra>` (version 2.0.5)

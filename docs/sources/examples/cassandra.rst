@@ -1,6 +1,6 @@
 :title: Cassandra example
 :description: A simple example using Cassandra
-:keywords: drydock, example, cassandra
+:keywords: ferry, example, cassandra
 
 .. _cassandra:
 
@@ -50,16 +50,16 @@ Now that we've defined our stack, let's start it up. Just type the following in 
 
 .. code-block:: bash
 
-   $ drydock start cassandra
+   $ ferry start cassandra
    sa-0
 
-   $ drydock ps
+   $ ferry ps
    UUID Storage  Compute  Connectors  Status   Base  Time
    ---- ------- --------- ---------- ------- ------- ----
    sa-0    se-0 [u'se-1']       se-2 running cassandra --
 
 The entire process should take about 20 seconds. Before we continue, let's take a step back to 
-examine what just happened. After typing ``start``, ``drydock`` created the following Docker
+examine what just happened. After typing ``start``, ``ferry`` created the following Docker
 containers:
 
 - Two Cassandra data nodes
@@ -107,7 +107,7 @@ Events and customization
 ------------------------
 
 Connectors are customized using scripts that reside under ``/service/runscripts``. You should see a set of
-directories, one for each type of ``event`` that Drydock produces. For example, the ``start`` directory contains
+directories, one for each type of ``event`` that Ferry produces. For example, the ``start`` directory contains
 scripts that are executed when the connector is first started. Likewise, there are events for:
 
 - ``start``: triggered when the connector is first started
@@ -125,15 +125,15 @@ progress. You can do this by typing:
 
 .. code-block:: bash
 
-   $ drydock snapshot sa-0
+   $ ferry snapshot sa-0
      sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
 
-   $ drydock snapshots
+   $ ferry snapshots
                         UUID                      Base          Date
      -------------------------------------------- ------ --------------------
      sn-sa-4-81a67d8e-b75b-4919-9a65-50554d183b83 cassandra 02/5/2014 (02:02 PM)   
 
-   $ drydock start sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
+   $ ferry start sn-sa-0-81a67d8e-b75b-4919-9a65-50554d183b83
      sa-1
 
 This will produce a ``snapshot`` that you can restart later. You can create as many snapshots as you want. 

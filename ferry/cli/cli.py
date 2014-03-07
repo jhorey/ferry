@@ -21,15 +21,15 @@ import requests
 import re
 from subprocess import Popen, PIPE
 from astropy.io import ascii
-from drydock.options import CmdHelp
-from drydock.install import Installer, DRYDOCK_HOME
+from ferry.options import CmdHelp
+from ferry.install import Installer, FERRY_HOME
 
 class CLI(object):
     def __init__(self):
         self.cmds = CmdHelp()
         self.cmds.description = "Development environment for big data applications"
         self.cmds.version = "0.1"
-        self.cmds.usage = "drydock COMMAND [arg...]"
+        self.cmds.usage = "ferry COMMAND [arg...]"
         self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
         self.cmds.add_cmd("server", "Start all the servers")
@@ -37,7 +37,7 @@ class CLI(object):
         self.cmds.add_cmd("help", "Print this help message")
         self.cmds.add_cmd("info", "Print version information")
         self.cmds.add_cmd("inspect", "Return low-level information on a service")
-        self.cmds.add_cmd("install", "Install all the Drydock images")
+        self.cmds.add_cmd("install", "Install all the Ferry images")
         self.cmds.add_cmd("logs", "Copy over the logs to the host")
         self.cmds.add_cmd("ps", "List deployed and running services")
         self.cmds.add_cmd("rm", "Remove a service or snapshot")
@@ -46,9 +46,9 @@ class CLI(object):
         self.cmds.add_cmd("ssh", "Connect to a client/connector")
         self.cmds.add_cmd("start", "Start a new service or snapshot")
         self.cmds.add_cmd("stop", "Stop a running service")
-        self.cmds.add_cmd("quit", "Stop the Drydock servers")
+        self.cmds.add_cmd("quit", "Stop the Ferry servers")
 
-        self.drydock_server = 'http://127.0.0.1:4000'
+        self.ferry_server = 'http://127.0.0.1:4000'
         self.default_user = 'root'
         self.installer = Installer()
 
@@ -61,7 +61,7 @@ class CLI(object):
         payload = { 'payload' : json.dumps(stack_description),
                     'mode' : mode, 
                     'conf' : conf }
-        res = requests.post(self.drydock_server + '/create', data=payload)
+        res = requests.post(self.ferry_server + '/create', data=payload)
         return str(res.text)
 
     def _format_snapshots_query(self, json_data):
@@ -117,7 +117,7 @@ class CLI(object):
 
     def _read_stacks(self, show_all=False, args=None):
         try:
-            res = requests.get(self.drydock_server + '/query')
+            res = requests.get(self.ferry_server + '/query')
             query_reply = json.loads(res.text)
 
             deployed_reply = {}
@@ -127,17 +127,17 @@ class CLI(object):
                 payload = { 'mode' : mode,
                             'conf' : conf }
 
-                res = requests.get(self.drydock_server + '/deployed', params=payload)
+                res = requests.get(self.ferry_server + '/deployed', params=payload)
                 deployed_reply = json.loads(res.text)
 
             # Merge the replies and format.
             return self._format_table_query(dict(query_reply.items() + deployed_reply.items()))
         except ConnectionError:
-            logging.error("could not connect to drydock server")
-            return 'could not connect to drydock server'
+            logging.error("could not connect to ferry server")
+            return 'could not connect to ferry server'
 
     def _list_snapshots(self):
-        res = requests.get(self.drydock_server + '/snapshots')
+        res = requests.get(self.ferry_server + '/snapshots')
         json_reply = json.loads(res.text)
         return self._format_snapshots_query(json_reply)
 
@@ -151,7 +151,7 @@ class CLI(object):
     """
     def _inspect_stack(self, stack_id):
         payload = { 'uuid':stack_id }
-        res = requests.get(self.drydock_server + '/stack', params=payload)
+        res = requests.get(self.ferry_server + '/stack', params=payload)
         json_value = json.loads(str(res.text))
         return self._format_stack_inspect(json_value)
 
@@ -161,7 +161,7 @@ class CLI(object):
     def _copy_logs(self, stack_id, to_dir):
         payload = {'uuid':stack_id,
                    'dir':to_dir}
-        res = requests.get(self.drydock_server + '/logs', params=payload)
+        res = requests.get(self.ferry_server + '/logs', params=payload)
         json_value = json.loads(str(res.text))
         return self._format_stack_inspect(json_value)
 
@@ -171,7 +171,7 @@ class CLI(object):
     def _connect_stack(self, stack_id, connector_id):
         # Get the IP and default user information for this connector.
         payload = {'uuid':stack_id}
-        res = requests.get(self.drydock_server + '/stack', params=payload)
+        res = requests.get(self.ferry_server + '/stack', params=payload)
         json_value = json.loads(str(res.text))
 
         connector_ip = None
@@ -209,14 +209,14 @@ class CLI(object):
         payload = { 'uuid' : stack_id,
                     'mode' : mode,
                     'conf' : conf }
-        res = requests.post(self.drydock_server + '/deploy', data=payload)
+        res = requests.post(self.ferry_server + '/deploy', data=payload)
         return res.text
 
     """
     Manage the stack. 
     """
     def _manage_stacks(self, stack_info):
-        res = requests.post(self.drydock_server + '/manage/stack', data=stack_info)
+        res = requests.post(self.ferry_server + '/manage/stack', data=stack_info)
         return str(res.text)        
         
     """
@@ -229,7 +229,7 @@ class CLI(object):
     Output version information.
     """
     def _print_info(self):
-        res = requests.get(self.drydock_server + '/version')
+        res = requests.get(self.ferry_server + '/version')
 
         s = self.cmds.description + '\n'
         s += "Version: %s\n" % self.cmds.version
@@ -260,7 +260,7 @@ class CLI(object):
                 json_arg = json.loads(json_string)
             else:
                 # Check if the user wants to use one of the global plans.
-                global_path = DRYDOCK_HOME + '/plans/' + arg
+                global_path = FERRY_HOME + '/plans/' + arg
 
                 # Check if the user has passed in a file extension.
                 # If not go ahead and add one. 
@@ -285,14 +285,14 @@ class CLI(object):
             return self._list_snapshots()
         elif(cmd == 'install'):
             self.installer.install(args)
-            return 'installed drydock'
+            return 'installed ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
         elif(cmd == 'logs'):
             return self._copy_logs(args[0], args[1])
         elif(cmd == 'server'):
             self.installer.start_web()
-            return 'started drydock'
+            return 'started ferry'
         elif(cmd == 'ssh'):
             stack_id = args[0]
             connector_id = None
@@ -303,7 +303,7 @@ class CLI(object):
         elif(cmd == 'quit'):
             self.installer.stop_web()
             self.installer._stop_docker_daemon()
-            return 'stopped drydock'
+            return 'stopped ferry'
         elif(cmd == 'deploy'):
             stack_id = args.pop(0)
             return self._deploy_stack(stack_id, args)

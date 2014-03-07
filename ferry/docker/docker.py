@@ -18,7 +18,7 @@ import json
 import logging
 from subprocess import Popen, PIPE
 
-DOCKER_SOCK='unix:////var/run/drydock.sock'
+DOCKER_SOCK='unix:////var/run/ferry.sock'
 
 """ Docker instance """
 class DockerInstance(object):
@@ -73,7 +73,7 @@ class DockerInstance(object):
 """ Alternative API for Docker that uses external commands """
 class DockerCLI(object):
     def __init__(self):
-        self.docker = 'docker-drydock -H=' + DOCKER_SOCK
+        self.docker = 'docker-ferry -H=' + DOCKER_SOCK
         self.version_cmd = 'version'
         self.start_cmd = 'start'
         self.run_cmd = 'run -privileged'

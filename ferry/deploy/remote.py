@@ -19,8 +19,8 @@ import uuid
 import datetime
 import logging
 from pymongo import MongoClient
-from drydock.docker.fabric import DockerFabric
-from drydock.docker.docker import DockerInstance
+from ferry.docker.fabric import DockerFabric
+from ferry.docker.docker import DockerInstance
 
 class RemoteDeploy(object):
     def __init__(self, docker):

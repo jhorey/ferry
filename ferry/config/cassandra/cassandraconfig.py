@@ -17,9 +17,9 @@ import os
 import sys
 import sh
 from string import Template
-from drydock.install import DRYDOCK_HOME
-from drydock.docker.fabric import DockerFabric
-from drydock.config.titan.titanconfig import *
+from ferry.install import FERRY_HOME
+from ferry.docker.fabric import DockerFabric
+from ferry.config.titan.titanconfig import *
 
 class CassandraInitializer(object):
     """
@@ -31,7 +31,7 @@ class CassandraInitializer(object):
         self.template_repo = None
 
         self.titan = TitanInitializer()
-        self.titan.template_dir = DRYDOCK_HOME + '/templates/titan'
+        self.titan.template_dir = FERRY_HOME + '/templates/titan'
 
         self.container_data_dir = CassandraConfig.data_directory
         self.container_log_dir = CassandraConfig.log_directory
