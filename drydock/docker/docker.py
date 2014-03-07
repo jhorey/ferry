@@ -102,7 +102,7 @@ class DockerCLI(object):
     """
     def get_fs_type(self):
         cmd = self.docker + ' ' + self.info_cmd + ' | grep Driver | awk \'{print $2}\''
-        logging.info(cmd)
+        logging.warning(cmd)
 
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         return output.strip()
@@ -112,7 +112,7 @@ class DockerCLI(object):
     """
     def version(self):
         cmd = self.docker + ' ' + self.version_cmd + ' | grep Client | awk \'{print $3}\''
-        logging.info(cmd)
+        logging.warning(cmd)
 
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         return output.strip()
@@ -122,7 +122,7 @@ class DockerCLI(object):
     """
     def list(self):
         cmd = self.docker + ' ' + self.ps_cmd + ' -q' 
-        logging.info(cmd)
+        logging.warning(cmd)
 
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         output = output.strip()
@@ -141,7 +141,7 @@ class DockerCLI(object):
             cmd = self.docker + ' ' + self.images_cmd + ' | awk \'{print $1}\'' + ' | grep ' + image_name
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
-        logging.info(cmd)
+        logging.warning(cmd)
         return output.strip()
     """
     Build a new image from a Dockerfile
@@ -152,12 +152,12 @@ class DockerCLI(object):
             path = docker_file
 
         cmd = self.docker + ' ' + self.build_cmd + ' -t %s %s' % (image, path)
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
     def _get_default_run(self, container):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container.container
-        logging.info(cmd)
+        logging.warning(cmd)
 
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         data = json.loads(output.strip())
@@ -174,8 +174,8 @@ class DockerCLI(object):
 
         tag = self.docker + ' ' + self.tag_cmd + ' ' + container.image + ' ' + new_image
         push = self.docker + ' ' + self.push_cmd + ' ' + new_image
-        logging.info(tag)
-        logging.info(push)
+        logging.warning(tag)
+        logging.warning(push)
         
         Popen(tag, stdout=PIPE, shell=True).stdout.read()
         Popen(push, stdout=PIPE, shell=True).stdout.read()
@@ -189,7 +189,7 @@ class DockerCLI(object):
 
         # Construct a new container using the given snapshot name. 
         cmd = self.docker + ' ' + self.commit_cmd + ' ' + run_cmd + ' ' + container.container + ' ' + snapshot_name
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
     """
@@ -197,7 +197,7 @@ class DockerCLI(object):
     """
     def stop(self, container, phys_net=None, remove=False):
         cmd = self.docker + ' ' + self.stop_cmd + ' ' + container
-        logging.info(cmd)
+        logging.warning(cmd)
         # Popen(cmd, stdout=PIPE, shell=True)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
@@ -206,7 +206,7 @@ class DockerCLI(object):
     """
     def remove(self, container, phys_net=None, remove=False):
         cmd = self.docker + ' ' + self.rm_cmd + ' ' + container
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
     """
@@ -214,7 +214,7 @@ class DockerCLI(object):
     """
     def start(self, container, service_type, args):
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
         # Now parse the output to get the IP and port
@@ -260,7 +260,7 @@ class DockerCLI(object):
 
         # Now construct the final docker command. 
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
         # Now parse the output to get the IP and port
@@ -273,7 +273,7 @@ class DockerCLI(object):
     """
     def inspect(self, container, volumes=None, hostname=None, service_type=None, args=None):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
-        logging.info(cmd)
+        logging.warning(cmd)
 
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 

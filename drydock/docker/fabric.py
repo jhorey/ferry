@@ -142,7 +142,7 @@ class DockerFabric(object):
         all_output = {}
         for c in containers:
             ssh_cmd = 'ssh -t -t ' + self.docker_user + '@' + c.internal_ip + ' \'%s\'' % cmd
-            logging.info(ssh_cmd)
+            logging.warning(ssh_cmd)
             output = Popen(ssh_cmd, stdout=PIPE, shell=True).stdout.read()
             all_output[c] = output.strip()
 

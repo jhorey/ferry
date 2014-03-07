@@ -183,12 +183,12 @@ class CLI(object):
                 connector_ip = cg['entry']['ip']
                 break
             else:
-                logging.info("no match: %s %s" % (connector_id, cg['uniq']))
+                logging.warning("no match: %s %s" % (connector_id, cg['uniq']))
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
             dest = '%s@%s' % (self.default_user, connector_ip)
-            logging.info("ssh %s" % dest)
+            logging.warning("ssh %s" % dest)
             os.execv('/usr/bin/ssh', ['', dest])
 
     def _parse_deploy_arg(self, param, args, default):
@@ -321,7 +321,7 @@ def main(argv=None):
     console = logging.StreamHandler(stream=sys.stderr)
     console.setFormatter(logging.Formatter(fmt='%(asctime)s %(message)s', 
                                            datefmt='%m/%d/%Y %I:%M:%S %p'))
-    console.setLevel(logging.INFO)
+    console.setLevel(logging.ERROR)
     root_logger = logging.getLogger()
     root_logger.addHandler(console)
     root_logger.setLevel(logging.DEBUG)

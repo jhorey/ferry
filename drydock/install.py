@@ -62,7 +62,7 @@ class Installer(object):
 
         if '-u' in args:
             # We want to re-build all the images. 
-            logging.info("performing forced rebuild")
+            logging.warning("performing forced rebuild")
             self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO )
         else:
             # We want to be selective about which images
@@ -97,7 +97,7 @@ class Installer(object):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s %s/mongodb' % (DEFAULT_MONGO_DB, mongo_data, 
                                                                                             DEFAULT_MONGO_LOG, mongo_log, 
                                                                                             DEFAULT_DOCKER_REPO)
-        logging.info(cmd)
+        logging.warning(cmd)
         child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         output = child.stderr.read().strip()
         if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(output):
@@ -110,7 +110,7 @@ class Installer(object):
         # Need to get Mongo connection info and store in temp file. 
         container = child.stdout.read().strip()
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect %s' % container
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         output_json = json.loads(output.strip())
         ip = output_json[0]['NetworkSettings']['IPAddress']
@@ -122,7 +122,7 @@ class Installer(object):
         # Start the HTTP servers
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
-        logging.info("starting http servers on port 4000 and mongo %s" % ip)
+        logging.warning("starting http servers on port 4000 and mongo %s" % ip)
         cmd = 'gunicorn -e DRYDOCK_HOME=%s -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 drydock.http.httpapi:app &' % DRYDOCK_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
@@ -132,12 +132,12 @@ class Installer(object):
             f = open('/tmp/mongodb.ip', 'r')
             ip = f.read().strip()
             cmd = 'ssh root@%s /service/bin/mongodb stop' % ip
-            logging.info(cmd)
+            logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
             os.remove('/tmp/mongodb.ip')
 
         # Kill all the gunicorn instances. 
-        logging.info("stopping http servers")
+        logging.warning("stopping http servers")
         cmd = 'ps -eaf | grep httpapi | awk \'{print $2}\' | xargs kill -15'
         Popen(cmd, stdout=PIPE, shell=True)
         
@@ -209,7 +209,7 @@ class Installer(object):
                 image = self._get_image(dockerfile)
             
                 if image in to_build:
-                    logging.info("building image " + image)
+                    logging.warning("building image " + image)
                     self._transform_dockerfile(image_dir, f, repo)
 
             for f in os.listdir("/tmp/dockerfiles/"):
@@ -302,7 +302,7 @@ class Installer(object):
     
         # Now build the image. 
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged -t' + ' %s/%s %s' % (repo, image, image_dir)
-        logging.info(cmd)
+        logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         logging.debug(output)
 
@@ -311,7 +311,7 @@ class Installer(object):
         Popen(cmd, stdout=PIPE, shell=True)
 
     def _is_running_btrfs(self):
-        logging.info("checking for btrfs")
+        logging.warning("checking for btrfs")
         cmd = 'cat /etc/mtab | grep %s | awk \'{print $3}\'' % DOCKER_DIR
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         return output.strip() == "btrfs"
@@ -327,7 +327,7 @@ class Installer(object):
                 # We need to fix this so that ICC is set to false. 
                 icc = ' --icc=true'
                 cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
-                logging.info(cmd)
+                logging.warning(cmd)
                 Popen(cmd, stdout=PIPE, shell=True)
 
                 # Wait a second to let the docker daemon do its thing.
@@ -339,7 +339,7 @@ class Installer(object):
 
     def _stop_docker_daemon(self):
         if self._docker_running():
-            logging.info("stopping docker daemon")
+            logging.warning("stopping docker daemon")
             cmd = 'pkill -f drydock'
             Popen(cmd, stdout=PIPE, shell=True)
             os.remove('/var/run/drydock.sock')
