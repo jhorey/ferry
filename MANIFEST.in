@@ -1,12 +1,11 @@
 include LICENSE
 include requirements.txt
 include *.md
-include templates/*
-include plans/*
-include dockerfiles/*
-include deploy/*
+include conf/*
 include docker/*
+recursive-include dockerfiles *
 include key/*
-recursive-exclude tests *
+include plans/*
+recursive-include templates *
 global-exclude *.pyc
 global-exclude *.pyo
