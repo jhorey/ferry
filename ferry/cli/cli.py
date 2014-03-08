@@ -20,7 +20,7 @@ import logging
 import requests
 import re
 from subprocess import Popen, PIPE
-from astropy.io import ascii
+from prettytable import *
 from ferry.options import CmdHelp
 from ferry.install import Installer, FERRY_HOME
 
@@ -65,55 +65,51 @@ class CLI(object):
         return str(res.text)
 
     def _format_snapshots_query(self, json_data):
-        lines = ['UUID & Base & Date']
+        bases = []
+        data = []
 
-        # Each additional row should include the actual data.
         for uuid in json_data.keys():
-            l = uuid + '&'
-            l += json_data[uuid]['base'] + '&'
-            l += json_data[uuid]['snapshot_ts']
+            bases.append(json_data[uuid]['base'])
+            data.append(json_data[uuid]['snapshot_ts'])
 
-            lines.append(l)
-
-        return ascii.read(lines, data_start=1, delimiter='&')
+        t = PrettyTable()
+        t.add_column("UUID", json_data.keys())
+        t.add_column("Base", bases)
+        t.add_column("Data", data)
+        return t.get_string(border=False, padding_width=5)
 
     def _format_table_query(self, json_data):
-        lines = ['UUID & Storage & Compute & Connectors & Status & Base & Time']
+        storage = []
+        compute = []
+        connectors = []
+        status = []
+        base = []
+        time = []
 
         # Each additional row should include the actual data.
         for uuid in json_data.keys():
-            connector_uuids = ''
             connectors = json_data[uuid]['connectors']
-            i = 0
             for c in connectors:
-                connector_uuids += str(c)
-                i += 1
-                if i < len(connectors):
-                    connector_uuids += ','
+                connectors.append(c)
 
-            compute_uuids = ''
-            storage_uuids = ''
             backends = json_data[uuid]['backends']
-            i = 0
             for b in backends:
-                compute_uuids += str(b['compute'])
-                storage_uuids += str(b['storage'])
-                i += 1
-                if i < len(backends):
-                    compute_uuids += ','
-                    storage_uuids += ','
+                storage.append(b['storage'])
+                compute.append(b['compute'])
 
-            l = uuid + '&'
-            l += storage_uuids + '&'
-            l += compute_uuids + '&'
-            l += connector_uuids + '&'
-            l += json_data[uuid]['status'] + '&'
-            l += json_data[uuid]['base'] + '&'
-            l += json_data[uuid]['ts']
+            status.append(json_data[uuid]['status'])
+            base.append(json_data[uuid]['base'])
+            time.append(json_data[uuid]['ts'])
 
-            lines.append(l)
-
-        return ascii.read(lines, data_start=1, delimiter='&')
+        t = PrettyTable()
+        t.add_column("UUID", json_data.keys())
+        t.add_column("Storage", storage)
+        t.add_column("Compute", compute)
+        t.add_column("Connectors", connectors)
+        t.add_column("Status", status)
+        t.add_column("Base", base)
+        t.add_column("Time", time)
+        return t.get_string(border=False, padding_width=5)
 
     def _read_stacks(self, show_all=False, args=None):
         try:
