@@ -66,17 +66,24 @@ class CLI(object):
 
     def _format_snapshots_query(self, json_data):
         bases = []
-        data = []
-
+        date = []
         for uuid in json_data.keys():
             bases.append(json_data[uuid]['base'])
-            data.append(json_data[uuid]['snapshot_ts'])
+            if 'snapshot_ts' in json_data[uuid]:
+                date.append(json_data[uuid]['snapshot_ts'])
+            else:
+                date.append(' ')
 
         t = PrettyTable()
         t.add_column("UUID", json_data.keys())
         t.add_column("Base", bases)
-        t.add_column("Data", data)
-        return t.get_string(border=False, padding_width=5)
+        t.add_column("Date", date)
+        return t.get_string(sortby="Date",
+                            border=True, 
+                            vrules=ALL, 
+                            vertical_char=' ', 
+                            junction_char=' ', 
+                            padding_width=4)
 
     def _format_table_query(self, json_data):
         storage = []
@@ -88,14 +95,20 @@ class CLI(object):
 
         # Each additional row should include the actual data.
         for uuid in json_data.keys():
-            connectors = json_data[uuid]['connectors']
-            for c in connectors:
+            for c in json_data[uuid]['connectors']:
                 connectors.append(c)
 
             backends = json_data[uuid]['backends']
             for b in backends:
-                storage.append(b['storage'])
-                compute.append(b['compute'])
+                if b['storage']:
+                    storage.append(b['storage'])
+                else:
+                    storage.append(' ')
+
+                if b['compute']:
+                    compute.append(b['compute'])
+                else:
+                    compute.append(' ')
 
             status.append(json_data[uuid]['status'])
             base.append(json_data[uuid]['base'])
@@ -109,7 +122,13 @@ class CLI(object):
         t.add_column("Status", status)
         t.add_column("Base", base)
         t.add_column("Time", time)
-        return t.get_string(border=False, padding_width=5)
+
+        return t.get_string(sortby="UUID",
+                            border=True, 
+                            vrules=ALL, 
+                            vertical_char=' ', 
+                            junction_char=' ', 
+                            padding_width=4)
 
     def _read_stacks(self, show_all=False, args=None):
         try:
@@ -128,7 +147,7 @@ class CLI(object):
 
             # Merge the replies and format.
             return self._format_table_query(dict(query_reply.items() + deployed_reply.items()))
-        except ConnectionError:
+        except requests.ConnectionError:
             logging.error("could not connect to ferry server")
             return 'could not connect to ferry server'
 
@@ -317,7 +336,8 @@ def main(argv=None):
     console = logging.StreamHandler(stream=sys.stderr)
     console.setFormatter(logging.Formatter(fmt='%(asctime)s %(message)s', 
                                            datefmt='%m/%d/%Y %I:%M:%S %p'))
-    console.setLevel(logging.ERROR)
+    # console.setLevel(logging.ERROR)
+    console.setLevel(logging.INFO)
     root_logger = logging.getLogger()
     root_logger.addHandler(console)
     root_logger.setLevel(logging.DEBUG)
