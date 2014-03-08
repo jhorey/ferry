@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-import gevent
-from gevent import monkey;  monkey.patch_all()
 import logging
 from subprocess import Popen, PIPE
 from ferry.docker.docker import DockerCLI

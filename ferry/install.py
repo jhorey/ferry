@@ -123,7 +123,7 @@ class Installer(object):
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)
-        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -k gevent -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
+        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def stop_web(self):

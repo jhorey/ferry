@@ -1,7 +1,6 @@
 Flask>=0.10.1
 requests>=1.2.3,<=2.0.1
 prettytable==0.7.2
-gevent>=0.13.8
 gunicorn>=18.0
 sh>=1.09
 Sphinx>=1.2.1

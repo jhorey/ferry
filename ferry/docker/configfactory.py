@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-import gevent
-from gevent import monkey;  monkey.patch_all()
 import os
 import logging
 from pymongo import MongoClient
