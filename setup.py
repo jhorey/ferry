@@ -22,24 +22,27 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 def find_data_files(dir_path):
-    all_files = {}
+    all_files = []
     for root, dirs, files in os.walk(dir_path):
-        for f in files:
-            if not root in all_files:
-                all_files[root] = []
-            all_files[root].append(root + os.sep + f)
+        if len(dirs) > 0:
+            for d in dirs:
+                all_files.append(root + os.sep + d + '*')
+        else:
+            all_files.append(root + os.sep + '*')
     return all_files
 
 def find_ferry_data_files():
     tuples = []
 
-    tuples.extend(find_data_files('key').items())
-    tuples.extend(find_data_files('plans').items())
-    tuples.extend(find_data_files('templates').items())
-    tuples.extend(find_data_files('conf').items())
-    tuples.extend(find_data_files('dockerfiles').items())
+    tuples.extend(find_data_files('ferry/data/key'))
+    tuples.extend(find_data_files('ferry/data/plans'))
+    tuples.extend(find_data_files('ferry/data/templates'))
+    tuples.extend(find_data_files('ferry/data/conf'))
+    tuples.extend(find_data_files('ferry/data/dockerfiles'))
 
-    return tuples
+    # print tuples
+    # return {'ferry' : tuples}
+    return {'ferry' : ['data/key/*']}
 
 with open('requirements.txt') as f:
     install_requires = f.read().splitlines()
@@ -56,7 +59,6 @@ setup(
     include_package_data=True,
     install_requires=install_requires,
     scripts=['docker/docker-ferry'], 
-    data_files=find_ferry_data_files(),
     entry_points="""
     [console_scripts]
     ferry=ferry.cli.cli:main

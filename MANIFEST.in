@@ -1,11 +1,11 @@
 include LICENSE
 include requirements.txt
 include *.md
-include conf/*
 include docker/*
-recursive-include dockerfiles *
-include key/*
-include plans/*
-recursive-include templates *
+include ferry/data/conf/*
+recursive-include ferry/data/dockerfiles *
+include ferry/data/key/*
+include ferry/data/plans/*
+recursive-include ferry/data/templates *
 global-exclude *.pyc
 global-exclude *.pyo

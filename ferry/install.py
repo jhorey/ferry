@@ -32,9 +32,9 @@ from ferry.options import CmdHelp
 
 def get_ferry_home():
     if 'FERRY_HOME' in os.environ:
-        return os.environ['FERRY_HOME']
+        return os.environ['FERRY_HOME'] + '/data'
     else:
-        return os.path.dirname(os.path.dirname(__file__)) + '/ferry'
+        return os.path.dirname(os.path.dirname(__file__)) + '/data'
 
 FERRY_HOME=get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/dockerfiles'
