@@ -22,6 +22,7 @@ import pwd
 import re
 import shutil
 import stat
+import struct
 import sys
 import time
 from distutils import spawn
@@ -52,7 +53,17 @@ DEFAULT_DOCKER_LOG='/var/lib/drydock/docker.log'
 
 class Installer(object):
 
+    """
+    Determine if this architecture is in fact 64-bit. 
+    """
+    def _supported_arch(self):
+        return struct.calcsize("P") * 8 == 64
+        
     def install(self, args):
+        # Check if the host is actually 64-bit. If not raise a warning and quit.
+        if not self._supported_arch():
+            return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
+
         self._start_docker_daemon()
 
         if '-k' in args:
@@ -73,6 +84,7 @@ class Installer(object):
                 self.build_from_list(to_build, 
                                      DEFAULT_IMAGE_DIR,
                                      DEFAULT_DOCKER_REPO)
+        return 'installed ferry'
 
     def start_web(self):
         self._start_docker_daemon()

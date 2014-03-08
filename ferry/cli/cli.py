@@ -299,8 +299,7 @@ class CLI(object):
         elif(cmd == 'snapshots'):
             return self._list_snapshots()
         elif(cmd == 'install'):
-            self.installer.install(args)
-            return 'installed ferry'
+            return self.installer.install(args)
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
         elif(cmd == 'logs'):
