@@ -25,10 +25,9 @@ def find_data_files(dir_path):
     all_files = {}
     for root, dirs, files in os.walk(dir_path):
         for f in files:
-            key = 'ferry/' + root
-            if not key in all_files:
-                all_files[key] = []
-            all_files[key].append(root + os.sep + f)
+            if not root in all_files:
+                all_files[root] = []
+            all_files[root].append(root + os.sep + f)
     return all_files
 
 def find_ferry_data_files():
