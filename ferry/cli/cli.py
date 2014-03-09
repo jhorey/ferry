@@ -318,7 +318,8 @@ class CLI(object):
                     json_string = self._read_file_arg(global_path)
                     json_arg = json.loads(json_string)
                 else:
-                    json_arg = {}
+                    # This is neither a global file or a local file.
+                    return "could not find plan " + arg 
             json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
         elif(cmd == 'ps'):
