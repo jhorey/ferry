@@ -8,19 +8,6 @@ Command-Line
 
 Run ``ferry --help`` to get a list of available commands. 
 
-daemon
-------
-
-Start the ferry daemon
-
-.. code-block:: bash
-
-    $ ferry daemon
-    $ ferry -d
-
-The ferry daemon controls all interaction with the actual
-service and must be running to do anything. 
-
 deploy
 ------
 
@@ -70,8 +57,13 @@ install
 
 Build or rebuild all the necessary Docker images 
 
-Images will be built with a custom public/private key pair
-and will reside in a separate, local Docker repository.
+For example:
+
+.. code-block:: bash
+
+    $ sudo ferry install -k $MY_KEY_DIRECTORY
+
+Images can be built with a custom public/private key pair by specifying the ``-k`` parameter. 
 
 logs
 ----
@@ -108,6 +100,18 @@ For example:
 Note that ``sa-0`` refers to a ``stopped`` application. Remove all data associated with the stack, 
 including connector information. It is highly recommended to ``snapshot`` the state before removing an application. 
 After removing the application, it may appear in the ``ps`` list for a short time. 
+
+server
+------
+
+Start the ferry daemon
+
+.. code-block:: bash
+
+    $ sudo ferry server
+
+The ferry server controls all interaction with the actual
+service and must be running to do anything. 
 
 ssh
 ---
@@ -187,3 +191,11 @@ For example:
                         UUID                      Base          Date
      -------------------------------------------- ------ --------------------
      sn-sa-4-81a67d8e-b75b-4919-9a65-50554d183b83 hadoop 02/5/2014 (02:02 PM)   
+
+quit
+----
+
+Stop the Ferry servers
+
+This will gracefully shutdown the servers controlling Ferry. This command
+must be executed via ``sudo``. 

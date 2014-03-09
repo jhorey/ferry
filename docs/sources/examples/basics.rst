@@ -28,22 +28,11 @@ Next you'll want to install Ferry.
 
     $ sudo pip install -U ferry
 
-Now you'll want to start the ``ferry`` daemon by typing:
+Now you'll want to build the various Ferry images. Just type:
 
 .. code-block:: bash
 
-    $ sudo ferry -d
+    $ sudo ferry install
 
-Once the daemon is running, you'll need to build the various Ferry images.
-These images contain the actual logic for running Hadoop, Cassandra, etc. Now as
-either using ``sudo`` or as a ``docker`` user, in a separate terminal type:
-
-.. code-block:: bash
-
-    $ ferry -i
-
-This will automatically build everything you need. This may take a while, so
-sit back and relax. 
-
-After all the images are built, head over to the :ref:`Hadoop <hadoop>` tutorial to create
-a brand new Hadoop cluster.
+This may take a while, so sit back and relax. After all the images are built, head over to the 
+:ref:`Hadoop <hadoop>` tutorial to create a brand new Hadoop cluster.

@@ -45,29 +45,18 @@ You can do this via ``pip``.
 
 If you don't have ``pip`` installed, you can also clone Ferry from the GitHub repo and manually
 install the packages (look for ``setup.py``). After installing Ferry, check if everything is working 
-and start the ``ferry`` daemon by typing:
+and start building the various Ferry images. These images contain the actual logic for running Hadoop, Cassandra, etc. Just type:
 
 .. code-block:: bash
 
     $ ferry info
-    $ sudo ferry -d
+    $ sudo ferry install
 
-Once the daemon is running, you'll need to build the various Ferry images.
-These images contain the actual logic for running Hadoop, Cassandra, etc. Now as
-either using ``sudo`` or as a ``docker`` user, in a separate terminal type:
+By default Ferry will use a default set of public/private keys so that you can interact with the
+connectors afterwards. You can instruct ``ferry`` to use your own keys by supplying a directory like this 
+``ferry install -k $KEY_DIR``. The build process may take a while, so sit back and relax. 
 
-.. code-block:: bash
-
-    $ ferry -i
-
-This will prompt you for your public keys. This ensures that only you will be able
-to ``ssh`` into the containers. If you don't specify a directory containing your public
-key, default keys will be used so that you can still interact with your containers.
-
-Afterwards all the Ferry images will automatically build. This 
-may take a while, so sit back and relax. 
-
-Once Ferry is installed you'll want to head over to the Getting Started documents. 
+Once Ferry is completely installed you'll want to head over to the Getting Started documents. 
 Currently Ferry supports the following backends:
 
 - :ref:`Hadoop <hadoop>` (version 2.3.0) with Hive (version 0.12)
