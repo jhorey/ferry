@@ -19,6 +19,7 @@ import json
 import logging
 import requests
 import re
+from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
 from prettytable import *
 from ferry.options import CmdHelp
@@ -61,8 +62,13 @@ class CLI(object):
         payload = { 'payload' : json.dumps(stack_description),
                     'mode' : mode, 
                     'conf' : conf }
-        res = requests.post(self.ferry_server + '/create', data=payload)
-        return str(res.text)
+
+        try:
+            res = requests.post(self.ferry_server + '/create', data=payload)
+            return str(res.text)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     def _format_snapshots_query(self, json_data):
         bases = []
@@ -147,14 +153,18 @@ class CLI(object):
 
             # Merge the replies and format.
             return self._format_table_query(dict(query_reply.items() + deployed_reply.items()))
-        except requests.ConnectionError:
+        except ConnectionError:
             logging.error("could not connect to ferry server")
-            return 'could not connect to ferry server'
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     def _list_snapshots(self):
-        res = requests.get(self.ferry_server + '/snapshots')
-        json_reply = json.loads(res.text)
-        return self._format_snapshots_query(json_reply)
+        try:
+            res = requests.get(self.ferry_server + '/snapshots')
+            json_reply = json.loads(res.text)
+            return self._format_snapshots_query(json_reply)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     def _format_stack_inspect(self, json_data):
         return json.dumps(json_data, 
@@ -166,28 +176,38 @@ class CLI(object):
     """
     def _inspect_stack(self, stack_id):
         payload = { 'uuid':stack_id }
-        res = requests.get(self.ferry_server + '/stack', params=payload)
-        json_value = json.loads(str(res.text))
-        return self._format_stack_inspect(json_value)
-
+        try:
+            res = requests.get(self.ferry_server + '/stack', params=payload)
+            json_value = json.loads(str(res.text))
+            return self._format_stack_inspect(json_value)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
     """
     Copy over the logs. 
     """
     def _copy_logs(self, stack_id, to_dir):
         payload = {'uuid':stack_id,
                    'dir':to_dir}
-        res = requests.get(self.ferry_server + '/logs', params=payload)
-        json_value = json.loads(str(res.text))
-        return self._format_stack_inspect(json_value)
-
+        try:
+            res = requests.get(self.ferry_server + '/logs', params=payload)
+            json_value = json.loads(str(res.text))
+            return self._format_stack_inspect(json_value)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
     """
     Connector a specific client/connector via ssh. 
     """
     def _connect_stack(self, stack_id, connector_id):
         # Get the IP and default user information for this connector.
         payload = {'uuid':stack_id}
-        res = requests.get(self.ferry_server + '/stack', params=payload)
-        json_value = json.loads(str(res.text))
+        try:
+            res = requests.get(self.ferry_server + '/stack', params=payload)
+            json_value = json.loads(str(res.text))
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
         connector_ip = None
         for cg in json_value['connectors']:
@@ -224,15 +244,23 @@ class CLI(object):
         payload = { 'uuid' : stack_id,
                     'mode' : mode,
                     'conf' : conf }
-        res = requests.post(self.ferry_server + '/deploy', data=payload)
-        return res.text
+        try:
+            res = requests.post(self.ferry_server + '/deploy', data=payload)
+            return res.text
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     """
     Manage the stack. 
     """
     def _manage_stacks(self, stack_info):
-        res = requests.post(self.ferry_server + '/manage/stack', data=stack_info)
-        return str(res.text)        
+        try:
+            res = requests.post(self.ferry_server + '/manage/stack', data=stack_info)
+            return str(res.text)        
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
         
     """
     Output the help message.
@@ -244,13 +272,16 @@ class CLI(object):
     Output version information.
     """
     def _print_info(self):
-        res = requests.get(self.ferry_server + '/version')
+        try:
+            res = requests.get(self.ferry_server + '/version')
+            s = self.cmds.description + '\n'
+            s += "Version: %s\n" % self.cmds.version
+            s += "Docker: %s\n" % res.text.strip()
 
-        s = self.cmds.description + '\n'
-        s += "Version: %s\n" % self.cmds.version
-        s += "Docker: %s\n" % res.text.strip()
-
-        return s
+            return s
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
         
     """
     Helper method to read a file.
