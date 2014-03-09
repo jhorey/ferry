@@ -849,7 +849,7 @@ class DockerManager(object):
     Get the default deployment conf file. 
     """
     def _get_default_conf(self):        
-        return FERRY_HOME + '/conf/deploy_default.json'
+        return FERRY_HOME + '/data/conf/deploy_default.json'
 
     """
     Get the deployment configuration parameters. 

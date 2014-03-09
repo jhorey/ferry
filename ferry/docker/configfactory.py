@@ -44,7 +44,7 @@ class ConfigFactory(object):
         self.hadoop_client = HadoopClientInitializer()
 
         # Get the Ferry home to find the templates.
-        template_dir = FERRY_HOME + '/templates'
+        template_dir = FERRY_HOME + '/data/templates'
         self.hadoop.template_dir =        template_dir + '/hadoop/'
         self.yarn.template_dir =          template_dir + '/hadoop/'
         self.hadoop_client.template_dir = template_dir + '/hadoop/'

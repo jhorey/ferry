@@ -306,7 +306,7 @@ class CLI(object):
                 json_arg = json.loads(json_string)
             else:
                 # Check if the user wants to use one of the global plans.
-                global_path = FERRY_HOME + '/plans/' + arg
+                global_path = FERRY_HOME + '/data/plans/' + arg
 
                 # Check if the user has passed in a file extension.
                 # If not go ahead and add one. 

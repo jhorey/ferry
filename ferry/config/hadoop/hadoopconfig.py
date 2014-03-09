@@ -37,8 +37,8 @@ class HadoopInitializer(object):
 
         self.hive_client = HiveClientInitializer()
         self.hive_ms = MetaStoreInitializer()
-        self.hive_client.template_dir = FERRY_HOME + '/templates/hive-metastore/'
-        self.hive_ms.template_dir = FERRY_HOME + '/templates/hive-metastore/'
+        self.hive_client.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
+        self.hive_ms.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
 
     """
     Generate a new hostname

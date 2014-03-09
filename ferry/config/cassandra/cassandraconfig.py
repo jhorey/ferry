@@ -31,7 +31,7 @@ class CassandraInitializer(object):
         self.template_repo = None
 
         self.titan = TitanInitializer()
-        self.titan.template_dir = FERRY_HOME + '/templates/titan'
+        self.titan.template_dir = FERRY_HOME + '/data/templates/titan'
 
         self.container_data_dir = CassandraConfig.data_directory
         self.container_log_dir = CassandraConfig.log_directory

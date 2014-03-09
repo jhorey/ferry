@@ -21,29 +21,6 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-def find_data_files(dir_path):
-    all_files = []
-    for root, dirs, files in os.walk(dir_path):
-        if len(dirs) > 0:
-            for d in dirs:
-                all_files.append(root + os.sep + d + '*')
-        else:
-            all_files.append(root + os.sep + '*')
-    return all_files
-
-def find_ferry_data_files():
-    tuples = []
-
-    tuples.extend(find_data_files('ferry/data/key'))
-    tuples.extend(find_data_files('ferry/data/plans'))
-    tuples.extend(find_data_files('ferry/data/templates'))
-    tuples.extend(find_data_files('ferry/data/conf'))
-    tuples.extend(find_data_files('ferry/data/dockerfiles'))
-
-    # print tuples
-    # return {'ferry' : tuples}
-    return {'ferry' : ['data/key/*']}
-
 with open('requirements.txt') as f:
     install_requires = f.read().splitlines()
 
