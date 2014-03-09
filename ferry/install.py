@@ -81,6 +81,7 @@ class Installer(object):
             to_build = self.check_images(DEFAULT_IMAGE_DIR,
                                          DEFAULT_DOCKER_REPO)
             if len(to_build) > 0:
+                logging.warning("performing select rebuild (%s)" % str(to_build))
                 self.build_from_list(to_build, 
                                      DEFAULT_IMAGE_DIR,
                                      DEFAULT_DOCKER_REPO)
@@ -313,9 +314,11 @@ class Installer(object):
         shutil.copy(GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir)
     
         # Now build the image. 
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged -t' + ' %s/%s %s' % (repo, image, image_dir)
-        logging.warning(cmd)
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
+        logging.info("start compiling image %s/%s" % (repo, image))
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        logging.info("done compiling image %s/%s" % (repo, image))
+        logging.warning(cmd)
         logging.debug(output)
 
     def _clean_images(self):
