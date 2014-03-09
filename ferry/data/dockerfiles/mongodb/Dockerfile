@@ -24,10 +24,8 @@ RUN echo export MONGO_DATA=/service/data >> /etc/profile;echo export MONGO_LOG=/
 ENV LC_ALL C
 RUN echo export LC_ALL=C >> /etc/profile
 
-# Expose mongodb port. Host should use same port
-# Also expose ssh port, but map to something random
-EXPOSE 27017:27017
-EXPOSE 22
+# Expose mongodb port
+EXPOSE 27017
 
 # Add the start script
 ADD mongodb /service/bin/
