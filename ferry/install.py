@@ -217,16 +217,14 @@ class Installer(object):
         if self._docker_running():
             built_images = {}
             for f in os.listdir(image_dir):
-                dockerfile = image_dir + '/' + f + '/Dockerfile'
-                image = self._get_image(dockerfile)
-            
-                if image in to_build:
-                    logging.warning("building image " + image)
-                    self._transform_dockerfile(image_dir, f, repo)
+                self._transform_dockerfile(image_dir, f, repo)
 
             for f in os.listdir("/tmp/dockerfiles/"):
                 dockerfile = '/tmp/dockerfiles/' + f + '/Dockerfile'
-                self._build_image(dockerfile, repo, built_images)
+                image = self._get_image(dockerfile)
+                if image in to_build:
+                    logging.warning("building image " + image)
+                    self._build_image(dockerfile, repo, built_images, recurse=True)
 
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
