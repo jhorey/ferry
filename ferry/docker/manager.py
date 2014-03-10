@@ -265,7 +265,11 @@ class DockerManager(object):
     def query_stacks(self, constraints=None):
         json_reply = {}
 
-        values = self.cluster_collection.find()
+        if constraints:
+            values = self.cluster_collection.find(constraints)
+        else:
+            values = self.cluster_collection.find()
+
         for v in values:
             time = ''
             s = self.snapshot_collection.find_one( {'snapshot_uuid':v['snapshot_uuid']} )

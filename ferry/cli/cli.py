@@ -136,6 +136,18 @@ class CLI(object):
                             junction_char=' ', 
                             padding_width=4)
 
+    def _stop_all(self):
+        try:
+            constraints = { 'status' : 'running' }
+            payload = { 'constraints' : json.dumps(constraints) }
+            res = requests.get(self.ferry_server + '/query', params=payload)
+            stacks = json.loads(res.text)
+            for uuid in stacks.keys():
+                self._manage_stacks({'uuid' : uuid,
+                                     'action' : 'stop'})
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+        
     def _read_stacks(self, show_all=False, args=None):
         try:
             res = requests.get(self.ferry_server + '/query')
@@ -347,6 +359,7 @@ class CLI(object):
 
             return self._connect_stack(stack_id, connector_id)
         elif(cmd == 'quit'):
+            self._stop_all()
             self.installer.stop_web()
             self.installer._stop_docker_daemon()
             return 'stopped ferry'
@@ -367,8 +380,7 @@ def main(argv=None):
     console = logging.StreamHandler(stream=sys.stderr)
     console.setFormatter(logging.Formatter(fmt='%(asctime)s %(message)s', 
                                            datefmt='%m/%d/%Y %I:%M:%S %p'))
-    # console.setLevel(logging.ERROR)
-    console.setLevel(logging.INFO)
+    console.setLevel(logging.WARNING)
     root_logger = logging.getLogger()
     root_logger.addHandler(console)
     root_logger.setLevel(logging.DEBUG)
@@ -380,6 +392,17 @@ def main(argv=None):
 
             # Initialize the cli
             options = cli.cmds.get_options()
+            if '--log' in options:
+                if options['--log'] == 'CRITICAL':
+                    console.setLevel(logging.CRITICAL)
+                elif options['--log'] == 'ERROR':
+                    console.setLevel(logging.ERROR)
+                elif options['--log'] == 'WARNING':
+                    console.setLevel(logging.WARNING)
+                elif options['--log'] == 'INFO':
+                    console.setLevel(logging.INFO)
+                elif options['--log'] == 'DEBUG':
+                    console.setLevel(logging.DEBUG)
 
             # Execute the commands
             all_cmds = cli.cmds.get_cmds()

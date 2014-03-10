@@ -330,8 +330,11 @@ Query the stacks.
 """
 @app.route('/query', methods=['GET'])
 def query_stacks():
-    return docker.query_stacks()
-
+    if 'constraints' in request.args:
+        constraints = json.loads(request.args['constraints'])
+        return docker.query_stacks(constraints)
+    else:
+        return docker.query_stacks()
 """
 Query the snapshots
 """
