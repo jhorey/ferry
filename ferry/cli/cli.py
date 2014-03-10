@@ -86,9 +86,8 @@ class CLI(object):
         t.add_column("Date", date)
         return t.get_string(sortby="Date",
                             border=True, 
-                            vrules=ALL, 
-                            vertical_char=' ', 
-                            junction_char=' ', 
+                            hrules=FRAME, 
+                            vrules=NONE, 
                             padding_width=4)
 
     def _format_table_query(self, json_data):
@@ -131,9 +130,8 @@ class CLI(object):
 
         return t.get_string(sortby="UUID",
                             border=True, 
-                            vrules=ALL, 
-                            vertical_char=' ', 
-                            junction_char=' ', 
+                            hrules=FRAME, 
+                            vrules=NONE, 
                             padding_width=4)
 
     def _stop_all(self):
@@ -392,21 +390,9 @@ def main(argv=None):
 
             # Initialize the cli
             options = cli.cmds.get_options()
-            if '--log' in options:
-                if options['--log'] == 'CRITICAL':
-                    console.setLevel(logging.CRITICAL)
-                elif options['--log'] == 'ERROR':
-                    console.setLevel(logging.ERROR)
-                elif options['--log'] == 'WARNING':
-                    console.setLevel(logging.WARNING)
-                elif options['--log'] == 'INFO':
-                    console.setLevel(logging.INFO)
-                elif options['--log'] == 'DEBUG':
-                    console.setLevel(logging.DEBUG)
 
             # Execute the commands
             all_cmds = cli.cmds.get_cmds()
-
             if len(all_cmds) > 0:
                 for c in all_cmds.keys():
                     msg = cli.dispatch_cmd(c, all_cmds[c], options)

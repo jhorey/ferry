@@ -319,8 +319,8 @@ Query the deployed applications.
 """
 @app.route('/deployed', methods=['GET'])
 def query_deployed():
-    mode = request.form['mode']
-    conf = request.form['conf']
+    mode = request.args['mode']
+    conf = request.args['conf']
     params = docker._get_deploy_params(mode, conf)
 
     return docker.query_deployed(params)

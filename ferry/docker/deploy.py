@@ -83,9 +83,15 @@ class DeployEngine(object):
         else:
             all_engines = self.engines.values()
 
-        all_v = {}
+        all_v = []
         for e in all_engines:
             v = e.find(one, spec, conf)
-            if v:
-                all_v = dict(all_v.items() + v.items())
-        return all_v
+            if v and one:
+                return v
+            elif v:
+                all_v.append(v)
+                
+        if one:
+            return None
+        else:
+            return all_v

@@ -292,17 +292,18 @@ class DockerManager(object):
     def query_deployed(self, conf=None):
         json_reply = {}
 
-        values = self.deploy.find(conf=conf)
-        for v in values:
-            time = v['ts'].strftime("%m/%w/%Y (%I:%M %p)")
-            c = self.cluster_collection.find_one( {'uuid':v['cluster_uuid']} )
+        cursors = self.deploy.find(conf=conf)
+        for c in cursors:
+            for v in c:
+                time = v['ts'].strftime("%m/%w/%Y (%I:%M %p)")
+                c = self.cluster_collection.find_one( {'uuid':v['cluster_uuid']} )
                 
-            json_reply[v['uuid']] = { 'uuid' : v['uuid'],
-                                      'base' : c['base'], 
-                                      'ts' : time,
-                                      'backends' : c['backends']['uuids'],
-                                      'connectors': c['connectors'],
-                                      'status': 'deployed' }
+                json_reply[v['uuid']] = { 'uuid' : v['uuid'],
+                                          'base' : c['base'], 
+                                          'ts' : time,
+                                          'backends' : c['backends']['uuids'],
+                                          'connectors': c['connectors'],
+                                          'status': 'deployed' }
         return json.dumps(json_reply, 
                           sort_keys=True,
                           indent=2,
