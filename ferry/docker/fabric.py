@@ -15,7 +15,7 @@
 
 import logging
 from subprocess import Popen, PIPE
-from ferry import DEFAULT_DOCKER_KEY
+from ferry.install import DEFAULT_DOCKER_KEY
 from ferry.docker.docker import DockerCLI
 
 """
@@ -151,7 +151,7 @@ class DockerFabric(object):
         for c in containers:
             key = self.key_dir + '/id_rsa'
             ip = self.docker_user + '@' + c.internal_ip
-            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
             output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
             all_output[c] = output.strip()

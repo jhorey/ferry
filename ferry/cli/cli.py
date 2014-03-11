@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+import ferry
 import StringIO
 import os
 import sys
@@ -29,7 +31,7 @@ class CLI(object):
     def __init__(self):
         self.cmds = CmdHelp()
         self.cmds.description = "Development environment for big data applications"
-        self.cmds.version = "0.1"
+        self.cmds.version = ferry.__version__
         self.cmds.usage = "ferry COMMAND [arg...]"
         self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
