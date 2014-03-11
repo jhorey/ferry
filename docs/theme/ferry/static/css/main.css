@@ -241,6 +241,14 @@ div.alert.alert-block {
   
 }
 
+.google {
+  background-image: url('../img/twitter.png');
+  background-size:16px 16px;
+  background-position: left center;
+  background-repeat: no-repeat;
+  
+}
+
 .bs-docs-sidebar {
   font-family:"HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", "HelveticaNeue", "HelveticaNeueLT", Helvetica, Arial, "Lucida Grande", sans-serif;
   padding-left: 5px;
