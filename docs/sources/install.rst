@@ -6,8 +6,7 @@ Install
 =======
 
 Ferry is written in Python and available via ``pip``, but before we can run some
-applications, we'll need to install a few prerequisites. First you'll need to install Docker. 
-If you're running the latest version of Ubuntu, it's fairly straightforward. 
+applications, we'll need to install a few prerequisites. First you'll need to install Docker. If you're running the latest version of Ubuntu, it's fairly straightforward. 
 
 .. code-block:: bash
 
