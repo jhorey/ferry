@@ -210,6 +210,15 @@ class CLI(object):
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+
+    """
+    Read the location of the directory containing the keys
+    used to communicate with the containers. 
+    """
+    def _read_key_dir(self):
+        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
+        return f.read().strip()
+
     """
     Connector a specific client/connector via ssh. 
     """
@@ -236,9 +245,11 @@ class CLI(object):
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
+            opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+            ident = '-i %s/id_rsa' % self._read_key_dir()
             dest = '%s@%s' % (self.default_user, connector_ip)
-            logging.warning("ssh %s" % dest)
-            os.execv('/usr/bin/ssh', ['', dest])
+            logging.warning("ssh %s %s %s" % (opts, ident, dest))
+            os.execv('/usr/bin/ssh', [opts, ident, dest])
 
     def _parse_deploy_arg(self, param, args, default):
         pattern = re.compile('--%s=(\w+)' % param)
