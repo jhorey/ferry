@@ -49,6 +49,7 @@ DEFAULT_MONGO_DB='/var/lib/drydock/mongo'
 DEFAULT_MONGO_LOG='/var/lib/drydock/mongolog'
 DEFAULT_REGISTRY_DB='/var/lib/drydock/registry'
 DEFAULT_DOCKER_LOG='/var/lib/drydock/docker.log'
+DEFAULT_DOCKER_KEY='/var/lib/drydock/keydir'
 
 class Installer(object):
 
@@ -69,6 +70,7 @@ class Installer(object):
             GLOBAL_KEY_DIR = self.fetch_image_keys(args['-k'][0])
         else:
             GLOBAL_KEY_DIR = self.fetch_image_keys()
+        self._touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR)
 
         if '-u' in args:
             # We want to re-build all the images. 
@@ -151,7 +153,8 @@ class Installer(object):
         if os.path.exists('/tmp/mongodb.ip'):
             f = open('/tmp/mongodb.ip', 'r')
             ip = f.read().strip()
-            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@%s /service/bin/mongodb stop' % ip
+            key = GLOBAL_KEY_DIR + "/id_rsa"
+            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/bin/mongodb stop' % (key, ip)
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
             os.remove('/tmp/mongodb.ip')

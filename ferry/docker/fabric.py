@@ -15,6 +15,7 @@
 
 import logging
 from subprocess import Popen, PIPE
+from ferry import DEFAULT_DOCKER_KEY
 from ferry.docker.docker import DockerCLI
 
 """
@@ -25,7 +26,16 @@ class DockerFabric(object):
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI()
+        self.key_dir = self._read_key_dir()
 
+    """
+    Read the location of the directory containing the keys
+    used to communicate with the containers. 
+    """
+    def _read_key_dir(self):
+        f = open(DEFAULT_DOCKER_KEY, 'r')
+        return f.read().strip()
+ 
     """
     Fetch the current docker version.
     """
@@ -139,9 +149,11 @@ class DockerFabric(object):
     def cmd(self, containers, cmd):
         all_output = {}
         for c in containers:
-            ssh_cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t -t ' + self.docker_user + '@' + c.internal_ip + ' \'%s\'' % cmd
-            logging.warning(ssh_cmd)
-            output = Popen(ssh_cmd, stdout=PIPE, shell=True).stdout.read()
+            key = self.key_dir + '/id_rsa'
+            ip = self.docker_user + '@' + c.internal_ip
+            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            logging.warning(ssh)
+            output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
             all_output[c] = output.strip()
 
         return all_output
