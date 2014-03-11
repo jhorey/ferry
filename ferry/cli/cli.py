@@ -245,11 +245,12 @@ class CLI(object):
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
-            opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+            key_opt = '-o StrictHostKeyChecking=no'
+            host_opt = '-o UserKnownHostsFile=/dev/null'
             ident = '-i %s/id_rsa' % self._read_key_dir()
             dest = '%s@%s' % (self.default_user, connector_ip)
-            logging.warning("ssh %s %s %s" % (opts, ident, dest))
-            os.execv('/usr/bin/ssh', ['ssh', opts, ident, dest])
+            logging.warning("ssh %s %s %s %s" % (key_opt, host_opt, ident, dest))
+            os.execv('/usr/bin/ssh', ['ssh', key_opt, host_opt, ident, dest])
 
     def _parse_deploy_arg(self, param, args, default):
         pattern = re.compile('--%s=(\w+)' % param)

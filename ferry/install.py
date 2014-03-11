@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import ferry
 import grp
 import json
 import logging
