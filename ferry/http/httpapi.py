@@ -309,7 +309,7 @@ def allocate_stack():
         return _allocate_snapshot(payload)
     elif docker.is_deployed(payload['_file'], params):
         return _allocate_deployed(payload, params)
-    elif not docker.is_removed(payload['_file']):
+    elif '_file_path' in payload:
         return _allocate_new(payload)
     else:
         return "Could not start " + payload['_file']

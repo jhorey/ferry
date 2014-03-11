@@ -349,26 +349,28 @@ class CLI(object):
             self._check_ssh_key()
 
             arg = args.pop(0)
+            json_arg = {}
             if os.path.exists(arg):
                 json_string = self._read_file_arg(arg)
                 json_arg = json.loads(json_string)
+                json_arg['_file'] = arg
+                json_arg['_file_path'] = arg
             else:
                 # Check if the user wants to use one of the global plans.
                 global_path = FERRY_HOME + '/data/plans/' + arg
 
                 # Check if the user has passed in a file extension.
                 # If not go ahead and add one. 
+                file_path = global_path
                 n, e = os.path.splitext(global_path)
                 if e == '':
-                    global_path += '.json'
+                    file_path += '.json'
 
-                if os.path.exists(global_path):
-                    json_string = self._read_file_arg(global_path)
+                if os.path.exists(file_path):
+                    json_string = self._read_file_arg(file_path)
                     json_arg = json.loads(json_string)
-                else:
-                    # This is neither a global file or a local file.
-                    return "could not find plan " + arg 
-            json_arg['_file'] = arg
+                    json_arg['_file_path'] = file_path
+                json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
         elif(cmd == 'ps'):
             if len(args) > 0 and args[0] == '-a':
