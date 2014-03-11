@@ -26,7 +26,6 @@ class DockerFabric(object):
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI()
-        self.key_dir = self._read_key_dir()
 
     """
     Read the location of the directory containing the keys
@@ -148,8 +147,8 @@ class DockerFabric(object):
     """
     def cmd(self, containers, cmd):
         all_output = {}
+        key = self._read_key_dir() + '/id_rsa'
         for c in containers:
-            key = self.key_dir + '/id_rsa'
             ip = self.docker_user + '@' + c.internal_ip
             ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
