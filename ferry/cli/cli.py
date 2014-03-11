@@ -249,8 +249,9 @@ class CLI(object):
             host_opt = '-o UserKnownHostsFile=/dev/null'
             ident = '-i %s/id_rsa' % self._read_key_dir()
             dest = '%s@%s' % (self.default_user, connector_ip)
-            logging.warning("ssh %s %s %s %s" % (key_opt, host_opt, ident, dest))
-            os.execv('/usr/bin/ssh', ['ssh', key_opt, host_opt, ident, dest])
+            cmd = "ssh %s %s %s %s" % (key_opt, host_opt, ident, dest)
+            logging.warning(cmd)
+            os.execv('/usr/bin/ssh', cmd.split())
 
     def _parse_deploy_arg(self, param, args, default):
         pattern = re.compile('--%s=(\w+)' % param)
