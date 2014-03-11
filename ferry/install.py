@@ -30,13 +30,24 @@ from string import Template
 from subprocess import Popen, PIPE
 from ferry.options import CmdHelp
 
-def get_ferry_home():
+def _get_ferry_home():
     if 'FERRY_HOME' in os.environ:
         return os.environ['FERRY_HOME']
     else:
         return os.path.dirname(__file__)
 
-FERRY_HOME=get_ferry_home()
+def _touch_file(file_name, content, root=False):
+    f = open(file_name, 'w+')
+    f.write(content)
+    f.close()
+
+    if root:
+        uid = pwd.getpwnam("root").pw_uid
+        gid = grp.getgrnam("docker").gr_gid
+        os.chown(file_name, uid, gid)
+        os.chmod(file_name, 0664)
+
+FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
@@ -72,7 +83,7 @@ class Installer(object):
             GLOBAL_KEY_DIR = self.fetch_image_keys(args['-k'][0])
         else:
             GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
-        self._touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR)
+        _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
 
         if '-u' in args:
             # We want to re-build all the images. 
@@ -138,7 +149,7 @@ class Installer(object):
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         output_json = json.loads(output.strip())
         ip = output_json[0]['NetworkSettings']['IPAddress']
-        self._touch_file('/tmp/mongodb.ip', ip)
+        _touch_file('/tmp/mongodb.ip', ip, root=True)
 
         # Sleep a little while to let Mongo start receiving.
         time.sleep(2)
@@ -368,8 +379,3 @@ class Installer(object):
             cmd = 'pkill -f ferry'
             Popen(cmd, stdout=PIPE, shell=True)
             os.remove('/var/run/ferry.sock')
-
-    def _touch_file(self, file_name, content):
-        f = open(file_name, 'w+')
-        f.write(content)
-        f.close()

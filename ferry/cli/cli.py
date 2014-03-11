@@ -13,19 +13,21 @@
 # limitations under the License.
 #
 
+import errno
 import ferry
-import StringIO
 import os
 import sys
 import json
 import logging
 import requests
 import re
+import shutil
+import StringIO
 from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
 from prettytable import *
 from ferry.options import CmdHelp
-from ferry.install import Installer, FERRY_HOME, DEFAULT_KEY_DIR, GLOBAL_KEY_DIR
+from ferry.install import Installer, FERRY_HOME
 
 class CLI(object):
     def __init__(self):
@@ -308,13 +310,21 @@ class CLI(object):
         return json_text
 
     def _check_ssh_key(self):
-        keydir = open(GLOBAL_KEY_DIR, 'r').read().strip()
-        if keydir == DEFAULT_KEY_DIR:
-            GLOBAL_KEY_DIR = os.environ['USER'] + '/.ssh/ferry'
-            shutil.copy(DEFAULT_KEY_DIR + '/id_rsa',
-                        GLOBAL_KEY_DIR + '/id_rsa')
-            os.chmod(GLOBAL_KEY_DIR + '/id_rsa', 0400)
-            ferry.install._touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR)
+        keydir = open(ferry.install.DEFAULT_DOCKER_KEY, 'r').read().strip()
+        if keydir == ferry.install.DEFAULT_KEY_DIR:
+            try:
+                ferry.install.GLOBAL_KEY_DIR = os.environ['HOME'] + '/.ssh/ferry'
+                os.makedirs(os.environ['HOME'] + '/.ssh/ferry')
+                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa',
+                            ferry.install.GLOBAL_KEY_DIR + '/id_rsa')
+                os.chmod(ferry.install.GLOBAL_KEY_DIR + '/id_rsa', 0400)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    logging.error("Could not create private key (%s)" % os.strerror(e.errno))
+
+            ferry.install._touch_file(ferry.install.DEFAULT_DOCKER_KEY, 
+                                      ferry.install.GLOBAL_KEY_DIR)
+            logging.warning("Copied private key to " + ferry.install.GLOBAL_KEY_DIR)
 
     """
     This is the command dispatch table. 

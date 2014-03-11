@@ -13,9 +13,9 @@
 # limitations under the License.
 #
 
+import ferry.install
 import logging
 from subprocess import Popen, PIPE
-from ferry.install import DEFAULT_DOCKER_KEY
 from ferry.docker.docker import DockerCLI
 
 """
@@ -33,7 +33,7 @@ class DockerFabric(object):
     used to communicate with the containers. 
     """
     def _read_key_dir(self):
-        f = open(DEFAULT_DOCKER_KEY, 'r')
+        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
         return f.read().strip()
  
     """
