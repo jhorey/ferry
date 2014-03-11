@@ -25,7 +25,7 @@ from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
 from prettytable import *
 from ferry.options import CmdHelp
-from ferry.install import Installer, FERRY_HOME
+from ferry.install import Installer, FERRY_HOME, DEFAULT_KEY_DIR, GLOBAL_KEY_DIR
 
 class CLI(object):
     def __init__(self):
@@ -307,11 +307,24 @@ class CLI(object):
 
         return json_text
 
+    def _check_ssh_key(self):
+        keydir = open(GLOBAL_KEY_DIR, 'r').read().strip()
+        if keydir == DEFAULT_KEY_DIR:
+            GLOBAL_KEY_DIR = os.environ['USER'] + '/.ssh/ferry'
+            shutil.copy(DEFAULT_KEY_DIR + '/id_rsa',
+                        GLOBAL_KEY_DIR + '/id_rsa')
+            os.chmod(GLOBAL_KEY_DIR + '/id_rsa', 0400)
+            ferry.install._touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR)
+
     """
     This is the command dispatch table. 
     """
     def dispatch_cmd(self, cmd, args, options):
         if(cmd == 'start'):
+            # Check if the user is using the global key directory.
+            # If so, we need to make a copy of the key. 
+            self._check_ssh_key()
+
             arg = args.pop(0)
             if os.path.exists(arg):
                 json_string = self._read_file_arg(arg)
@@ -352,6 +365,11 @@ class CLI(object):
             self.installer.start_web()
             return 'started ferry'
         elif(cmd == 'ssh'):
+            # Check if the user is using the global key directory.
+            # If so, we need to make a copy of the key. 
+            self._check_ssh_key()
+
+            # Go ahead and connect to the stack. 
             stack_id = args[0]
             connector_id = None
             if len(args) > 1:

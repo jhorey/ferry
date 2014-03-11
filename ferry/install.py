@@ -63,13 +63,15 @@ class Installer(object):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not self._supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
-
         self._start_docker_daemon()
 
+        # Set up the various key information. If the user chooses to use
+        # the global key, a copy of that key will be made and the permissions
+        # will be locked down. That way, we'll avoid the ssh permission warning. 
         if '-k' in args:
             GLOBAL_KEY_DIR = self.fetch_image_keys(args['-k'][0])
         else:
-            GLOBAL_KEY_DIR = self.fetch_image_keys()
+            GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
         self._touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR)
 
         if '-u' in args:
