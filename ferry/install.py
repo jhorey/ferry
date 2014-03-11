@@ -103,6 +103,14 @@ class Installer(object):
             logging.error(e.explanation)
             sys.exit(1)
 
+        # Check if the Mongo image is built.
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect %s/mongodb 2> /dev/null' % DEFAULT_DOCKER_REPO
+        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        if output.strip() == '[]':
+            logging.error("Could not start ferry servers.\n") 
+            logging.error("MongoDB images not found. Try executing 'ferry install'.")
+            sys.exit(1)
+        
         # Start the Mongo server.
         mongo_data = '/service/data'
         mongo_log = '/service/logs'
@@ -143,7 +151,7 @@ class Installer(object):
         if os.path.exists('/tmp/mongodb.ip'):
             f = open('/tmp/mongodb.ip', 'r')
             ip = f.read().strip()
-            cmd = 'ssh root@%s /service/bin/mongodb stop' % ip
+            cmd = 'ssh -o StrictHostKeyChecking=no root@%s /service/bin/mongodb stop' % ip
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
             os.remove('/tmp/mongodb.ip')
