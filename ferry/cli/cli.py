@@ -249,7 +249,7 @@ class CLI(object):
             ident = '-i %s/id_rsa' % self._read_key_dir()
             dest = '%s@%s' % (self.default_user, connector_ip)
             logging.warning("ssh %s %s %s" % (opts, ident, dest))
-            os.execv('/usr/bin/ssh', [opts, ident, dest])
+            os.execv('/usr/bin/ssh', ['ssh', opts, ident, dest])
 
     def _parse_deploy_arg(self, param, args, default):
         pattern = re.compile('--%s=(\w+)' % param)

@@ -166,7 +166,12 @@ class Installer(object):
         if os.path.exists('/tmp/mongodb.ip'):
             f = open('/tmp/mongodb.ip', 'r')
             ip = f.read().strip()
-            key = GLOBAL_KEY_DIR + "/id_rsa"
+            f.close()
+
+            f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
+            keydir = f.read().strip()
+            f.close()
+            key = keydir + "/id_rsa"
             cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/bin/mongodb stop' % (key, ip)
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
