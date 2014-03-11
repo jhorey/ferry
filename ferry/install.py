@@ -75,15 +75,28 @@ class Installer(object):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not self._supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
+
+        # Create the various directories.
+        try:
+            if not os.path.isdir(DOCKER_DIR):
+                os.makedirs(DOCKER_DIR)
+                self._change_permission(DOCKER_DIR)
+        except OSError as e:
+            logging.error("Could not install Ferry.\n") 
+            logging.error(e.explanation)
+            sys.exit(1)
+
         self._start_docker_daemon()
 
         # Set up the various key information. If the user chooses to use
         # the global key, a copy of that key will be made and the permissions
         # will be locked down. That way, we'll avoid the ssh permission warning. 
         if '-k' in args:
-            GLOBAL_KEY_DIR = self.fetch_image_keys(args['-k'][0])
+            i = args.index('-k')
+            GLOBAL_KEY_DIR = self.fetch_image_keys(args[i + 1])
         else:
             GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
+        logging.warning("using key directory " + GLOBAL_KEY_DIR)
         _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
 
         if '-u' in args:
@@ -198,14 +211,7 @@ class Installer(object):
         os.chown(location, uid, gid)
 
         if os.path.isdir(location):        
-            os.chmod(location, 
-                     stat.S_IRUSR |
-                     stat.S_IWUSR |
-                     stat.S_IXUSR | 
-                     stat.S_IRGRP |
-                     stat.S_IWGRP |
-                     stat.S_IXGRP |
-                     stat.S_IROTH)
+            os.chmod(location, 0774)
             for entry in os.listdir(location):
                 self._change_permission(os.path.join(location, entry))
         else:
