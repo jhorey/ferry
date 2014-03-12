@@ -370,6 +370,7 @@ class Installer(object):
             if not self._docker_running():
                 bflag = ''
                 if self._is_running_btrfs():
+                    logging.warning("using btrfs backend")
                     bflag = ' -s btrfs'
 
                 # We need to fix this so that ICC is set to false. 
