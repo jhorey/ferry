@@ -139,7 +139,9 @@ class DockerFabric(object):
     """
     def copy(self, containers, from_dir, to_dir):
         for c in containers:
-            scp_cmd = 'scp -r ' + from_dir + ' ' + self.docker_user + '@' + c.internal_ip + ':' + to_dir
+            opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+            key = '-i ' + self._read_key_dir() + '/id_rsa'
+            scp_cmd = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + c.internal_ip + ':' + to_dir
             output = Popen(scp_cmd, stdout=PIPE, shell=True).stdout.read()
 
     """
