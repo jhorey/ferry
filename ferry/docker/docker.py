@@ -76,8 +76,8 @@ class DockerCLI(object):
         self.docker = 'docker-ferry -H=' + DOCKER_SOCK
         self.version_cmd = 'version'
         self.start_cmd = 'start'
-        self.run_cmd = 'run --privileged'
-        self.build_cmd = 'build --privileged'
+        self.run_cmd = 'run -privileged'
+        self.build_cmd = 'build -privileged'
         self.inspect_cmd = 'inspect'
         self.images_cmd = 'images'
         self.commit_cmd = 'commit'
@@ -91,7 +91,7 @@ class DockerCLI(object):
         self.interactive = '-i'
         self.tty = '-t'
         self.port_flag = ' -p'
-        self.expose_flag = ' --expose'
+        self.expose_flag = ' -expose'
         self.volume_flag = ' -v'
         self.net_flag = ' -nb'
         self.host_flag = ' -h'
@@ -230,8 +230,6 @@ class DockerCLI(object):
     """
     def run(self, service_type, image, volumes, phys_net, security_group, expose_group=None, hostname=None, args=None):
         flags = self.daemon 
-        # Necessary to get around the 0.9 ssh/tty bug
-        flags += ' ' + self.tty + ' '
         if phys_net != None:
             flags += self.net_flag
             flags += ' %s ' % phys_net
