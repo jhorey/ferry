@@ -15,6 +15,9 @@ elif [ $1 == "hive" ]; then
 	su drydock -c '/service/packages/hadoop/bin/hdfs dfs -mkdir -p /service/data/movielens'
 	su drydock -c '/service/packages/hadoop/bin/hdfs dfs -copyFromLocal /tmp/movielens/u.data /service/data/movielens'
 	su drydock -c '/service/packages/hive/bin/hive -f /service/scripts/createtable.sql'
+elif [ $1 == "gluster" ]; then
+	su drydock -c 'wget http://files.grouplens.org/datasets/movielens/ml-100k/u.data -P /service/data/movielens/'
+	su drydock -c '/service/packages/hive/bin/hive -f /service/scripts/createtable.sql'
 elif [ $1 == "dfs" ]; then
 	su drydock -c '/service/packages/hadoop/bin/hadoop dfsadmin -report'
 fi
