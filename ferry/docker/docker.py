@@ -230,7 +230,8 @@ class DockerCLI(object):
     """
     def run(self, service_type, image, volumes, phys_net, security_group, expose_group=None, hostname=None, args=None):
         flags = self.daemon 
-
+        # Necessary to get around the 0.9 ssh/tty bug
+        flags += ' ' + self.tty + ' '
         if phys_net != None:
             flags += self.net_flag
             flags += ' %s ' % phys_net

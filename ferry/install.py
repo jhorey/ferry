@@ -347,7 +347,7 @@ class Installer(object):
         shutil.copy(GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir)
     
         # Now build the image. 
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build --privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
         logging.info("start compiling image %s/%s" % (repo, image))
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         logging.info("done compiling image %s/%s" % (repo, image))

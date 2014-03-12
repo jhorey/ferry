@@ -21,7 +21,7 @@ ADD ./stop10.sh /service/runscripts/stop/
 ADD ./test01.sh /service/runscripts/test/
 
 # Download the latest package
-RUN wget http://tinkerpop.com/downloads/rexster/rexster-console-2.3.0.zip -P /service/packages;cd /service/packages/;unzip rexster-console-2.3.0.zip
+RUN wget https://www.dropbox.com/s/fwr26lj0s7nu0aw/rexster-console-2.3.0.zip -P /service/packages;cd /service/packages/;unzip rexster-console-2.3.0.zip
 
 # Run the ssh daemon in the foreground (Docker does
 # like daemons running in background)
