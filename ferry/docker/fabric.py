@@ -63,7 +63,7 @@ class DockerFabric(object):
     """
     def alloc(self, container_info):
         containers = []
-        
+        mounts = {}
         for c in container_info:
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
@@ -76,11 +76,15 @@ class DockerFabric(object):
                                      hostname = c['hostname'],
                                      args= c['args'])
             container.default_user = self.docker_user
+            containers.append(container)
 
             # Not all containers have a unique name. 
             if 'name' in c:
                 container.name = c['name']
-            containers.append(container)
+
+            if 'volume_user' in c:
+                mounts[container] = {'user':c['volume_user'],
+                                     'vols':c['volumes'].items()}
 
         # We should wait for a second to let the ssh server start
         # on the containers (otherwise sometimes we get a connection refused)
@@ -88,10 +92,9 @@ class DockerFabric(object):
 
         # Check if we need to set the file permissions
         # for the mounted volumes. 
-        for c in container_info:
-            if 'volume_user' in c:
-                for _, v in c['volumes'].items():
-                    self.cmd([container], 'chown -R %s %s' % (c['volume_user'], v))
+        for c, i in mounts.items():
+            for _, v in i['vols'].items():
+                self.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
         return containers
 
