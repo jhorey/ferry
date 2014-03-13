@@ -25,7 +25,7 @@ import shutil
 import StringIO
 from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
-from prettytable import *
+from ferry.table.prettytable import *
 from ferry.options import CmdHelp
 from ferry.install import Installer, FERRY_HOME
 
@@ -89,10 +89,7 @@ class CLI(object):
         t.add_column("Base", bases)
         t.add_column("Date", date)
         return t.get_string(sortby="Date",
-                            border=True, 
-                            hrules=FRAME, 
-                            vrules=NONE, 
-                            padding_width=4)
+                            padding_width=2)
 
     def _format_table_query(self, json_data):
         storage = []
@@ -133,10 +130,7 @@ class CLI(object):
         t.add_column("Time", time)
 
         return t.get_string(sortby="UUID",
-                            border=True, 
-                            hrules=FRAME, 
-                            vrules=NONE, 
-                            padding_width=4)
+                            padding_width=2)
 
     def _stop_all(self):
         try:
