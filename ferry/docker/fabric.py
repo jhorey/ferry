@@ -15,6 +15,7 @@
 
 import ferry.install
 import logging
+import time
 from subprocess import Popen, PIPE
 from ferry.docker.docker import DockerCLI
 
@@ -79,14 +80,19 @@ class DockerFabric(object):
             # Not all containers have a unique name. 
             if 'name' in c:
                 container.name = c['name']
+            containers.append(container)
 
-            # Check if we need to set the file permissions
-            # for the mounted volumes. 
+        # We should wait for a second to let the ssh server start
+        # on the containers (otherwise sometimes we get a connection refused)
+        time.sleep(2)
+
+        # Check if we need to set the file permissions
+        # for the mounted volumes. 
+        for c in container_info:
             if 'volume_user' in c:
                 for _, v in c['volumes'].items():
                     self.cmd([container], 'chown -R %s %s' % (c['volume_user'], v))
 
-            containers.append(container)
         return containers
 
     """

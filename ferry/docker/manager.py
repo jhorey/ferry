@@ -775,7 +775,6 @@ class DockerManager(object):
                                                                               [storage_entry])
 
         # Now copy over the configuration.
-        time.sleep(2)
         self._transfer_config(config_dirs)
 
         container_info = self._serialize_containers(containers)
@@ -836,7 +835,6 @@ class DockerManager(object):
                                                                               args)
 
         # Now copy over the configuration.
-        time.sleep(2)
         self._transfer_config(config_dirs)
 
         container_info = self._serialize_containers(containers)
@@ -1061,7 +1059,6 @@ class DockerManager(object):
                                                                                 compute_entry,
                                                                                 args)
         # Now copy over the configuration.
-        time.sleep(2)
         self._transfer_config(config_dirs)
         self._transfer_env_vars([container], env_vars)
 
@@ -1130,7 +1127,6 @@ class DockerManager(object):
                                                                                 compute_entry,
                                                                                 args)
         # Now copy over the configuration.
-        time.sleep(2)
         self._transfer_config(config_dirs)
         self._transfer_env_vars(containers, env_vars)
 
