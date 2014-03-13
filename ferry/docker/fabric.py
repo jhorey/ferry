@@ -93,7 +93,7 @@ class DockerFabric(object):
         # Check if we need to set the file permissions
         # for the mounted volumes. 
         for c, i in mounts.items():
-            for _, v in i['vols'].items():
+            for _, v in i['vols']:
                 self.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
         return containers
