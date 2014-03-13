@@ -158,7 +158,7 @@ class Installer(object):
             sys.exit(1)
 
         # Check if the Mongo image is built.
-        if not self._check_image_installed('mongodb'):
+        if not self._check_image_installed('%s/mongodb' % DEFAULT_DOCKER_REPO):
             logging.error("Could not start ferry servers.\n") 
             logging.error("MongoDB images not found. Try executing 'ferry install'.")
             sys.exit(1)
