@@ -11,7 +11,7 @@ if [ $1 == "start" ]; then
 
         # Finally start the metastore service. Give it a couple seconds to start 
 	# before stopping the script otherwise sometimes it doesn't start. 
-	su drydock -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
+	su ferry -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
 	sleep 2
     fi
 elif [ $1 == "listen" ]; then 

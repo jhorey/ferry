@@ -27,9 +27,9 @@ RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmo
 RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile
 
 # Generate an ssh key for this image.
-RUN mkdir /home/drydock/.ssh;ssh-keygen -f /home/drydock/.ssh/id_rsa -t rsa -N '' > /dev/null
-RUN cat /home/drydock/.ssh/id_rsa.pub >> /home/drydock/.ssh/authorized_keys;echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
-RUN chown -R drydock:drydock /home/drydock/.ssh
+RUN mkdir /home/ferry/.ssh;ssh-keygen -f /home/ferry/.ssh/id_rsa -t rsa -N '' > /dev/null
+RUN cat /home/ferry/.ssh/id_rsa.pub >> /home/ferry/.ssh/authorized_keys;echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
+RUN chown -R ferry:ferry /home/ferry/.ssh
 
 # Run the ssh daemon in the foreground (Docker does
 # like daemons running in background)

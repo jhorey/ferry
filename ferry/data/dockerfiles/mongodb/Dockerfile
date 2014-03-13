@@ -1,4 +1,4 @@
-FROM $USER/drydock-base
+FROM $USER/ferry-base
 NAME mongodb
 
 # Add the 10Gen key and repo
@@ -12,8 +12,8 @@ RUN apt-get update;apt-get --yes install mongodb-10gen python-pip python-dev bui
 RUN pip install --upgrade virtualenv;pip install pymongo
 
 # Create default data directory
-RUN mkdir -p /service/bin /service/data /service/logs;chown -R drydock:docker /service/data
-RUN chown -R drydock:docker /service
+RUN mkdir -p /service/bin /service/data /service/logs;chown -R ferry:docker /service/data
+RUN chown -R ferry:docker /service
 
 # Export data directory path
 ENV MONGO_DATA /service/data

@@ -10,7 +10,7 @@ if [ $1 == "listen" ]; then
 elif [ $1 == "start" ]; then 
     # Start the Cassandra server in daemon mode
     # Need to pass in argument to specify the options directory
-    su drydock -c 'nohup /service/bin/cassandra &'
+    su ferry -c 'nohup /service/bin/cassandra &'
     sleep 2
 elif [ $1 == "stop" ]; then 
     # Stop the Cassandra daemon.

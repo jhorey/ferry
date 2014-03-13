@@ -52,17 +52,17 @@ FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
-DEFAULT_DOCKER_REPO='drydock'
-DEFAULT_DRYDOCK_OWNER='drydock:docker'
+DEFAULT_DOCKER_REPO='ferry'
+DEFAULT_FERRY_OWNER='ferry:docker'
 DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
-DOCKER_DIR='/var/lib/drydock'
+DOCKER_DIR='/var/lib/ferry'
 DOCKER_PID='/var/run/ferry.pid'
-DEFAULT_MONGO_DB='/var/lib/drydock/mongo'
-DEFAULT_MONGO_LOG='/var/lib/drydock/mongolog'
-DEFAULT_REGISTRY_DB='/var/lib/drydock/registry'
-DEFAULT_DOCKER_LOG='/var/lib/drydock/docker.log'
-DEFAULT_DOCKER_KEY='/var/lib/drydock/keydir'
+DEFAULT_MONGO_DB='/var/lib/ferry/mongo'
+DEFAULT_MONGO_LOG='/var/lib/ferry/mongolog'
+DEFAULT_REGISTRY_DB='/var/lib/ferry/registry'
+DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
+DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
 
@@ -125,7 +125,7 @@ class Installer(object):
 
     def _check_all_images(self):
         not_installed = []
-        images = ['mongodb', 'drydock-base', 'hadoop-base', 'hadoop', 'hadoop-client',
+        images = ['mongodb', 'ferry-base', 'hadoop-base', 'hadoop', 'hadoop-client',
                   'hive-metastore', 'gluster', 'openmpi', 'cassandra', 'cassandra-client', 
                   'titan']
         for i in images:

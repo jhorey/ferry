@@ -22,13 +22,13 @@
 <!-- Hive Execution Parameters -->
 <property>
   <name>hive.exec.scratchdir</name>
-  <value>/service/data/tmp/hive/hive-drydock</value>
+  <value>/service/data/tmp/hive/hive-ferry</value>
   <description>Scratch space for Hive jobs</description>
 </property>
 
 <property>
   <name>hive.exec.local.scratchdir</name>
-  <value>/service/data/tmp/hive/drydock</value>
+  <value>/service/data/tmp/hive/ferry</value>
   <description>Local scratch space for Hive jobs</description>
 </property>
 

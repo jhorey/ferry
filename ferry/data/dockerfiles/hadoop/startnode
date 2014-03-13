@@ -20,19 +20,19 @@ if [ $1 == "start" ]; then
     echo $2 >> /tmp/hadoop_services.log
 
     if [ $2 == "namenode" ]; then
-	su drydock -c '/service/packages/hadoop/bin/hdfs --config /service/conf namenode -format HADOOP_CLUSTER'
-	su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start namenode'
+	su ferry -c '/service/packages/hadoop/bin/hdfs --config /service/conf namenode -format HADOOP_CLUSTER'
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start namenode'
     elif [ $2 == "datanode" ]; then
-	su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
     elif [ $2 == "yarnmaster" ]; then	
-	su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
     elif [ $2 == "yarnslave" ]; then	
-	su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
     fi
 elif [ $1 == "mount" ]; then 
     if [ $2 == "gluster" ]; then
 	python /service/scripts/mounthelper.py mount $3	
-	chown -R drydock:docker /service/data
+	chown -R ferry:docker /service/data
     fi
 elif [ $1 == "listen" ]; then 
     # Keep ssh open so that we can interact with the container
@@ -42,13 +42,13 @@ elif [ $1 == "stop" ]; then
     while read line
     do
 	if [ "$line" == "namenode" ]; then
-	    su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop namenode'
+	    su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop namenode'
 	elif [ "$line" == "datanode" ]; then
-	    su drydock -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop datanode'
+	    su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop datanode'
 	elif [ "$line" == "yarnmaster" ]; then	
-	    su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop resourcemanager'
+	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop resourcemanager'
 	elif [ "$line" == "yarnslave" ]; then	
-	    su drydock -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop nodemanager'
+	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop nodemanager'
 	fi
     done < "$input"
 

@@ -1,5 +1,5 @@
 FROM base
-NAME drydock-base
+NAME ferry-base
 
 # This is so that we don't get Upstart error messages
 # (specific to running Ubuntu in chroot environment)
@@ -11,8 +11,8 @@ RUN mkdir -p /service/keys /var/run/sshd
 # Download some dependencies
 RUN apt-get update;apt-get --yes install openssh-server
 
-# Create drydock user
-RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-password --gecos "" drydock;usermod -a -G sudo drydock;usermod -a -G docker drydock;usermod -a -G supergroup drydock;chown -R drydock:docker /service;chown -R drydock:drydock /home/drydock
+# Create ferry user
+RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-password --gecos "" ferry;usermod -a -G sudo ferry;usermod -a -G docker ferry;usermod -a -G supergroup ferry;chown -R ferry:docker /service;chown -R ferry:ferry /home/ferry
 
 # Generate an ssh key for this image.
 RUN ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null

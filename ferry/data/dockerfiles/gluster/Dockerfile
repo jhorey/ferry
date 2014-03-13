@@ -1,8 +1,8 @@
-FROM $USER/drydock-base
+FROM $USER/ferry-base
 NAME gluster
 
 # Create necessary directories
-RUN mkdir -p /service/data /service/logs /service/sbin;chown -R drydock:docker /service/data;chown -R drydock:docker /service/logs
+RUN mkdir -p /service/data /service/logs /service/sbin;chown -R ferry:docker /service/data;chown -R ferry:docker /service/logs
 
 # Add the latest stable GlusterFS repo
 RUN apt-get --yes install software-properties-common;add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4

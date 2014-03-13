@@ -19,11 +19,11 @@ echo '' > /service/conf/instances
 
 # Create necessary HDFS directories
 if [ $1 == "hadoop" ]; then
-	su drydock -c '/service/packages/hadoop/bin/hdfs dfs -mkdir /tmp'
-	su drydock -c '/service/packages/hadoop/bin/hdfs dfs -chmod g+w /tmp'
-	su drydock -c '/service/packages/hadoop/bin/hdfs dfs -mkdir -p /service/data/hive'
-	su drydock -c '/service/packages/hadoop/bin/hdfs dfs -chmod g+w /service/data/hive'
+	su ferry -c '/service/packages/hadoop/bin/hdfs dfs -mkdir /tmp'
+	su ferry -c '/service/packages/hadoop/bin/hdfs dfs -chmod g+w /tmp'
+	su ferry -c '/service/packages/hadoop/bin/hdfs dfs -mkdir -p /service/data/hive'
+	su ferry -c '/service/packages/hadoop/bin/hdfs dfs -chmod g+w /service/data/hive'
 elif [ $1 == "gluster" ]; then 
 	python /service/scripts/mounthelper.py mount $2
-	chown -R drydock:docker /service/data
+	chown -R ferry:docker /service/data
 fi
