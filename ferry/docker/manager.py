@@ -26,7 +26,7 @@ import sys
 import time
 import uuid
 from pymongo import MongoClient
-from ferry.install import FERRY_HOME, DEFAULT_DOCKER_REPO
+from ferry.install import FERRY_HOME, DEFAULT_DOCKER_REPO, DEFAULT_DRYDOCK_OWNER
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.fabric        import DockerFabric
 from ferry.docker.configfactory import ConfigFactory
@@ -461,6 +461,7 @@ class DockerManager(object):
             container_info = {'image':instance_type,
                               'type':t, 
                               'volumes':dir_info,
+                              'volume_user':DEFAULT_DRYDOCK_OWNER, 
                               'ports':ports,
                               'exposed':exposed, 
                               'hostname':host_name,
@@ -501,6 +502,7 @@ class DockerManager(object):
             dir_info = { new_log_dir : log_dir }
             container_info = {'image':instance_type,
                               'volumes':dir_info,
+                              'volume_user':DEFAULT_DRYDOCK_OWNER, 
                               'type':t, 
                               'ports':ports,
                               'exposed':exposed, 
@@ -562,6 +564,7 @@ class DockerManager(object):
         dir_info = { new_log_dir : log_dir }
         container_info = { 'image':instance_type,
                            'volumes':dir_info,
+                           'volume_user':DEFAULT_DRYDOCK_OWNER, 
                            'type':connector_type, 
                            'ports':ports,
                            'exposed':exposed, 

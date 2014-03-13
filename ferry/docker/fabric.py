@@ -80,6 +80,12 @@ class DockerFabric(object):
             if 'name' in c:
                 container.name = c['name']
 
+            # Check if we need to set the file permissions
+            # for the mounted volumes. 
+            if 'volume_user' in c:
+                for _, v in c['volumes'].items():
+                    self.cmd([container], 'chown -R %s %s' % (c['volume_user'], v))
+
             containers.append(container)
         return containers
 
