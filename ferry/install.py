@@ -128,7 +128,7 @@ class Installer(object):
                   'hive-metastore', 'gluster', 'openmpi', 'cassandra', 'cassandra-client', 
                   'titan']
         for i in images:
-            if not _check_image_installed("%s/%s" % (DEFAULT_DOCKER_REPO, i)):
+            if not self._check_image_installed("%s/%s" % (DEFAULT_DOCKER_REPO, i)):
                 not_installed.append(i)
         return not_installed
 
