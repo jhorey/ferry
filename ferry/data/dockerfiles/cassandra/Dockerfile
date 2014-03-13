@@ -21,6 +21,7 @@ RUN echo export CASSANDRA_INCLUDE=/service/bin/cassandra.in.sh >> /etc/profile
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
+RUN chmod a+x /service/sbin/startnode
 
 # Run the ssh daemon in the foreground (Docker does
 # like daemons running in background)

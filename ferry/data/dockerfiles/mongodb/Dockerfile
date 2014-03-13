@@ -29,6 +29,7 @@ EXPOSE 27017
 
 # Add the start script
 ADD mongodb /service/bin/
+RUN chmod a+x /service/bin/mongodb
 
 # Default command
 CMD ["/service/bin/mongodb", "start"]

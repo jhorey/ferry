@@ -17,6 +17,7 @@ RUN apt-get update; apt-get --yes install git glusterfs-common glusterfs-client 
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
+RUN chmod a+x /service/sbin/startnode
 
 # Run the ssh daemon in the foreground (Docker does
 # like daemons running in background)

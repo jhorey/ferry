@@ -4,7 +4,7 @@ if [ $1 == "start" ]; then
     # Change the file ownership back to drydock user. This is 
     # necessary since the host may not have the drydock user. 
     chown -R drydock:drydock $MONGO_DATA
-    chown -R drydock:drydock $MONGO_LOG
+    chown -R drydock:drydock $(dirname $MONGO_LOG)
 
     # Start the mongo server
     su drydock -c '/usr/bin/mongod --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'

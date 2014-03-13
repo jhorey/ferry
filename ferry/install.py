@@ -113,7 +113,32 @@ class Installer(object):
                 self.build_from_list(to_build, 
                                      DEFAULT_IMAGE_DIR,
                                      DEFAULT_DOCKER_REPO)
-        return 'installed ferry'
+
+        # Check that all the images were built.
+        not_installed = self._check_all_images()
+        if len(not_installed) == 0:
+            return 'installed ferry'
+        else:
+            logging.error('images not built: ' + str(not_installed))
+            return 'Some images were not installed. Please type \'ferry install\' again.'
+
+    def _check_all_images(self):
+        not_installed = []
+        images = ['mongodb', 'drydock-base', 'hadoop-base', 'hadoop', 'hadoop-client',
+                  'hive-metastore', 'gluster', 'openmpi', 'cassandra', 'cassandra-client', 
+                  'titan']
+        for i in images:
+            if not _check_image_installed("%s/%s" % (DEFAULT_DOCKER_REPO, i)):
+                not_installed.append(i)
+        return not_installed
+
+    def _check_image_installed(self, image_name):
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect %s 2> /dev/null' % image_name
+        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        if output.strip() == '[]':
+            return False
+        else:
+            return True
 
     def start_web(self):
         self._start_docker_daemon()
@@ -133,9 +158,7 @@ class Installer(object):
             sys.exit(1)
 
         # Check if the Mongo image is built.
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect %s/mongodb 2> /dev/null' % DEFAULT_DOCKER_REPO
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        if output.strip() == '[]':
+        if not self._check_image_installed('mongodb'):
             logging.error("Could not start ferry servers.\n") 
             logging.error("MongoDB images not found. Try executing 'ferry install'.")
             sys.exit(1)
