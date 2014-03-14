@@ -87,7 +87,12 @@ class Installer(object):
             logging.error(e.explanation)
             sys.exit(1)
 
-        self._start_docker_daemon()
+        # Start the Ferry docker daemon. If it does not successfully
+        # start, print out a msg. 
+        start, msg = self._start_docker_daemon()
+        if not start:
+            logging.error('ferry docker daemon not started')
+            return msg
 
         # Set up the various key information. If the user chooses to use
         # the global key, a copy of that key will be made and the permissions
@@ -408,6 +413,9 @@ class Installer(object):
 
                 # Wait a second to let the docker daemon do its thing.
                 time.sleep(2)
+                return True, "Ferry daemon running on /var/run/ferry.sock"
+            else:
+                return False, "Ferry appears to be already running. If this is an error, please delete /var/run/ferry.sock and try again."
         except OSError as e:
             logging.error("could not start docker daemon.\n") 
             logging.error(e.explanation)
