@@ -372,11 +372,14 @@ class Installer(object):
     
         # Now build the image. 
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
-        logging.info("start compiling image %s/%s" % (repo, image))
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        logging.info("done compiling image %s/%s" % (repo, image))
         logging.warning(cmd)
-        logging.debug(output)
+
+        child = Popen(cmd, stdout=PIPE, shell=True)
+        while True:
+            l = child.stdout.readline().strip()
+            if not l:
+                break
+            logging.warning(l)
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'
