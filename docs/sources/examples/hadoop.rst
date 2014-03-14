@@ -53,7 +53,8 @@ Now that we've defined our stack, let's start it up. Just type the following in 
    ---- ------- --------- ---------- ------- ------- ----
    sa-0    se-0 [u'se-1']       se-2 running hadoop    --
 
-The entire process should take about 20 seconds. Before we continue, let's take a step back to 
+``hadoop`` should be replaced with the path to your specific file. Otherwise it will use a default Hadoop
+stack. The entire process should take about 20 seconds. Before we continue, let's take a step back to 
 examine what just happened. After typing ``start``, ``ferry`` created the following Docker
 containers:
 
@@ -167,6 +168,7 @@ scripts that are executed when the connector is first started. Likewise, there a
 - ``stop``: triggered when the connector is stopped
 - ``test``: triggered when the connector is asked to perform a test
 
+If you look in the ``test`` directory, you'll find some example programs that you can execute. 
 You can add your own scripts to these directories, and they'll be executed in alphanumeric order. 
 
 Saving everything

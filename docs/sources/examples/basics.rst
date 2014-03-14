@@ -36,5 +36,5 @@ Now you'll want to build the various Ferry images. Just type:
 
     $ sudo ferry install
 
-This may take a while, so sit back and relax. After all the images are built, head over to the 
+This will take at least tens of minutes, so sit back and relax. After all the images are built, head over to the 
 :ref:`Hadoop <hadoop>` tutorial to create a brand new Hadoop cluster.

@@ -115,6 +115,7 @@ scripts that are executed when the connector is first started. Likewise, there a
 - ``stop``: triggered when the connector is stopped
 - ``test``: triggered when the connector is asked to perform a test
 
+If you look in the ``test`` directory, you'll find some example programs that you can execute. 
 You can add your own scripts to these directories, and they'll be executed in alphanumeric order. 
 
 Saving everything
