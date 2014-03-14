@@ -37,6 +37,7 @@ class CLI(object):
         self.cmds.usage = "ferry COMMAND [arg...]"
         self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
+        self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
         self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("deploy", "Deploy a service to the cloud")
         self.cmds.add_cmd("help", "Print this help message")
@@ -375,7 +376,12 @@ class CLI(object):
         elif(cmd == 'snapshots'):
             return self._list_snapshots()
         elif(cmd == 'install'):
-            return self.installer.install(args)
+            msg = self.installer.install(args)
+            self.installer._stop_docker_daemon()
+            return msg
+        elif(cmd == 'clean'):
+            self.installer._stop_docker_daemon(force=True)
+            return 'cleaned ferry daemon'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
         elif(cmd == 'logs'):

@@ -415,15 +415,18 @@ class Installer(object):
                 time.sleep(2)
                 return True, "Ferry daemon running on /var/run/ferry.sock"
             else:
-                return False, "Ferry appears to be already running. If this is an error, please delete /var/run/ferry.sock and try again."
+                return False, "Ferry appears to be already running. If this is an error, please type \'ferry clean\' and try again."
         except OSError as e:
             logging.error("could not start docker daemon.\n") 
             logging.error(e.explanation)
             sys.exit(1)
 
-    def _stop_docker_daemon(self):
-        if self._docker_running():
+    def _stop_docker_daemon(self, force=False):
+        if force or self._docker_running():
             logging.warning("stopping docker daemon")
             cmd = 'pkill -f ferry'
             Popen(cmd, stdout=PIPE, shell=True)
-            os.remove('/var/run/ferry.sock')
+            try:
+                os.remove('/var/run/ferry.sock')
+            except OSError:
+                pass

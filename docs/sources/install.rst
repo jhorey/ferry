@@ -30,6 +30,7 @@ Ferry as a non-root user.
     $ sudo groupadd docker
     $ sudo usermod -a -G docker $USER
 
+You may need to logout and log back in for the group changes to take effect.
 Make sure that Docker is running before installing the rest of Ferry. You can do that by typing in your terminal: 
 
 .. code-block:: bash
