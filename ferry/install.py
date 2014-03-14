@@ -349,6 +349,9 @@ class Installer(object):
 
         image = os.path.dirname(f).split("/")[-1]
         if not image in built_images:
+            if base == "base":
+                self._pull_image(base)
+
             built_images[image] = True
             self._compile_image(image, repo, os.path.dirname(f))
 
@@ -371,6 +374,13 @@ class Installer(object):
                     return base[-1]
         return base
 
+    def _pull_image(self, image):
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
+        logging.warning(cmd)
+
+        child = Popen(cmd, stdout=PIPE, shell=True)
+        logging.warning(child.stdout.read())
+        
     def _compile_image(self, image, repo, image_dir):
         # Copy over the keys. 
         shutil.copy(GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir)
