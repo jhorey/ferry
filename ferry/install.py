@@ -391,10 +391,10 @@ class Installer(object):
 
         child = Popen(cmd, stdout=PIPE, shell=True)
         while True:
-            l = child.stdout.readline().strip()
+            l = child.stdout.readline()
             if not l:
                 break
-            logging.warning(l)
+            logging.warning(l.strip())
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'
