@@ -16,7 +16,7 @@ RUN ln -s /service/packages/titan-all-0.3.1 /service/packages/titan;ln -s /servi
 # Remember the various home directories
 ENV REXSTER_HOME /service/packages/rexster-server-2.3.0
 ENV TITAN_HOME /service/packages/titan-all-0.3.1
-RUN echo export REXSTER_HOME=/service/packages/rexster-server-2.3.0 >> /etc/profile;echo export TITAN_HOME=/service/packages/titan-all-0.3.1 >> /etc/profile;echo export CLASSPATH=/service/packages/titan/lib/*: >> /etc/profile;echo export PATH=$PATH:$REXSTER_HOME/bin
+RUN echo export REXSTER_HOME=/service/packages/rexster-server-2.3.0 >> /etc/profile;echo export TITAN_HOME=/service/packages/titan-all-0.3.1 >> /etc/profile;echo export CLASSPATH=/service/packages/titan/lib/*: >> /etc/profile;echo export PATH=$$PATH:$$REXSTER_HOME/bin >> /etc/profile
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/

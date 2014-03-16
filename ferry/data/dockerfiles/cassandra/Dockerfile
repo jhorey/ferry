@@ -21,7 +21,7 @@ RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile
 RUN echo export CASSANDRA_HOME=/service/package/apache-cassandra-2.0.6 >> /etc/profile
 RUN echo export CASSANDRA_CONF=/service/conf >> /etc/profile
 RUN echo export CASSANDRA_INCLUDE=/service/bin/cassandra.in.sh >> /etc/profile
-RUN echo export PATH=$PATH:$CASSANDRA_HOME/bin
+RUN echo export PATH=$$PATH:$$CASSANDRA_HOME/bin >> /etc/profile
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
