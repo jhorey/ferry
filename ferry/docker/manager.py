@@ -26,7 +26,7 @@ import sys
 import time
 import uuid
 from pymongo import MongoClient
-from ferry.install import FERRY_HOME, DEFAULT_DOCKER_REPO, DEFAULT_FERRY_OWNER
+from ferry.install import *
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.fabric        import DockerFabric
 from ferry.docker.configfactory import ConfigFactory
@@ -381,8 +381,7 @@ class DockerManager(object):
         new_dir = 'tmp/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         try:
             sh.mkdir('-p', new_dir)
-            uid = pwd.getpwnam("root").pw_uid
-            gid = grp.getgrnam("docker").gr_gid
+            uid, gid = _get_ferry_user()
             os.chown(new_dir, uid, gid)
             os.chmod(new_dir, 0774)
         except:
@@ -398,8 +397,7 @@ class DockerManager(object):
         new_dir = 'tmp/%s/log_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         try:
             sh.mkdir('-p', new_dir)
-            uid = pwd.getpwnam("root").pw_uid
-            gid = grp.getgrnam("docker").gr_gid
+            uid, gid = _get_ferry_user()
             os.chown(new_dir, uid, gid)
             os.chmod(new_dir, 0774)
         except:

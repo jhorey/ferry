@@ -37,14 +37,21 @@ def _get_ferry_home():
     else:
         return os.path.dirname(__file__)
 
+def _get_ferry_user():
+    uid = pwd.getpwnam("root").pw_uid
+    try:
+        gid = grp.getgrnam("docker").gr_gid
+    except KeyError:
+        gid = grp.getgrnam("root").gr_gid
+    return uid, gid
+
 def _touch_file(file_name, content, root=False):
     f = open(file_name, 'w+')
     f.write(content)
     f.close()
 
     if root:
-        uid = pwd.getpwnam("root").pw_uid
-        gid = grp.getgrnam("docker").gr_gid
+        uid, gid = _get_ferry_user()
         os.chown(file_name, uid, gid)
         os.chmod(file_name, 0664)
 
@@ -235,8 +242,7 @@ class Installer(object):
                 shutil.copy2(s, d)
 
     def _change_permission(self, location):
-        uid = pwd.getpwnam("root").pw_uid
-        gid = grp.getgrnam("docker").gr_gid
+        uid, gid = _get_ferry_user()
         os.chown(location, uid, gid)
 
         if os.path.isdir(location):        
@@ -333,8 +339,9 @@ class Installer(object):
     
         out_file = "/tmp/dockerfiles/" + f + "/Dockerfile"
         out = open(out_file, "w+")
+        uid, gid = _get_ferry_user()
         changes = { "USER" : repo,
-                    "DOCKER" : grp.getgrnam("docker").gr_gid }
+                    "DOCKER" : gid }
         for line in open(image_dir + '/' + f + '/Dockerfile', "r"):
             s = Template(line).substitute(changes)
             out.write(s)
