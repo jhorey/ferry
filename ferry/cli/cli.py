@@ -421,8 +421,8 @@ class CLI(object):
 def main(argv=None):
     # Set up the various logging facilities 
     console = logging.StreamHandler(stream=sys.stderr)
-    console.setFormatter(logging.Formatter(fmt='%(asctime)s %(message)s', 
-                                           datefmt='%m/%d/%Y %I:%M:%S %p'))
+    console.setFormatter(logging.Formatter(fmt='[%(asctime)s] %(message)s', 
+                                           datefmt='%m/%d/%Y %I:%M:%S'))
     console.setLevel(logging.WARNING)
     root_logger = logging.getLogger()
     root_logger.addHandler(console)

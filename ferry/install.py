@@ -39,11 +39,19 @@ def _get_ferry_home():
 
 def _get_ferry_user():
     uid = pwd.getpwnam("root").pw_uid
+    gid = grp.getgrnam("docker").gr_gid
+    return uid, gid
+    
+def _has_ferry_user():
     try:
+        uid = pwd.getpwnam("root").pw_uid
         gid = grp.getgrnam("docker").gr_gid
     except KeyError:
-        gid = grp.getgrnam("root").gr_gid
-    return uid, gid
+        return False
+    return True
+
+def _supported_arch():
+    return struct.calcsize("P") * 8 == 64
 
 def _touch_file(file_name, content, root=False):
     f = open(file_name, 'w+')
@@ -72,17 +80,14 @@ DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
-
-    """
-    Determine if this architecture is in fact 64-bit. 
-    """
-    def _supported_arch(self):
-        return struct.calcsize("P") * 8 == 64
         
     def install(self, args):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
-        if not self._supported_arch():
+        if not _supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
+
+        if not _has_ferry_user():
+            return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
 
         # Create the various directories.
         try:
@@ -96,6 +101,7 @@ class Installer(object):
 
         # Start the Ferry docker daemon. If it does not successfully
         # start, print out a msg. 
+        logging.warning("all prerequisites met...")
         start, msg = self._start_docker_daemon()
         if not start:
             logging.error('ferry docker daemon not started')
