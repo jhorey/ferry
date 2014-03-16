@@ -15,8 +15,8 @@ RUN ln -s /service/packages/hadoop-2.3.0/etc/hadoop /service/conf;ln -s /service
 # Make ferry owner of everything. 
 RUN chown -R ferry:docker /service
 
-RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile;echo export HADOOP_HOME=/service/packages/hadoop >> /etc/profile;echo export HIVE_HOME=/service/packages/hive >> /etc/profile;echo export JAVA_LIBRARY_PATH=/service/packages/hadoop/lib/native/ >> /etc/profile
 ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 ENV HADOOP_HOME /service/packages/hadoop
 ENV HIVE_HOME /service/packages/hive
 ENV JAVA_LIBRARY_PATH /service/packages/hadoop/lib/native/
+RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile;echo export HADOOP_HOME=/service/packages/hadoop >> /etc/profile;echo export HIVE_HOME=/service/packages/hive >> /etc/profile;echo export JAVA_LIBRARY_PATH=/service/packages/hadoop/lib/native/ >> /etc/profile;echo export PATH=$PATH:$HADOOP_HOME/bin:$HIVE_HOME/bin

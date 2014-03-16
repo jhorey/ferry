@@ -14,10 +14,14 @@ RUN wget https://www.dropbox.com/s/mbn3vr0ytxhcse3/apache-cassandra-2.0.6-bin.ta
 RUN ln -s /service/package/apache-cassandra-2.0.6/bin /service;ln -s /service/package/apache-cassandra-2.0.6/conf /service
 
 # Environment variables.
+ENV CASSANDRA_HOME /service/package/apache-cassandra-2.0.6
+ENV CASSANDRA_CONF /service/conf
+ENV CASSANDRA_INCLUDE /service/bin/cassandra.in.sh
 RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile
 RUN echo export CASSANDRA_HOME=/service/package/apache-cassandra-2.0.6 >> /etc/profile
 RUN echo export CASSANDRA_CONF=/service/conf >> /etc/profile
 RUN echo export CASSANDRA_INCLUDE=/service/bin/cassandra.in.sh >> /etc/profile
+RUN echo export PATH=$PATH:$CASSANDRA_HOME/bin
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
