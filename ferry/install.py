@@ -37,14 +37,29 @@ def _get_ferry_home():
     else:
         return os.path.dirname(__file__)
 
+def _get_ferry_user():
+    uid = pwd.getpwnam("root").pw_uid
+    gid = grp.getgrnam("docker").gr_gid
+    return uid, gid
+    
+def _has_ferry_user():
+    try:
+        uid = pwd.getpwnam("root").pw_uid
+        gid = grp.getgrnam("docker").gr_gid
+    except KeyError:
+        return False
+    return True
+
+def _supported_arch():
+    return struct.calcsize("P") * 8 == 64
+
 def _touch_file(file_name, content, root=False):
     f = open(file_name, 'w+')
     f.write(content)
     f.close()
 
     if root:
-        uid = pwd.getpwnam("root").pw_uid
-        gid = grp.getgrnam("docker").gr_gid
+        uid, gid = _get_ferry_user()
         os.chown(file_name, uid, gid)
         os.chmod(file_name, 0664)
 
@@ -65,17 +80,14 @@ DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
-
-    """
-    Determine if this architecture is in fact 64-bit. 
-    """
-    def _supported_arch(self):
-        return struct.calcsize("P") * 8 == 64
         
     def install(self, args):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
-        if not self._supported_arch():
+        if not _supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
+
+        if not _has_ferry_user():
+            return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
 
         # Create the various directories.
         try:
@@ -89,6 +101,7 @@ class Installer(object):
 
         # Start the Ferry docker daemon. If it does not successfully
         # start, print out a msg. 
+        logging.warning("all prerequisites met...")
         start, msg = self._start_docker_daemon()
         if not start:
             logging.error('ferry docker daemon not started')
@@ -235,8 +248,7 @@ class Installer(object):
                 shutil.copy2(s, d)
 
     def _change_permission(self, location):
-        uid = pwd.getpwnam("root").pw_uid
-        gid = grp.getgrnam("docker").gr_gid
+        uid, gid = _get_ferry_user()
         os.chown(location, uid, gid)
 
         if os.path.isdir(location):        
@@ -333,8 +345,9 @@ class Installer(object):
     
         out_file = "/tmp/dockerfiles/" + f + "/Dockerfile"
         out = open(out_file, "w+")
+        uid, gid = _get_ferry_user()
         changes = { "USER" : repo,
-                    "DOCKER" : grp.getgrnam("docker").gr_gid }
+                    "DOCKER" : gid }
         for line in open(image_dir + '/' + f + '/Dockerfile', "r"):
             s = Template(line).substitute(changes)
             out.write(s)
