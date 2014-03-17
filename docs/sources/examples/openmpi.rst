@@ -37,29 +37,13 @@ The file should look something like this:
     }
 
 There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
-``storage`` backend and a single ``compute`` backend. In theory, we could also create multiple ``compute`` backends
-like this:
+``storage`` backend and a single ``compute`` backend. This backend is going to run two instances of ``gluster`` and
+``mpi``. 
 
-.. code-block:: javascript
-
-    {
-      "backend":[
-       {
-        "compute":[
-	    {
-	      "personality":"mpi",
-	      "instances":2
-	    },
-	    {
-	      "personality":"yarn",
-	      "instances":2
-	    }]
-       }],
-    }
-
-We won't do this in this example though. This backend is going to run two instances of ``gluster`` and
-``mpi``. We'll also instantiate an MPI client. The client will automatically mount the Gluster volume
-and contain all the necessary configuration to launch new MPI jobs. 
+We'll also instantiate an MPI client. The client will automatically mount the Gluster volume
+and contain all the necessary configuration to launch new MPI jobs. By default the Gluster volume
+is mounted under ``/service/data``. Of course you can remount the directory to wherever you like. Once
+you've started your application and logged into your client, type ``mount`` to see the mount configuration. 
 
 Running an example
 ------------------
@@ -139,6 +123,38 @@ of OpenMPI hosts that can execute the code.
 Although this example does not read or write to shared storage, everything under ``/service/data`` 
 is shared across all the OpenMPI nodes and the Linux client. 
 
+A YARN example
+--------------
+
+In addition to OpenMPI, you can also create a YARN compute cluster that uses GlusterFS for storage. 
+YARN is the next-generation Hadoop compute layer that enables more flexibility compared to
+the old MapReduce API. The configuration file will look something like this:
+
+.. code-block:: javascript
+
+    {
+      "backend":[
+       {
+        "storage":
+            {
+  	       "personality":"gluster",
+  	       "instances":2
+	    },
+        "compute":[
+	    {
+	      "personality":"yarn",
+	      "instances":2
+	    },]
+       }],
+      "connectors":[
+	    {"personality":"hadoop-client"}
+      ]
+    }
+
+Note that under ``compute``, we've replaced the ``mpi`` section with a ``yarn`` section. After starting this
+stack, you should be able to run normal Hadoop and Hive applications. You can find some examples under
+``/service/runscripts/test``.
+
 Events and customization
 ------------------------
 
@@ -187,3 +203,4 @@ more.
 - `OpenMPI <http://www.open-mpi.org/>`_
 - `Using MPI Examples <http://www.mcs.anl.gov/research/projects/mpi/usingmpi/>`_
 - `MPI Scientific Computing <http://www.mcs.anl.gov/research/projects/mpi/tutorials/mpibasics/index.htm/>`_
+- `Apache Hadoop YARN <http://hortonworks.com/blog/introducing-apache-hadoop-yarn/>`_
