@@ -379,14 +379,7 @@ class DockerManager(object):
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
         new_dir = 'tmp/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
-        try:
-            sh.mkdir('-p', new_dir)
-            uid, gid = _get_ferry_user()
-            os.chown(new_dir, uid, gid)
-            os.chmod(new_dir, 0774)
-        except:
-            logging.warning(new_dir +  " already exists")
-        return os.path.abspath(new_dir)
+        return self._create_dir(new_dir)
 
     """
     Create a new log directory
@@ -395,7 +388,16 @@ class DockerManager(object):
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
         new_dir = 'tmp/%s/log_%s' % (service_uuid, storage_type + '_' + str(storage_id))
+        return self._create_dir(new_dir)
+
+    def _create_dir(self, new_dir):
         try:
+            # See if we need to delete an existing data dir.
+            if os.path.exists(new_dir):
+                shutil.rmtree(new_dir)
+
+            # Now create the new directory and assign
+            # the right permissions. 
             sh.mkdir('-p', new_dir)
             uid, gid = _get_ferry_user()
             os.chown(new_dir, uid, gid)
