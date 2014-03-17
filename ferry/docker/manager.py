@@ -686,6 +686,7 @@ class DockerManager(object):
     Stop a running cluster.
     """
     def _stop_stack(self, cluster_uuid):
+        volumes = []
         connectors, compute, storage = self._get_cluster_instances(cluster_uuid)
         for c in connectors:
             self._stop_service(c['uuid'], c['instances'], c['type'])
@@ -693,6 +694,13 @@ class DockerManager(object):
             self._stop_service(c['uuid'], c['instances'], c['type'])
         for s in storage:
             self._stop_service(s['uuid'], s['instances'], s['type'])
+            for i in s['instances']:
+                for v in i.volumes.keys():
+                    volumes.append(v)
+
+        # Now remove the data directories. 
+        for v in volumes:
+            shutil.rmtree(v)
 
     def _purge_stack(self, cluster_uuid):
         volumes = []
