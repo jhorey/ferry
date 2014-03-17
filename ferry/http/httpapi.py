@@ -146,7 +146,8 @@ def _allocate_fresh_compute(computes, storage_uuid):
 Allocate a brand new backend
 """
 def _allocate_fresh_backend(payload,
-                            backends=None):
+                            backends=None,
+                            replace=False):
     if not backends:
         if 'backend' in payload:
             backends = payload['backend']
@@ -169,9 +170,10 @@ def _allocate_fresh_backend(payload,
 
         # Now create the storage. 
         storage_uuid = docker.allocate_storage(storage_type = storage_type, 
-                                              num_instances = num_instances,
-                                              layers = layers,
-                                              args = args)
+                                               num_instances = num_instances,
+                                               layers = layers,
+                                               args = args,
+                                               replace = replace)
         # Now get the compute information
         compute_uuid = None
         compute_uuids = []
@@ -252,7 +254,7 @@ def _allocate_stopped(payload):
 Helper function to allocate and start a new stack. 
 """
 def _allocate_new(payload):
-    backend_info = _allocate_fresh_backend(payload)
+    backend_info = _allocate_fresh_backend(payload, replace=True)
     connector_info = _allocate_connectors(payload, backend_info['uuids'])
 
     # Register the new cluster. 

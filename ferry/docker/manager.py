@@ -379,31 +379,37 @@ class DockerManager(object):
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
         new_dir = 'tmp/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
-        return self._create_dir(new_dir)
+        return self._create_dir(new_dir, replace=True)
 
     """
     Create a new log directory
     """
-    def _new_log_dir(self, service_uuid, storage_type, storage_id):
+    def _new_log_dir(self, service_uuid, storage_type, storage_id, replace = False):
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
         new_dir = 'tmp/%s/log_%s' % (service_uuid, storage_type + '_' + str(storage_id))
-        return self._create_dir(new_dir)
+        return self._create_dir(new_dir, replace=replace)
 
-    def _create_dir(self, new_dir):
+    def _create_dir(self, new_dir, replace=False):
+        # See if we need to delete an existing data dir.
+        if os.path.exists(new_dir) and replace:
+            logging.warning("deleting dir " + new_dir)
+            shutil.rmtree(new_dir)
+
         try:
-            # See if we need to delete an existing data dir.
-            if os.path.exists(new_dir):
-                shutil.rmtree(new_dir)
-
             # Now create the new directory and assign
             # the right permissions. 
             sh.mkdir('-p', new_dir)
-            uid, gid = _get_ferry_user()
-            os.chown(new_dir, uid, gid)
-            os.chmod(new_dir, 0774)
         except:
             logging.warning(new_dir + " already exists")
+
+        try:
+            uid, gid = ferry.install._get_ferry_user()
+            os.chown(new_dir, uid, gid)
+            os.chmod(new_dir, 0774)
+        except OSError as e:
+            logging.warning("could not change permissions for " + new_dir)
+
         return os.path.abspath(new_dir)
 
     def _get_service_environment(self,
@@ -428,7 +434,8 @@ class DockerManager(object):
                                      num_instances, 
                                      storage_type, 
                                      layers,
-                                     args = None):
+                                     args = None,
+                                     replace = False):
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
         ports = []
@@ -449,7 +456,7 @@ class DockerManager(object):
             instance_type = self._get_instance_image(t)
             service = self._get_service(t)
             container_dir, log_dir, host_name, ports, exposed = self._get_service_environment(service, i, num_instances)
-            new_log_dir = self._new_log_dir(service_uuid, t, i)
+            new_log_dir = self._new_log_dir(service_uuid, t, i, replace=replace)
             dir_info = { new_log_dir : log_dir }
 
             # Only use a data directory mapping if we're not
@@ -816,14 +823,15 @@ class DockerManager(object):
                          storage_type, 
                          num_instances=1,
                          layers=[], 
-                         args=None):
+                         args=None,
+                         replace=False):
         # Allocate a UUID.
         service_uuid = self._new_service_uuid()
         service = self._get_service(storage_type)
 
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
-        plan = self._prepare_storage_environment(service_uuid, num_instances, storage_type, layers, args)
+        plan = self._prepare_storage_environment(service_uuid, num_instances, storage_type, layers, args, replace)
 
         # Allocate all the containers. 
         containers = self._start_containers(plan)
