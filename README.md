@@ -14,9 +14,9 @@ Big data technologies are designed to operate and scale over many machines and u
 of multiple functional parts. Developers interested in creating a 
 Hadoop application, for example, must first download the appropriate packages, configure these
 systems to operate in a single-machine environment (or multiple machines for operational environments), 
-and configure other required services (e.g., PostGresql). 
+and configure other required services (e.g., PostgreSQL). 
 
-Fortunately for us, Ferry and Docker vastly simplifies the entire process by capturing the entire process
+Fortunately for us, Ferry and Docker vastly simplify the entire process by capturing the entire process
 in a set of lightweight Linux containers. This enables developers to quickly stand up a big data stack and 
 attach connectors/clients with zero manual configuration. Because Docker is so lightweight, you can even test 
 multiple big data stacks with minimal overhead. 
@@ -50,7 +50,7 @@ your big data application. Here's an example stack:
 ```
 
 This stack consists of two GlusterFS data nodes, and two OpenMPI compute nodes. There's also a Linux
-client that automatically connect to those backend components. To create this stack, just type
+client that automatically connects to those backend components. To create this stack, just type
 `ferry start openmpi`. Once you create the stack, you can log in by typing `ferry ssh sa-0`. 
 
 More detailed installation instructions and examples can be found [here](http://ferry.opencore.io). 
@@ -66,4 +66,4 @@ Ferry leverages some awesome open source projects:
 * [GlusterFS](http://www.gluster.org) is a parallel filesystem actively developed by Redhat
 * [OpenMPI](http://www.open-mpi.org) is a scalable MPI implementation focused on modeling & simulation
 * [Cassandra](http://cassandra.apache.org) is a highly scalable column store
-* [PostGresql](http://postgresql.org) is a popular relational database
+* [PostgreSQL](http://postgresql.org) is a popular relational database
