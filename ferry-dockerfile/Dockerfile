@@ -16,8 +16,6 @@ RUN ssh-keygen -f /service/keys/id_rsa -t rsa -N '' > /dev/null
 RUN ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null
 
 # Install Ferry
-# RUN pip install ferry
-ADD ./foo /service/packages/
-RUN cd /service/packages/;python setup.py install
+RUN pip install ferry
 ADD ./make.sh /service/sbin/
 RUN chmod +x /service/sbin/*

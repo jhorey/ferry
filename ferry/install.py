@@ -240,8 +240,12 @@ class Installer(object):
 
     def _clean_web(self):
         docker = DOCKER_CMD + ' -H=' + DOCKER_SOCK
-        cmd = docker + ' ps | grep ferry/mongodb | awk \'{print $1}\' | xargs ' + docker + ' stop'
-        Popen(cmd, stdout=PIPE, shell=True)
+        cmd = docker + ' ps | grep ferry/mongodb | awk \'{print $1}\' | xargs ' + docker + ' stop '
+        logging.warning("cleaning previous mongo resources")
+        logging.warning(cmd)
+        child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        child.stdout.read()
+        child.stderr.read()
 
     def _copytree(self, src, dst):
         for item in os.listdir(src):
