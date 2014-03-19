@@ -6,7 +6,7 @@ Install
 =======
 
 There are two ways to install Ferry. The first via `pip` will install Ferry in your local environment. The second is via Docker-in-Docker, in which
-Ferry will install and run itself in a self-enclosed Docker container. This method is described :ref:`here <alternative>`. 
+Ferry will install and run itself in a self-enclosed Docker container. This method is described :ref:`here <alternative>`
 
 If you choose to install via ``pip`` you want to make sure that you're running Python2
 (Python3 is currently not supported). Then we'll need to install Docker. If you're running the latest version of Ubuntu, it's fairly straightforward. 
