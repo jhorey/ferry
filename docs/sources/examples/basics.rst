@@ -36,5 +36,17 @@ Now you'll want to build the various Ferry images. Just type:
 
     $ sudo ferry install
 
-This will take at least tens of minutes, so sit back and relax. After all the images are built, head over to the 
-:ref:`Hadoop <hadoop>` tutorial to create a brand new Hadoop cluster.
+This will take at least tens of minutes, so sit back and relax. After all the images are built, check by typing:
+
+.. code-block:: bash
+
+    $ sudo ferry server
+    $ ferry info
+
+Congratulations! Now head over to the :ref:`Hadoop <hadoop>` tutorial to create a brand new Hadoop cluster.
+
+When you're all done writing your application, you can stop the Ferry servers by typing:
+
+.. code-block:: bash
+
+    $ sudo ferry quit
