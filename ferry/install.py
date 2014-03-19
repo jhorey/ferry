@@ -53,6 +53,9 @@ def _has_ferry_user():
 def _supported_arch():
     return struct.calcsize("P") * 8 == 64
 
+def _supported_python():
+    return sys.version_info[0] == 2
+
 def _touch_file(file_name, content, root=False):
     f = open(file_name, 'w+')
     f.write(content)
@@ -86,6 +89,9 @@ class Installer(object):
         if not _supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
 
+        if not _supported_python():
+            return 'You appear to be running Python3.\nOnly Python2 is supported at the moment.'
+
         if not _has_ferry_user():
             return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
 
@@ -110,8 +116,10 @@ class Installer(object):
         # Set up the various key information. If the user chooses to use
         # the global key, a copy of that key will be made and the permissions
         # will be locked down. That way, we'll avoid the ssh permission warning. 
+        global GLOBAL_KEY_DIR
         if '-k' in args:
             i = args.index('-k')
+            logging.warning(args)
             GLOBAL_KEY_DIR = self.fetch_image_keys(args[i + 1])
         else:
             GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
@@ -406,17 +414,18 @@ class Installer(object):
     def _compile_image(self, image, repo, image_dir):
         # Copy over the keys. 
         shutil.copy(GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir)
-    
+        logging.warning("copying over %s to %s" % (GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir))
+
         # Now build the image. 
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
         logging.warning(cmd)
 
-        child = Popen(cmd, stdout=PIPE, shell=True)
-        while True:
-            l = child.stdout.readline()
-            if not l:
-                break
-            logging.warning(l.strip())
+        # child = Popen(cmd, stdout=PIPE, shell=True)
+        # while True:
+        #     l = child.stdout.readline()
+        #     if not l:
+        #         break
+        #     logging.warning(l.strip())
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'
