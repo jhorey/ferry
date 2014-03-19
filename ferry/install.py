@@ -237,7 +237,16 @@ class Installer(object):
         logging.warning("stopping http servers")
         cmd = 'ps -eaf | grep httpapi | awk \'{print $2}\' | xargs kill -15'
         Popen(cmd, stdout=PIPE, shell=True)
-        
+
+    def _clean_web(self):
+        docker = DOCKER_CMD + ' -H=' + DOCKER_SOCK
+        cmd = docker + ' ps | grep ferry/mongodb | awk \'{print $1}\' | xargs ' + docker + ' stop '
+        logging.warning("cleaning previous mongo resources")
+        logging.warning(cmd)
+        child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        child.stdout.read()
+        child.stderr.read()
+
     def _copytree(self, src, dst):
         for item in os.listdir(src):
             s = os.path.join(src, item)

@@ -380,8 +380,10 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
+            self.installer._start_docker_daemon()
+            self.installer._clean_web()
             self.installer._stop_docker_daemon(force=True)
-            return 'cleaned ferry daemon'
+            return 'cleaned ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
         elif(cmd == 'logs'):
@@ -442,5 +444,5 @@ def main(argv=None):
                 for c in all_cmds.keys():
                     msg = cli.dispatch_cmd(c, all_cmds[c], options)
                     print msg
-                    return
+                    exit(0)
     print cli._print_help()
