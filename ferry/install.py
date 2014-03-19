@@ -53,6 +53,9 @@ def _has_ferry_user():
 def _supported_arch():
     return struct.calcsize("P") * 8 == 64
 
+def _supported_python():
+    return sys.version_info[0] == 2
+
 def _touch_file(file_name, content, root=False):
     f = open(file_name, 'w+')
     f.write(content)
@@ -85,6 +88,9 @@ class Installer(object):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not _supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
+
+        if not _supported_python():
+            return 'You appear to be running Python3.\nOnly Python2 is supported at the moment.'
 
         if not _has_ferry_user():
             return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
