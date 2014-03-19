@@ -380,6 +380,7 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
+            self.installer._clean_web()
             self.installer._stop_docker_daemon(force=True)
             return 'cleaned ferry daemon'
         elif(cmd == 'inspect'):
