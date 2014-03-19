@@ -116,8 +116,10 @@ class Installer(object):
         # Set up the various key information. If the user chooses to use
         # the global key, a copy of that key will be made and the permissions
         # will be locked down. That way, we'll avoid the ssh permission warning. 
+        global GLOBAL_KEY_DIR
         if '-k' in args:
             i = args.index('-k')
+            logging.warning(args)
             GLOBAL_KEY_DIR = self.fetch_image_keys(args[i + 1])
         else:
             GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
@@ -403,17 +405,18 @@ class Installer(object):
     def _compile_image(self, image, repo, image_dir):
         # Copy over the keys. 
         shutil.copy(GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir)
-    
+        logging.warning("copying over %s to %s" % (GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir))
+
         # Now build the image. 
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
         logging.warning(cmd)
 
-        child = Popen(cmd, stdout=PIPE, shell=True)
-        while True:
-            l = child.stdout.readline()
-            if not l:
-                break
-            logging.warning(l.strip())
+        # child = Popen(cmd, stdout=PIPE, shell=True)
+        # while True:
+        #     l = child.stdout.readline()
+        #     if not l:
+        #         break
+        #     logging.warning(l.strip())
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'
