@@ -42,10 +42,13 @@ If you take a peek inside, you'll find a directory called `ferry-dockerfile`.
     Dockerfile
 
 The `make.sh` is a simple shell script containing the instructions for actually
-building and using the `Dockerfile`. Run it like this:
+building and using the `Dockerfile`. Before running it, we will need to set the
+directory where all the Ferry images will reside (otherwise Ferry won't retain
+any state). Run it like this:
 
 .. code-block:: bash
 
+    $ export FERRY_DIR=/tmp/ferry-images
     $ ./make.sh install
 
 This will first build an image called `ferry/ferry-server`. Afterwards it will

@@ -168,7 +168,7 @@ function run_ferry_server {
     	echo -e "${RED}you must set the FERRY_DIR environment variable${NC}"
     else
     	echo -e "${BLUE}starting ferry client${NC}"
-	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry-0.1.21-py2.7.egg/ferry -i -t ferry/ferry-server /service/sbin/make.sh console
+	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh console
     fi
 }
 
