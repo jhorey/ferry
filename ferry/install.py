@@ -409,7 +409,11 @@ class Installer(object):
         logging.warning(cmd)
 
         child = Popen(cmd, stdout=PIPE, shell=True)
-        logging.warning(child.stdout.read())
+        while True:
+            l = child.stdout.readline()
+            if not l:
+                break
+            logging.warning(l.strip())
         
     def _compile_image(self, image, repo, image_dir):
         # Copy over the keys. 
@@ -420,12 +424,12 @@ class Installer(object):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
         logging.warning(cmd)
 
-        # child = Popen(cmd, stdout=PIPE, shell=True)
-        # while True:
-        #     l = child.stdout.readline()
-        #     if not l:
-        #         break
-        #     logging.warning(l.strip())
+        child = Popen(cmd, stdout=PIPE, shell=True)
+        while True:
+            l = child.stdout.readline()
+            if not l:
+                break
+            logging.warning(l.strip())
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'
