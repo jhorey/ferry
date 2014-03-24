@@ -1,6 +1,7 @@
 #!/bin/bash
 
 if [ $1 == "listen" ]; then 
+    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
     /usr/sbin/sshd -D
 else
     for f in /service/runscripts/$1/*

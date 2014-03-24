@@ -70,6 +70,7 @@ class DockerFabric(object):
             container = self.cli.run(service_type = c['type'], 
                                      image = c['image'], 
                                      volumes = c['volumes'],
+                                     keys = c['keys'], 
                                      phys_net = None, 
                                      security_group = c['ports'],
                                      expose_group = c['exposed'], 

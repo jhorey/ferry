@@ -36,6 +36,7 @@ elif [ $1 == "mount" ]; then
     fi
 elif [ $1 == "listen" ]; then 
     # Keep ssh open so that we can interact with the container
+    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
     /usr/sbin/sshd -D
 elif [ $1 == "stop" ]; then 
     input=/tmp/hadoop_services.log

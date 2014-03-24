@@ -228,7 +228,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, phys_net, security_group, expose_group=None, hostname=None, args=None):
+    def run(self, service_type, image, volumes, keys, phys_net, security_group, expose_group=None, hostname=None, args=None):
         flags = self.daemon 
         if phys_net != None:
             flags += self.net_flag
@@ -257,6 +257,12 @@ class DockerCLI(object):
                 flags += self.volume_flag
                 flags += ' %s:%s' % (v, volumes[v])
 
+        # Add the key directory
+        if keys != None:
+            for v in keys.keys():
+                flags += self.volume_flag
+                flags += ' %s:%s' % (v, keys[v])
+            
         # Now construct the final docker command. 
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image
         logging.warning(cmd)

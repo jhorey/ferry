@@ -447,6 +447,14 @@ class DockerManager(object):
         exposed.append(DockerManager.SSH_PORT)
 
         return container_dir, log_dir, host_name, ports, exposed
+
+    """
+    Read the directory containing the key we should use. 
+    """
+    def _read_key_dir(self):
+        keydir = open(ferry.install.DEFAULT_DOCKER_KEY, 'r').read().strip()
+        return { keydir : '/service/keys' }
+
     """
     Prepare the environment for storage containers.
     """
@@ -490,6 +498,7 @@ class DockerManager(object):
                               'type':t, 
                               'volumes':dir_info,
                               'volume_user':DEFAULT_FERRY_OWNER, 
+                              'keys': self._read_key_dir(), 
                               'ports':ports,
                               'exposed':exposed, 
                               'hostname':host_name,
@@ -531,6 +540,7 @@ class DockerManager(object):
             container_info = {'image':instance_type,
                               'volumes':dir_info,
                               'volume_user':DEFAULT_FERRY_OWNER, 
+                              'keys': self._read_key_dir(), 
                               'type':t, 
                               'ports':ports,
                               'exposed':exposed, 
@@ -593,6 +603,7 @@ class DockerManager(object):
         container_info = { 'image':instance_type,
                            'volumes':dir_info,
                            'volume_user':DEFAULT_FERRY_OWNER, 
+                           'keys': self._read_key_dir(), 
                            'type':connector_type, 
                            'ports':ports,
                            'exposed':exposed, 
