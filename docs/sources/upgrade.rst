@@ -29,4 +29,4 @@ Finally, we'll need to update the Ferry images.
 
 We're constantly trying to improve the process, so if anything goes wrong, don't
 hesitate to file an issue on `GitHub <https://github.com/opencore/ferry/>`_ or 
-leave a message on the `Ferry Google Group<https://groups.google.com/d/forum/ferry-user/>`_. 
+leave a message on the `Ferry Google Group <https://groups.google.com/d/forum/ferry-user/>`_. 
