@@ -78,7 +78,18 @@ this is all being run from the connector.
    BACKEND_STORAGE_TYPE=cassandra
    BACKEND_STORAGE_IP=10.1.0.3
 
-Now let's interact with Cassandra by creating a simple database. You can interact with Cassandra using ``cql``,
+Now if you're really impatient to get a Cassandra application working, just type the following into
+the terminal:
+
+.. code-block:: bash
+
+   $ /service/runscripts/test/test01.sh cql
+
+It will take a few seconds to complete, but you should see some output that comes from
+executing the application. If you want to know what you just did, take a peek at the
+``/service/runscripts/test/test01.sh`` file. 
+
+Now let's interact with manually Cassandra and create a simple database. You can interact with Cassandra using ``cql``,
 a language similar to SQL. 
 
 .. code-block:: sql

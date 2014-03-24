@@ -84,6 +84,18 @@ this is all being run from the connector.
    BACKEND_COMPUTE_IP=10.1.0.5
 
 Notice there are two sets of environment variables, once for the storage and the other for the compute. 
+
+Now if you're really impatient to get an OpenMPI application working, just type the following into
+the terminal:
+
+.. code-block:: bash
+
+   $ /service/runscripts/test/test01.sh
+
+It will take a few seconds to complete, but you should see some output that comes from
+executing the application. If you want to know what you just did, take a peek at the
+``/service/runscripts/test/test01.sh`` file. 
+
 Ok, now let's actually compile some code and run it. Here's a super simple ``hello world`` example:
 
 .. code-block:: c++

@@ -38,6 +38,7 @@ class CLI(object):
         self.cmds.usage = "ferry COMMAND [arg...]"
         self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
+        self.cmds.add_option("-l", "--log", "Log configuration file")
         self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
         self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("deploy", "Deploy a service to the cloud")
@@ -432,6 +433,8 @@ def main(argv=None):
 
             # Initialize the cli
             options = cli.cmds.get_options()
+            if '-l' in options:
+                logging.config.fileConfig(options['-l'])
 
             # Execute the commands
             all_cmds = cli.cmds.get_cmds()

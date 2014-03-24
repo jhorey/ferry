@@ -56,6 +56,7 @@ class DockerManager(object):
 
         # Initialize the state. 
         self._init_state_db()
+        self._clean_state_db()
 
     """
     Contact the state database. 
@@ -66,6 +67,12 @@ class DockerManager(object):
         self.cluster_collection = self.mongo['state']['clusters']
         self.service_collection = self.mongo['state']['services']
         self.snapshot_collection = self.mongo['state']['snapshots']
+
+    """
+    Remove all the services that are "terminated". 
+    """
+    def _clean_state_db(self):
+        self.cluster_collection.remove( {'status':'removed'} )
 
     def _serialize_containers(self, containers):
         info = []

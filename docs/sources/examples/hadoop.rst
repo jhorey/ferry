@@ -9,7 +9,7 @@ Getting started with Hadoop
 
 Hadoop is a popular big data platform that includes both storage (HDFS) and compute (YARN). 
 In this example, we'll create a small 2 node Hadoop cluster, and a single Linux client. 
-
+		
 The first thing to do is to define our big data stack in a file (let's call it ``hadoop.json``). 
 The file should look something like this:
 
@@ -82,7 +82,18 @@ this is all being run from the connector.
    BACKEND_STORAGE_TYPE=hadoop
    BACKEND_STORAGE_IP=10.1.0.3
 
-Now let's actually run some Hadoop jobs to confirm that everything is working. We're going 
+Now if you're really impatient to get a Hadoop application working, just type the following into
+the terminal:
+
+.. code-block:: bash
+
+   $ /service/runscripts/test/test01.sh hive
+
+It will take a minute or two to complete, but you should see a bunch of output that comes from
+executing the application. If you want to know what you just did, take a peek at the
+``/service/runscripts/test/test01.sh`` file. 
+
+Now let's manually run some Hadoop jobs to confirm that everything is working. We're going 
 download a dataset from internet. It's very important that we run everything as the
 ``ferry`` user (as opposed to ``root``). Otherwise you may see strange errors associated with
 permissions. So switch over to the ``ferry`` user by typing: 
