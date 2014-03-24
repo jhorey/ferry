@@ -32,7 +32,9 @@ The file should look something like this:
 
 There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
 ``storage`` backend. This ``storage`` backend is going to run two instances of ``hadoop`` and also install
-``hive``, an SQL compatability layer for Hadoop. 
+``hive``, an SQL compatability layer for Hadoop. The ``backend`` may also optionally include a ``compute``
+section (for example additional ``yarn`` instances). However, in this example, we won't need one since 
+Hadoop will automatically come with its own compute capabilities. 
 
 Connectors are basically Linux clients that are able to connect to the backend. In this example, we'll
 instantiate a ``hadoop-client`` (there are several pre-defined types). You can specify as many as you
@@ -68,7 +70,7 @@ For those that already run ``docker`` for other reasons, don't worry, ``ferry`` 
 separate Docker daemon so that you're environment is left unaffected. 
 
 Now that the environment is created, let's interact with it by connecting to the Linux client. 
-Just type ``docker ssh sa-0`` in your terminal. From there you'll can check your backend connection 
+Just type ``ferry ssh sa-0`` in your terminal. From there you'll can check your backend connection 
 and install whatever you need. 
 
 Now let's check what environment variables have been created. Remember
@@ -81,19 +83,31 @@ this is all being run from the connector.
    BACKEND_STORAGE_IP=10.1.0.3
 
 Now let's actually run some Hadoop jobs to confirm that everything is working. We're going 
-download a dataset from internet. We want to do this as the ``ferry`` user (as opposed to ``root``). 
+download a dataset from internet. It's very important that we run everything as the
+``ferry`` user (as opposed to ``root``). Otherwise you may see strange errors associated with
+permissions. So switch over to the ``ferry`` user by typing: 
 
 .. code-block:: bash
 
     $ su ferry
-    $ wget http://files.grouplens.org/datasets/movielens/ml-100k/u.data -P /tmp/movielens/
+    $ source /etc/profile
 
-Then we're going to copy that dataset into the Hadoop filesystem. This is a necessary pre-condition
-to actually running any Hadoop jobs that operate over the data. 
+That last command just sets the ``PATH`` environment variable so that you can find the
+``hadoop`` and ``hive`` commands. To confirm, if you type the following, you should see
+the full path of the ``hive`` command. Of course, you can also just type in the full path
+if you prefer. 
 
 .. code-block:: bash
 
-    $ export PATH=$PATH:$HADOOP_HOME/bin:$HIVE_HOME/bin
+    $ which hive
+    /service/packages/hive/bin/hive
+
+Now that the ``PATH`` is set, we're going to copy that dataset into the Hadoop filesystem. 
+This is a necessary pre-condition to actually running any Hadoop jobs that operate over the data. 
+
+.. code-block:: bash
+
+    $ wget http://files.grouplens.org/datasets/movielens/ml-100k/u.data -P /tmp/movielens/
     $ hdfs dfs -mkdir -p /data/movielens
     $ hdfs dfs -copyFromLocal /tmp/movielens/u.data /data/movielens
 
