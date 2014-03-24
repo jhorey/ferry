@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import logging
+import logging.config
 import requests
 import re
 import shutil
@@ -422,13 +423,7 @@ class CLI(object):
     
 def main(argv=None):
     # Set up the various logging facilities 
-    console = logging.StreamHandler(stream=sys.stderr)
-    console.setFormatter(logging.Formatter(fmt='[%(asctime)s] %(message)s', 
-                                           datefmt='%m/%d/%Y %I:%M:%S'))
-    console.setLevel(logging.WARNING)
-    root_logger = logging.getLogger()
-    root_logger.addHandler(console)
-    root_logger.setLevel(logging.DEBUG)
+    logging.config.fileConfig(FERRY_HOME + "/logging.conf")
 
     cli = CLI()
     if(sys.argv):

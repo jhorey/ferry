@@ -13,6 +13,9 @@ RUN wget https://www.dropbox.com/s/mbn3vr0ytxhcse3/apache-cassandra-2.0.6-bin.ta
 # Make soft links to the bin and configuration for easy access
 RUN ln -s /service/package/apache-cassandra-2.0.6/bin /service;ln -s /service/package/apache-cassandra-2.0.6/conf /service
 
+# Soft links to make life easier
+RUN ln -s /service/package/apache-cassandra-2.0.6/bin/* /usr/local/bin/
+
 # Environment variables.
 ENV CASSANDRA_HOME /service/package/apache-cassandra-2.0.6
 ENV CASSANDRA_CONF /service/conf
@@ -21,7 +24,6 @@ RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile
 RUN echo export CASSANDRA_HOME=/service/package/apache-cassandra-2.0.6 >> /etc/profile
 RUN echo export CASSANDRA_CONF=/service/conf >> /etc/profile
 RUN echo export CASSANDRA_INCLUDE=/service/bin/cassandra.in.sh >> /etc/profile
-RUN echo export PATH=$$PATH:$$CASSANDRA_HOME/bin >> /etc/profile
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/

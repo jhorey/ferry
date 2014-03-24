@@ -2,6 +2,7 @@ include LICENSE
 include requirements.txt
 include *.md
 include docker/*
+include ferry/logging.conf
 include ferry/data/conf/*
 recursive-include ferry/data/dockerfiles *
 include ferry/data/key/*

@@ -189,7 +189,10 @@ class Installer(object):
             logging.error("Could not start ferry servers.\n") 
             logging.error("MongoDB images not found. Try executing 'ferry install'.")
             sys.exit(1)
-        
+
+        # Check if there are any other Mongo instances runnig.
+        self._clean_web()
+
         # Start the Mongo server.
         mongo_data = '/service/data'
         mongo_log = '/service/logs'
