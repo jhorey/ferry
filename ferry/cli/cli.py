@@ -36,9 +36,11 @@ class CLI(object):
         self.cmds.description = "Development environment for big data applications"
         self.cmds.version = ferry.__version__
         self.cmds.usage = "ferry COMMAND [arg...]"
-        self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
         self.cmds.add_option("-l", "--log", "Log configuration file")
+        self.cmds.add_option("-k", "--key", "Specify key directory")
+        self.cmds.add_option("-m", "--mode", "Deployment mode")
+        self.cmds.add_option("-u", "--upgrade", "Upgrade Ferry")
         self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
         self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("deploy", "Deploy a service to the cloud")
@@ -378,7 +380,7 @@ class CLI(object):
         elif(cmd == 'snapshots'):
             return self._list_snapshots()
         elif(cmd == 'install'):
-            msg = self.installer.install(args)
+            msg = self.installer.install(args, options)
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
@@ -434,7 +436,7 @@ def main(argv=None):
             # Initialize the cli
             options = cli.cmds.get_options()
             if '-l' in options:
-                logging.config.fileConfig(options['-l'])
+                logging.config.fileConfig(options['-l'][0])
 
             # Execute the commands
             all_cmds = cli.cmds.get_cmds()

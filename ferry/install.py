@@ -84,7 +84,7 @@ DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
         
-    def install(self, args):
+    def install(self, args, options):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not _supported_arch():
             return 'Your architecture appears to be 32-bit.\nOnly 64-bit architectures are supported at the moment.'
@@ -117,16 +117,14 @@ class Installer(object):
         # the global key, a copy of that key will be made and the permissions
         # will be locked down. That way, we'll avoid the ssh permission warning. 
         global GLOBAL_KEY_DIR
-        if '-k' in args:
-            i = args.index('-k')
-            logging.warning(args)
-            GLOBAL_KEY_DIR = self.fetch_image_keys(args[i + 1])
+        if '-k' in options:
+            GLOBAL_KEY_DIR = self.fetch_image_keys(options['-k'][0])
         else:
             GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
         logging.warning("using key directory " + GLOBAL_KEY_DIR)
         _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
 
-        if '-u' in args:
+        if '-u' in options:
             # We want to re-build all the images. 
             logging.warning("performing forced rebuild")
             self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO )
