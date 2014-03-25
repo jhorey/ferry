@@ -203,8 +203,8 @@ class Installer(object):
         mongo_log = '/service/logs'
         mongo_keys = '/service/keys'
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (GLOBAL_KEY_DIR, mongo_keys,
-                                                                                                     DEFAULT_MONGO_DB, mongo_data, 
-                                                                                                     DEFAULT_MONGO_LOG, mongo_log, 
+                                                                                                     DEFAULT_MONGO_DB, mongo_data,
+                                                                                                     DEFAULT_MONGO_LOG, mongo_log,
                                                                                                      DEFAULT_DOCKER_REPO)
         logging.warning(cmd)
         child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)

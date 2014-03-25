@@ -13,7 +13,7 @@ RUN echo "Pin: release o=LP-PPA-semiosis-ubuntu-glusterfs-3.4,a=quantal" >> /etc
 RUN echo "Pin-Priority: 900" >> /etc/apt/preferences
 
 # Download the various packages needed
-RUN apt-get update; apt-get --yes install git glusterfs-common glusterfs-client glusterfs-server
+RUN apt-get update; apt-get --yes install git glusterfs-common glusterfs-client glusterfs-server attr
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/

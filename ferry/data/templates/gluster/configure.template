@@ -11,4 +11,8 @@ if [ $$1 == "start" ]; then
    echo "volume start success"
 elif [ $$1 == "stop" ]; then
    yes | gluster volume stop $VOLUME_ID >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
+elif [ $1 == "clean" ]; then 
+    setfattr -x trusted.glusterfs.volume-id $BRICK_DIR
+    setfattr -x trusted.gfid $BRICK_DIR
+    rm -rf $BRICK_DIR/.glusterfs
 fi
