@@ -341,22 +341,19 @@ class DockerManager(object):
             return False
 
     """
-    Check if the UUID is of a stopped application. 
+    Check if the application status
     """
+    def _confirm_status(self, uuid, status):
+        cluster = self.cluster_collection.find_one( {'uuid':uuid} )
+        if cluster:
+            return cluster['status'] == status
+        return False
+    def is_running(self, uuid, conf=None):
+        return self._confirm_status(uuid, 'running')
     def is_stopped(self, uuid, conf=None):
-        cluster = self.cluster_collection.find_one( {'uuid':uuid} )
-        if cluster:
-            return cluster['status'] == 'stopped'
-        return False
-
-    """
-    Check if the UUID is of a stopped application. 
-    """
+        return self._confirm_status(uuid, 'stopped')
     def is_removed(self, uuid, conf=None):
-        cluster = self.cluster_collection.find_one( {'uuid':uuid} )
-        if cluster:
-            return cluster['status'] == 'removed'
-        return False
+        return self._confirm_status(uuid, 'removed')
 
     """
     Check if the UUID is of a deployed application. 
@@ -948,16 +945,15 @@ class DockerManager(object):
             # doesn't actually stop anything.
             self._snapshot_stack(stack_uuid)
         elif(action == 'stop'):
-            self._stop_stack(stack_uuid)
-
-            status = 'stopped'
-            service_status = { 'uuid':stack_uuid, 'status':status }
-            self._update_stack(stack_uuid, service_status)
+            if self.is_running(stack_uuid):
+                self._stop_stack(stack_uuid)
+                status = 'stopped'
+                service_status = { 'uuid':stack_uuid, 'status':status }
+                self._update_stack(stack_uuid, service_status)
         elif(action == 'rm'):
             # First need to check if the stack is stopped.
             if self.is_stopped(stack_uuid):
                 self._purge_stack(stack_uuid)
-
                 status = 'removed'
                 service_status = { 'uuid':stack_uuid, 'status':status }
                 self._update_stack(stack_uuid, service_status)
