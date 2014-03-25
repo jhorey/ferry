@@ -83,7 +83,16 @@ DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
-        
+
+    def _process_ssh_key(self, options):
+        global GLOBAL_KEY_DIR
+        if '-k' in options:
+            GLOBAL_KEY_DIR = self.fetch_image_keys(options['-k'][0])
+        else:
+            GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
+        logging.warning("using key directory " + GLOBAL_KEY_DIR)
+        _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+
     def install(self, args, options):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not _supported_arch():
@@ -116,13 +125,7 @@ class Installer(object):
         # Set up the various key information. If the user chooses to use
         # the global key, a copy of that key will be made and the permissions
         # will be locked down. That way, we'll avoid the ssh permission warning. 
-        global GLOBAL_KEY_DIR
-        if '-k' in options:
-            GLOBAL_KEY_DIR = self.fetch_image_keys(options['-k'][0])
-        else:
-            GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
-        logging.warning("using key directory " + GLOBAL_KEY_DIR)
-        _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+        self._process_ssh_key(options)
 
         if '-u' in options:
             # We want to re-build all the images. 
@@ -169,11 +172,7 @@ class Installer(object):
         self._start_docker_daemon()
 
         # Check if the user wants to use a specific key directory. 
-        global GLOBAL_KEY_DIR
-        if '-k' in options:
-            GLOBAL_KEY_DIR = self.fetch_image_keys(options['-k'][0])
-            logging.warning("using key directory " + GLOBAL_KEY_DIR)
-            _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+        self._process_ssh_key(options)
 
         # Check if the Mongo directory exists yet. If not
         # go ahead and create it. 
