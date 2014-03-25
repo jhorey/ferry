@@ -6,6 +6,11 @@ body {
   line-height:1.50;
   margin-right: 10em;
 }
+
+p {
+  margin-top: 0.55em;
+}
+
 p a {
   text-decoration: underline;
 }
