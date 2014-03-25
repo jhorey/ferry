@@ -343,11 +343,11 @@ class CLI(object):
     This is the command dispatch table. 
     """
     def dispatch_cmd(self, cmd, args, options):
-        if(cmd == 'start'):
-            # Check if the user is using the global key directory.
-            # If so, we need to make a copy of the key. 
-            self._check_ssh_key()
+        # Check if the user is using the global key directory.
+        # If so, we need to make a copy of the key. 
+        self._check_ssh_key()
 
+        if(cmd == 'start'):
             arg = args.pop(0)
             json_arg = {}
             if os.path.exists(arg):
