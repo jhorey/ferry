@@ -165,8 +165,15 @@ class Installer(object):
         else:
             return True
 
-    def start_web(self):
+    def start_web(self, options=None):
         self._start_docker_daemon()
+
+        # Check if the user wants to use a specific key directory. 
+        global GLOBAL_KEY_DIR
+        if '-k' in options:
+            GLOBAL_KEY_DIR = self.fetch_image_keys(options['-k'][0])
+            logging.warning("using key directory " + GLOBAL_KEY_DIR)
+            _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
 
         # Check if the Mongo directory exists yet. If not
         # go ahead and create it. 
@@ -194,9 +201,11 @@ class Installer(object):
         # Start the Mongo server.
         mongo_data = '/service/data'
         mongo_log = '/service/logs'
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s %s/mongodb' % (DEFAULT_MONGO_DB, mongo_data, 
-                                                                                            DEFAULT_MONGO_LOG, mongo_log, 
-                                                                                            DEFAULT_DOCKER_REPO)
+        mongo_keys = '/service/keys'
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (GLOBAL_KEY_DIR, mongo_keys,
+                                                                                                     DEFAULT_MONGO_DB, mongo_data, 
+                                                                                                     DEFAULT_MONGO_LOG, mongo_log, 
+                                                                                                     DEFAULT_DOCKER_REPO)
         logging.warning(cmd)
         child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         output = child.stderr.read().strip()

@@ -6,6 +6,7 @@ if [ $1 == "listen" ]; then
     echo 127.0.0.1 $(hostname) >> /etc/hosts
     
     # Keep ssh open so that we can interact with the container
+    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
     /usr/sbin/sshd -D
 elif [ $1 == "start" ]; then 
     su ferry -c 'nohup /titan/packages/rexster-server/bin/rexster.sh -s -c /titan/conf/rexster.xml > /titan/data/rexster.log 2> /titan/data/rexster.err &'

@@ -393,7 +393,7 @@ class CLI(object):
         elif(cmd == 'logs'):
             return self._copy_logs(args[0], args[1])
         elif(cmd == 'server'):
-            self.installer.start_web()
+            self.installer.start_web(options)
             return 'started ferry'
         elif(cmd == 'ssh'):
             # Check if the user is using the global key directory.

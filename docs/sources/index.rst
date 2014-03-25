@@ -7,7 +7,7 @@
 Big Data Development Environment using Docker
 =============================================
 
-Ferry lets you define, run, and deploy big data stacks on your local machine using Docker. Just define
+Ferry lets you provision and deploy big data stacks on your local machine using Docker. Just define
 your application like this:
 
 .. code-block:: javascript

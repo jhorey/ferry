@@ -170,6 +170,10 @@ stack, you should be able to run normal Hadoop and Hive applications. You can fi
 Events and customization
 ------------------------
 
+Each connector is a complete Linux (Ubuntu) environment that can be completely configured. In fact, the connector is just
+a normal Docker container with a few extra scripts and packages pre-configured. That means you can install additional packages
+or include new code. Afterwards, it's easy to save the entire state. 
+
 Connectors are customized using scripts that reside under ``/service/runscripts``. You should see a set of
 directories, one for each type of ``event`` that Ferry produces. For example, the ``start`` directory contains
 scripts that are executed when the connector is first started. Likewise, there are events for:

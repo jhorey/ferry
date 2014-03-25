@@ -8,7 +8,6 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv 7F0CEB10;echo "deb http:
 RUN apt-get update;apt-get --yes install mongodb-10gen python-pip python-dev build-essential
 
 # To download pymongo
-# RUN pip install --upgrade pip;pip install --upgrade virtualenv;pip install pymongo
 RUN pip install --upgrade virtualenv;pip install pymongo
 
 # Create default data directory

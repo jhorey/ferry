@@ -1,6 +1,9 @@
 #! /bin/bash
 
 if [ $1 == "start" ]; then 
+    # Add ssh key just in case we need to log into Mongo. 
+    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
+
     # Change the file ownership back to ferry user. This is 
     # necessary since the host may not have the ferry user. 
     chown -R ferry:ferry $MONGO_DATA
