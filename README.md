@@ -1,7 +1,7 @@
 Ferry: big data development engine
 ====================================
 
-Ferry lets you define, run, and deploy big data stacks on your local machine using [Docker](https://www.docker.io).
+Ferry lets you provision and deploy big data stacks on your local machine using [Docker](https://www.docker.io).
 
 Ferry currently supports Hadoop/Yarn, GlusterFS/OpenMPI, and Cassandra (with more in the future). 
 By using Ferry developers can get started creating their big data applications right away without
