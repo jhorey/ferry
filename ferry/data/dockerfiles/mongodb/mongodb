@@ -10,7 +10,7 @@ if [ $1 == "start" ]; then
     chown -R ferry:ferry $(dirname $MONGO_LOG)
 
     # Start the mongo server
-    su ferry -c '/usr/bin/mongod --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'
+    su ferry -c '/usr/bin/mongod --unixSocketPrefix /service/com --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'
 
     # Start the ssh server in the foreground
     /usr/sbin/sshd -D

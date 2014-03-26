@@ -11,7 +11,7 @@ RUN apt-get update;apt-get --yes install mongodb-10gen python-pip python-dev bui
 RUN pip install --upgrade virtualenv;pip install pymongo
 
 # Create default data directory
-RUN mkdir -p /service/bin /service/data /service/logs;chown -R ferry:docker /service/data
+RUN mkdir -p /service/com /service/bin /service/data /service/logs
 RUN chown -R ferry:docker /service
 
 # Export data directory path

@@ -430,7 +430,7 @@ class Installer(object):
         logging.warning("copying over %s to %s" % (GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir))
 
         # Now build the image. 
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build -privileged --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
         logging.warning(cmd)
 
         child = Popen(cmd, stdout=PIPE, shell=True)

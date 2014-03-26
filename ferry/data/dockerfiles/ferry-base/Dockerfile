@@ -1,9 +1,23 @@
 FROM base
 NAME ferry-base
 
-# This is so that we don't get Upstart error messages
-# (specific to running Ubuntu in chroot environment)
+# Get rid of Upstart and FUSE errors
 RUN dpkg-divert --local --rename --add /sbin/initctl;ln -s /bin/true /sbin/initctl
+RUN dpkg-divert --local --rename --add /sbin/mknod && ln -s /bin/true /sbin/mknod
+
+# Fake a fuse install
+RUN apt-get install libfuse2
+RUN cd /tmp ; apt-get download fuse
+RUN cd /tmp ; dpkg-deb -x fuse_* .
+RUN cd /tmp ; dpkg-deb -e fuse_*
+RUN cd /tmp ; rm fuse_*.deb
+RUN cd /tmp ; echo -en '#!/bin/bash\nexit 0\n' > DEBIAN/postinst
+RUN cd /tmp ; dpkg-deb -b . /fuse.deb
+RUN cd /tmp ; dpkg -i /fuse.deb
+
+# The previous set of commands messes up the /tmp permission for some
+# reason. This just fixes it.
+RUN chmod 1777 /tmp
 
 # Make the various directories needed
 RUN mkdir -p /service/keys /var/run/sshd
