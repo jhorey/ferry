@@ -4,10 +4,16 @@ if [ $1 == "start" ]; then
     # Configure the master node. 
     /service/configuration/configure start
 elif [ $1 == "listen" ]; then 
-    # Make sure the public key is authorized.
+    # We'll need to create /dev/fuse since we removed 
+    # it during the installation (since build doesn't support
+    # privileged operations)
+    if [ ! -e /dev/fuse ]; then
+	mknod /dev/fuse c 10 229
+    fi
+
+    # Make sure the public key is authorized and
+    # start all the servers. 
     cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    
-    # Start the gluster server
     /usr/sbin/glusterd &
     /usr/sbin/sshd -D
 elif [ $1 == "stop" ]; then 

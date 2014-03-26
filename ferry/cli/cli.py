@@ -15,15 +15,17 @@
 
 import errno
 import ferry
-import os
-import sys
+import grp
 import json
 import logging
 import logging.config
+import os
+import pwd
 import requests
 import re
 import shutil
 import StringIO
+import sys
 from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
 from ferry.table.prettytable import *
@@ -325,29 +327,40 @@ class CLI(object):
     def _check_ssh_key(self):
         keydir = open(ferry.install.DEFAULT_DOCKER_KEY, 'r').read().strip()
         if keydir == ferry.install.DEFAULT_KEY_DIR:
+            ferry.install.GLOBAL_KEY_DIR = os.environ['HOME'] + '/.ssh/ferry'
             try:
-                ferry.install.GLOBAL_KEY_DIR = os.environ['HOME'] + '/.ssh/ferry'
                 os.makedirs(os.environ['HOME'] + '/.ssh/ferry')
-                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa',
-                            ferry.install.GLOBAL_KEY_DIR + '/id_rsa')
-                os.chmod(ferry.install.GLOBAL_KEY_DIR + '/id_rsa', 0400)
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    logging.error("Could not create private key (%s)" % os.strerror(e.errno))
+                    logging.error("Could not create ssh directory %s" % ferry.install.GLOBAL_KEY_DIR)
+                    exit(1)
+            try:
+                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa',
+                            ferry.install.GLOBAL_KEY_DIR + '/id_rsa')
+                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa.pub',
+                            ferry.install.GLOBAL_KEY_DIR + '/id_rsa.pub')
+
+                uid = pwd.getpwnam(os.environ['USER']).pw_uid
+                gid = grp.getgrnam(os.environ['USER']).gr_gid
+                os.chown(ferry.install.GLOBAL_KEY_DIR + '/id_rsa', uid, gid)
+                os.chmod(ferry.install.GLOBAL_KEY_DIR + '/id_rsa', 0400)
+                os.chown(ferry.install.GLOBAL_KEY_DIR + '/id_rsa.pub', uid, gid)
+                os.chmod(ferry.install.GLOBAL_KEY_DIR + '/id_rsa.pub', 0444)
+            except OSError as e:
+                logging.error("Could not copy ssh keys (%s)" % str(e))
+                exit(1)
 
             ferry.install._touch_file(ferry.install.DEFAULT_DOCKER_KEY, 
                                       ferry.install.GLOBAL_KEY_DIR)
-            logging.warning("Copied private key to " + ferry.install.GLOBAL_KEY_DIR)
+            logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_KEY_DIR)
 
     """
     This is the command dispatch table. 
     """
     def dispatch_cmd(self, cmd, args, options):
-        # Check if the user is using the global key directory.
-        # If so, we need to make a copy of the key. 
-        self._check_ssh_key()
-
         if(cmd == 'start'):
+            self._check_ssh_key()
+
             arg = args.pop(0)
             json_arg = {}
             if os.path.exists(arg):
@@ -385,9 +398,11 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
+            self._check_ssh_key()
             self.installer._start_docker_daemon()
             self.installer._clean_web()
             self.installer._stop_docker_daemon(force=True)
+            self.installer._reset_ssh_key()
             return 'cleaned ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
@@ -397,11 +412,7 @@ class CLI(object):
             self.installer.start_web(options)
             return 'started ferry'
         elif(cmd == 'ssh'):
-            # Check if the user is using the global key directory.
-            # If so, we need to make a copy of the key. 
             self._check_ssh_key()
-
-            # Go ahead and connect to the stack. 
             stack_id = args[0]
             connector_id = None
             if len(args) > 1:
@@ -409,11 +420,13 @@ class CLI(object):
 
             return self._connect_stack(stack_id, connector_id)
         elif(cmd == 'quit'):
+            self._check_ssh_key()
             self._stop_all()
             self.installer.stop_web()
             self.installer._stop_docker_daemon()
             return 'stopped ferry'
         elif(cmd == 'deploy'):
+            self._check_ssh_key()
             stack_id = args.pop(0)
             return self._deploy_stack(stack_id, args)
         elif(cmd == 'info'):

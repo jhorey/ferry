@@ -84,6 +84,12 @@ DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
 
+    def _reset_ssh_key(self):
+        global GLOBAL_KEY_DIR
+        GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
+        logging.warning("reset key directory " + GLOBAL_KEY_DIR)
+        _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+        
     def _process_ssh_key(self, options):
         global GLOBAL_KEY_DIR
         if '-k' in options:

@@ -1,6 +1,13 @@
 #!/bin/bash
 
 if [ $1 == "listen" ]; then 
+    # We'll need to create /dev/fuse since we removed 
+    # it during the installation (since build doesn't support
+    # privileged operations)
+    if [ ! -e /dev/fuse ]; then
+	mknod /dev/fuse c 10 229
+    fi
+
     cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
     /usr/sbin/sshd -D
 else
