@@ -19,12 +19,12 @@
 <configuration>
   <property>
     <name>mapreduce.task.tmp.dir</name>
-    <value>/tmp/hadoop_tasks</value>
+    <value>/service/data/tmp/hadoop_tasks</value>
   </property>
 
   <property>
     <name>mapreduce.jobtracker.jobhistory.location</name>
-    <value>/service/data/logs/mapred/jobhistory</value>
+    <value>file:////service/data/logs/mapred/jobhistory</value>
   </property>
 
   <property>

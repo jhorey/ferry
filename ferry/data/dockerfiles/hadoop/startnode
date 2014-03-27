@@ -1,5 +1,14 @@
 #!/bin/bash
 
+function create_fuse_dev {
+    # We'll need to create /dev/fuse since we removed 
+    # it during the installation (since build doesn't support
+    # privileged operations)
+    if [ ! -e /dev/fuse ]; then
+	mknod /dev/fuse c 10 229
+    fi
+}
+
 source /etc/profile
 if [ $1 == "start" ]; then 
     # Copy all the instance addresses and empty the file
@@ -35,7 +44,7 @@ elif [ $1 == "mount" ]; then
 	chown -R ferry:docker /service/data
     fi
 elif [ $1 == "listen" ]; then 
-    # Keep ssh open so that we can interact with the container
+    create_fuse_dev
     cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
     /usr/sbin/sshd -D
 elif [ $1 == "stop" ]; then 
