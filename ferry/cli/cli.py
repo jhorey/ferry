@@ -214,14 +214,6 @@ class CLI(object):
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     """
-    Read the location of the directory containing the keys
-    used to communicate with the containers. 
-    """
-    def _read_key_dir(self):
-        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
-        return f.read().strip()
-
-    """
     Connector a specific client/connector via ssh. 
     """
     def _connect_stack(self, stack_id, connector_id):
@@ -247,9 +239,10 @@ class CLI(object):
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
+            keydir, _ = self._read_key_dir()
             key_opt = '-o StrictHostKeyChecking=no'
             host_opt = '-o UserKnownHostsFile=/dev/null'
-            ident = '-i %s/id_rsa' % self._read_key_dir()
+            ident = '-i %s/id_rsa' % keydir
             dest = '%s@%s' % (self.default_user, connector_ip)
             cmd = "ssh %s %s %s %s" % (key_opt, host_opt, ident, dest)
             logging.warning(cmd)
@@ -324,30 +317,46 @@ class CLI(object):
 
         return json_text
 
+    """
+    Read the location of the directory containing the keys
+    used to communicate with the containers. 
+    """
+    def _read_key_dir(self):
+        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
+        k = f.read().strip().split("://")
+        return k[1], k[0]
+
+    def _using_tmp_ssh_key(self):
+        keydir, tmp = self._read_key_dir()
+        return tmp == "tmp"
+
     def _check_ssh_key(self):
-        keydir = open(ferry.install.DEFAULT_DOCKER_KEY, 'r').read().strip()
+        keydir, _ = self._read_key_dir()
         if keydir == ferry.install.DEFAULT_KEY_DIR:
-            ferry.install.GLOBAL_KEY_DIR = os.environ['HOME'] + '/.ssh/ferry'
+            keydir = os.environ['HOME'] + '/.ssh/tmp-ferry'
+            ferry.install.GLOBAL_KEY_DIR = 'tmp://' + keydir
             try:
-                os.makedirs(os.environ['HOME'] + '/.ssh/ferry')
+                os.makedirs(keydir)
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    logging.error("Could not create ssh directory %s" % ferry.install.GLOBAL_KEY_DIR)
+                    logging.error("Could not create ssh directory %s" % keydir)
                     exit(1)
             try:
-                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa',
-                            ferry.install.GLOBAL_KEY_DIR + '/id_rsa')
-                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa.pub',
-                            ferry.install.GLOBAL_KEY_DIR + '/id_rsa.pub')
-
+                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa', keydir + '/id_rsa')
+                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa.pub', keydir + '/id_rsa.pub')
+                            
                 uid = pwd.getpwnam(os.environ['USER']).pw_uid
                 gid = grp.getgrnam(os.environ['USER']).gr_gid
-                os.chown(ferry.install.GLOBAL_KEY_DIR + '/id_rsa', uid, gid)
-                os.chmod(ferry.install.GLOBAL_KEY_DIR + '/id_rsa', 0400)
-                os.chown(ferry.install.GLOBAL_KEY_DIR + '/id_rsa.pub', uid, gid)
-                os.chmod(ferry.install.GLOBAL_KEY_DIR + '/id_rsa.pub', 0444)
+                os.chown(keydir + '/id_rsa', uid, gid)
+                os.chmod(keydir + '/id_rsa', 0400)
+                os.chown(keydir + '/id_rsa.pub', uid, gid)
+                os.chmod(keydir + '/id_rsa.pub', 0444)
             except OSError as e:
                 logging.error("Could not copy ssh keys (%s)" % str(e))
+                exit(1)
+            except IOError as e:
+                if e.errno == errno.EACCES:
+                    logging.error("Could not override keys in %s, please type \'ferry clean\' and try again." % keydir)
                 exit(1)
 
             ferry.install._touch_file(ferry.install.DEFAULT_DOCKER_KEY, 
@@ -424,6 +433,9 @@ class CLI(object):
             self._stop_all()
             self.installer.stop_web()
             self.installer._stop_docker_daemon()
+
+            if self._using_tmp_ssh_key():
+                self.installer._reset_ssh_key()
             return 'stopped ferry'
         elif(cmd == 'deploy'):
             self._check_ssh_key()

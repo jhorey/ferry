@@ -34,7 +34,8 @@ class DockerFabric(object):
     """
     def _read_key_dir(self):
         f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
-        return f.read().strip()
+        k = f.read().strip().split("://")
+        return k[1], k[0]
  
     """
     Fetch the current docker version.
@@ -155,8 +156,9 @@ class DockerFabric(object):
     """
     def copy(self, containers, from_dir, to_dir):
         for c in containers:
+            keydir, _ = self._read_key_dir()
             opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-            key = '-i ' + self._read_key_dir() + '/id_rsa'
+            key = '-i ' + keydir + '/id_rsa'
             scp_cmd = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + c.internal_ip + ':' + to_dir
             output = Popen(scp_cmd, stdout=PIPE, shell=True).stdout.read()
 
@@ -165,7 +167,8 @@ class DockerFabric(object):
     """
     def cmd(self, containers, cmd):
         all_output = {}
-        key = self._read_key_dir() + '/id_rsa'
+        keydir, _ = self._read_key_dir()
+        key = keydir + '/id_rsa'
         for c in containers:
             ip = self.docker_user + '@' + c.internal_ip
             ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd

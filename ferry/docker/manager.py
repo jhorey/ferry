@@ -95,14 +95,22 @@ class DockerManager(object):
     """
     def _get_service_configuration(self, service_uuid, detailed=False):
         info = self.service_collection.find_one( {'uuid':service_uuid}, {'_id':False} )
-        if detailed:
-            return info
+        if info:
+            if detailed:
+                return info
+            else:
+                return info['entry']
         else:
-            return info['entry']
+            return None
 
     def _get_inspect_info(self, service_uuid):
-        raw_info = self._get_service_configuration(service_uuid, detailed=True)
         json_reply = {'uuid' : service_uuid}
+
+        # Get the service information. If we can't find it,
+        # return an empty reply (this shouldn't happen btw). 
+        raw_info = self._get_service_configuration(service_uuid, detailed=True)
+        if not raw_info:
+            return json_reply
 
         # Get individual container information
         json_reply['containers'] = []
@@ -216,16 +224,21 @@ class DockerManager(object):
 
         # Get the collection of all backends and connector UUIDS.
         cluster = self.cluster_collection.find_one( {'uuid': stack_uuid} )
-        connector_uuids = cluster['connectors']
+
+        connector_uuids = []
+        if cluster and 'connectors' in cluster:
+            connector_uuids = cluster['connectors']
+
         storage_uuids = []
         compute_uuids = []
-        for b in cluster['backends']['uuids']:
-            if b['storage'] != None:
-                storage_uuids.append(b['storage'])
+        if cluster and 'baackends' in cluster:
+            for b in cluster['backends']['uuids']:
+                if b['storage'] != None:
+                    storage_uuids.append(b['storage'])
 
-            if b['compute'] != None:
-                for c in b['compute']:
-                    compute_uuids.append(c)
+                if b['compute'] != None:
+                    for c in b['compute']:
+                        compute_uuids.append(c)
 
         # For each UUID, collect the detailed service information. 
         json_reply['connectors'] = []            
@@ -257,10 +270,11 @@ class DockerManager(object):
         values = self.snapshot_collection.find()
         for v in values:
             c = self.cluster_collection.find_one( {'uuid':v['cluster_uuid']} )
-            time = v['snapshot_ts'].strftime("%m/%w/%Y (%I:%M %p)")
-            json_reply[v['snapshot_uuid']] = { 'uuid' : v['snapshot_uuid'],
-                                               'base' : c['base'], 
-                                               'snapshot_ts' : time }
+            if c:
+                time = v['snapshot_ts'].strftime("%m/%w/%Y (%I:%M %p)")
+                json_reply[v['snapshot_uuid']] = { 'uuid' : v['snapshot_uuid'],
+                                                   'base' : c['base'], 
+                                                   'snapshot_ts' : time }
         return json.dumps(json_reply, 
                           sort_keys=True,
                           indent=2,
@@ -449,8 +463,9 @@ class DockerManager(object):
     Read the directory containing the key we should use. 
     """
     def _read_key_dir(self):
-        keydir = open(ferry.install.DEFAULT_DOCKER_KEY, 'r').read().strip()
-        return { keydir : '/service/keys' }
+        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
+        k = f.read().strip().split("://")
+        return { k[1] : '/service/keys' }
 
     """
     Prepare the environment for storage containers.
@@ -687,11 +702,12 @@ class DockerManager(object):
                 connectors = {'uuid' : c,
                               'instances' : []}
                 connector_info = self._get_service_configuration(c, detailed=True)
-                for connector in connector_info['containers']:
-                    connector_instance = DockerInstance(connector)
-                    connectors['instances'].append(connector_instance)
-                    connectors['type'] = connector_instance.service_type
-                all_connectors.append(connectors)
+                if connector_info:
+                    for connector in connector_info['containers']:
+                        connector_instance = DockerInstance(connector)
+                        connectors['instances'].append(connector_instance)
+                        connectors['type'] = connector_instance.service_type
+                    all_connectors.append(connectors)
 
             # Collect all the UUIDs of the backend containers. 
             # and stop them. The backend is considered ephemeral!
@@ -700,22 +716,24 @@ class DockerManager(object):
                     storage = {'uuid' : b['storage'],
                                'instances' : []}
                     storage_info = self._get_service_configuration(b['storage'], detailed=True)
-                    for s in storage_info['containers']:
-                        storage_instance = DockerInstance(s)
-                        storage['instances'].append(storage_instance)
-                        storage['type'] = storage_instance.service_type
-                    all_storage.append(storage)
+                    if storage_info:
+                        for s in storage_info['containers']:
+                            storage_instance = DockerInstance(s)
+                            storage['instances'].append(storage_instance)
+                            storage['type'] = storage_instance.service_type
+                        all_storage.append(storage)
 
                 if b['compute'] != None:
                     for c in b['compute']:
                         compute = {'uuid' : c,
                                    'instances' : []}
                         compute_info = self._get_service_configuration(c, detailed=True)
-                        for container in compute_info['containers']:
-                            compute_instance = DockerInstance(container)
-                            compute['instances'].append(compute_instance)
-                            compute['type'] = compute_instance.service_type
-                        all_compute.append(compute)
+                        if compute_info:
+                            for container in compute_info['containers']:
+                                compute_instance = DockerInstance(container)
+                                compute['instances'].append(compute_instance)
+                                compute['type'] = compute_instance.service_type
+                            all_compute.append(compute)
             return all_connectors, all_compute, all_storage
 
     """
@@ -760,7 +778,8 @@ class DockerManager(object):
             connector_uuids = cluster['connectors']
             for c in connector_uuids:
                 connector_info = self._get_service_configuration(c, detailed=True)
-                connectors.append(DockerInstance(connector_info['containers'][0]))
+                if connector_info:
+                    connectors.append(DockerInstance(connector_info['containers'][0]))
             cs_snapshots = self.docker.snapshot(connectors, 
                                                 cluster_uuid, 
                                                 cluster['num_snapshots'])
@@ -924,7 +943,8 @@ class DockerManager(object):
             connector_uuids = cluster['connectors']
             for c in connector_uuids:
                 connector_info = self._get_service_configuration(c, detailed=True)
-                containers.append(DockerInstance(connector_info['containers'][0]))
+                if connector_info:
+                    containers.append(DockerInstance(connector_info['containers'][0]))
 
             self.deploy.deploy(cluster_uuid, containers, params)
 
@@ -1007,13 +1027,14 @@ class DockerManager(object):
                 # Retrieve the actual service information. This will
                 # contain the container ID. 
                 s = self._get_service_configuration(cuid, detailed=True)
-                for c in s['containers']:
-                    connector_info.append(self.restart_connector(service_uuid = app_uuid,
-                                                                 connector_type = c['type'],
-                                                                 backend = backend_info,
-                                                                 name = c['name'], 
-                                                                 args = c['args'],
-                                                                 container = c['container']))
+                if s and 'containers' in s:
+                    for c in s['containers']:
+                        connector_info.append(self.restart_connector(service_uuid = app_uuid,
+                                                                     connector_type = c['type'],
+                                                                     backend = backend_info,
+                                                                     name = c['name'], 
+                                                                     args = c['args'],
+                                                                     container = c['container']))
         return connector_info
 
     """

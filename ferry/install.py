@@ -84,18 +84,31 @@ DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
 
+    def _read_key_dir(self):
+        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
+        k = f.read().strip().split("://")
+        return k[1], k[0]
+
     def _reset_ssh_key(self):
+        keydir, tmp = self._read_key_dir()
+
+        # Only reset temporary keys. User-defined key directories
+        # shouldn't be touched. 
+        if tmp == "tmp":
+            shutil.rmtree(keydir)
+
+        # Mark that we are using the default package keys
         global GLOBAL_KEY_DIR
-        GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
-        logging.warning("reset key directory " + GLOBAL_KEY_DIR)
+        GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
         _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+        logging.warning("reset key directory " + GLOBAL_KEY_DIR)
         
     def _process_ssh_key(self, options):
         global GLOBAL_KEY_DIR
         if '-k' in options:
-            GLOBAL_KEY_DIR = self.fetch_image_keys(options['-k'][0])
+            GLOBAL_KEY_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
         else:
-            GLOBAL_KEY_DIR = DEFAULT_KEY_DIR
+            GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
         logging.warning("using key directory " + GLOBAL_KEY_DIR)
         _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
 
@@ -127,11 +140,6 @@ class Installer(object):
         if not start:
             logging.error('ferry docker daemon not started')
             return msg
-
-        # Set up the various key information. If the user chooses to use
-        # the global key, a copy of that key will be made and the permissions
-        # will be locked down. That way, we'll avoid the ssh permission warning. 
-        self._process_ssh_key(options)
 
         if '-u' in options:
             # We want to re-build all the images. 
@@ -207,7 +215,8 @@ class Installer(object):
         mongo_data = '/service/data'
         mongo_log = '/service/logs'
         mongo_keys = '/service/keys'
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (GLOBAL_KEY_DIR, mongo_keys,
+        keydir, _ = self._read_key_dir()
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (keydir, mongo_keys,
                                                                                                      DEFAULT_MONGO_DB, mongo_data,
                                                                                                      DEFAULT_MONGO_LOG, mongo_log,
                                                                                                      DEFAULT_DOCKER_REPO)
@@ -247,9 +256,7 @@ class Installer(object):
             ip = f.read().strip()
             f.close()
 
-            f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
-            keydir = f.read().strip()
-            f.close()
+            keydir, tmp = self._read_key_dir()
             key = keydir + "/id_rsa"
             cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/bin/mongodb stop' % (key, ip)
             logging.warning(cmd)
@@ -431,10 +438,6 @@ class Installer(object):
             logging.warning(l.strip())
         
     def _compile_image(self, image, repo, image_dir):
-        # Copy over the keys. 
-        shutil.copy(GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir)
-        logging.warning("copying over %s to %s" % (GLOBAL_KEY_DIR + '/id_rsa.pub', image_dir))
-
         # Now build the image. 
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
         logging.warning(cmd)
