@@ -77,7 +77,7 @@ data application. Currently Ferry supports the following backends:
 - :ref:`Cassandra <cassandra>` (version 2.0.5)
 - :ref:`Titan graph database <cassandra>` (0.3.1)
 - :ref:`Gluster Filesystem <mpi>` (version 3.4)
-- :ref:`OpenMPI <mpi>` (version 1.7.3)
+- :ref:`Open MPI <mpi>` (version 1.7.3)
 
 When you're all done writing your application, you can stop the Ferry servers by typing:
 

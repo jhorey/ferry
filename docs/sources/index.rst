@@ -40,7 +40,7 @@ For example, let's inspect all the running services
    sa-1    se-3 [u'se-4']       se-5 stopped openmpi   --
    sa-0    se-0 [u'se-1']       se-2 running cassandra --
 
-Ferry currently supports Cassandra, Hadoop, and Gluster/OpenMPI. Use cases include:
+Ferry currently supports Cassandra, Hadoop, GlusterFS, and Open MPI. Use cases include:
 
 - Experimenting with big data technologies like Hadoop and Cassandra
 - Prototyping big data stacks on a single machine

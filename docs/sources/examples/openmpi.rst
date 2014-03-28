@@ -1,10 +1,10 @@
-:title: OpenMPI example
-:description: A simple example using GlusterFS and OpenMPI
+:title: Open MPI example
+:description: A simple example using GlusterFS and Open MPI
 :keywords: ferry, example, glusterfs, openmpi
 
 .. _mpi:
 
-Getting started with OpenMPI
+Getting started with Open MPI
 ============================
 
 MPI is a popular parallel programming tool that abstracts various communication 
@@ -63,7 +63,7 @@ examine what just happened. After typing ``start``, ``ferry`` created the follow
 containers:
 
 - Two Gluster data nodes (sometimes called a "brick")
-- Two OpenMPI compute nodes
+- Two Open MPI compute nodes
 - A Linux client
 
 Now that the environment is created, let's interact with it by connecting to the Linux client. 
@@ -85,7 +85,7 @@ this is all being run from the connector.
 
 Notice there are two sets of environment variables, once for the storage and the other for the compute. 
 
-Now if you're really impatient to get an OpenMPI application working, just type the following into
+Now if you're really impatient to get an Open MPI application working, just type the following into
 the terminal:
 
 .. code-block:: bash
@@ -130,15 +130,15 @@ out some information to the console. We can compile and run this example by typi
     $ mpirun -np 4 --hostfile /usr/local/etc/instances /service/data/binaries/helloworld.o
 
 Note that the we must pass in the ``instances`` file to ``mpirun``. This file contains the set
-of OpenMPI hosts that can execute the code. 
+of Open MPI hosts that can execute the code. 
 
 Although this example does not read or write to shared storage, everything under ``/service/data`` 
-is shared across all the OpenMPI nodes and the Linux client. 
+is shared across all the Open MPI nodes and the Linux client. 
 
 A YARN example
 --------------
 
-In addition to OpenMPI, you can also create a YARN compute cluster that uses GlusterFS for storage. 
+In addition to Open MPI, you can also create a YARN compute cluster that uses GlusterFS for storage. 
 YARN is the next-generation Hadoop compute layer that enables more flexibility compared to
 the old MapReduce API. The configuration file will look something like this:
 
@@ -216,7 +216,7 @@ MPI is relatively complex compared to other more recent frameworks such as Hadoo
 applications that require complex coordination. Here are some additional resources you can use to learn
 more. 
 
-- `OpenMPI <http://www.open-mpi.org/>`_
+- `Open MPI <http://www.open-mpi.org/>`_
 - `Using MPI Examples <http://www.mcs.anl.gov/research/projects/mpi/usingmpi/>`_
 - `MPI Scientific Computing <http://www.mcs.anl.gov/research/projects/mpi/tutorials/mpibasics/index.htm/>`_
 - `Apache Hadoop YARN <http://hortonworks.com/blog/introducing-apache-hadoop-yarn/>`_
