@@ -231,6 +231,10 @@ div.alert.alert-block {
   line-height: 20px;
 }
 
+.badges {
+  margin-left: 40px;
+}
+
 .opencore {
   background-image: url('../img/opencore.png');
   background-size:16px 16px;

@@ -10,22 +10,16 @@ Big Data Development Environment using Docker
 Ferry lets you provision and deploy big data stacks on your local machine using Docker. Just define
 your application like this:
 
-.. code-block:: javascript
+.. code-block:: yaml
 
-   {
-     "backend":[
-      {
-       "storage":
-           {
-  	      "personality":"hadoop",
-  	      "instances":2,
-  	      "layers":["hive"]
-	   }
-      }], 
-      "connectors":[
-	   {"personality":"hadoop-client"}
-     ]
-   }
+   backend:
+      - storage:
+           personality: "hadoop"
+           instances: 2
+           layers:
+              - "hive"
+   connectors:
+      - personality: "hadoop-client"
 
 Then get started by typing ``ferry start hadoop``. This will automatically create a two node
 Hadoop cluster and a single Linux client. There are commands to:
