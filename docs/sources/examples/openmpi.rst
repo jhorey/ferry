@@ -24,8 +24,6 @@ The file should look something like this:
         compute:
            - personality: "mpi"
              instances: 2
-             layers: 
-                - "hive"
    connectors:
       - personality: "mpi-client"
         name: "control-0"
