@@ -4,7 +4,7 @@
     "storage":
         {
   	   "personality":"hadoop",
-  	   "instances":1,
+  	   "instances":2,
   	   "layers":["hive"]
 	}
    }], 

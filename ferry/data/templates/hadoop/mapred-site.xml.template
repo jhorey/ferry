@@ -24,7 +24,7 @@
 
   <property>
     <name>mapreduce.jobtracker.jobhistory.location</name>
-    <value>file:////service/data/logs/mapred/jobhistory</value>
+    <value>/service/data/logs/mapred/jobhistory</value>
   </property>
 
   <property>

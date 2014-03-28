@@ -12,38 +12,36 @@ patterns and makes it relatively simple to coordinate code running across many
 machines. Unlike platforms such as Hadoop, MPI relies on a separate shared filesystem. 
 In our case, we'll use GlusterFS, a distributed filesystem from Redhat. 
 
-The first thing to do is define our stack in a file (let's call it ``openmpi.json``). 
+The first thing to do is define our stack in a file (let's call it ``openmpi.yaml``). 
 The file should look something like this:
 
-.. code-block:: javascript
+.. code-block:: yaml
 
-    {
-      "backend":[
-       {
-        "storage":
-            {
-  	       "personality":"gluster",
-  	       "instances":2
-	    },
-        "compute":[
-	    {
-	      "personality":"mpi",
-	      "instances":2
-	    }]
-       }],
-      "connectors":[
-	    {"personality":"mpi-client"}
-      ]
-    }
+   backend:
+      - storage:
+           personality: "gluster"
+           instances: 2
+        compute:
+           - personality: "mpi"
+             instances: 2
+             layers: 
+                - "hive"
+   connectors:
+      - personality: "mpi-client"
+        name: "control-0"
 
 There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
 ``storage`` backend and a single ``compute`` backend. This backend is going to run two instances of ``gluster`` and
 ``mpi``. 
 
-We'll also instantiate an MPI client. The client will automatically mount the Gluster volume
+We'll also instantiate an MPI connector. The client will automatically mount the Gluster volume
 and contain all the necessary configuration to launch new MPI jobs. By default the Gluster volume
 is mounted under ``/service/data``. Of course you can remount the directory to wherever you like. Once
 you've started your application and logged into your client, type ``mount`` to see the mount configuration. 
+
+Note that we've assigned a ``name`` to our client (``control-0``). This is an *optional* user-defined value.
+It helps if you have multiple clients and you want a simple way to ``ssh`` into a specific client. That capability
+is illustrated in the next section. 
 
 Running an example
 ------------------
@@ -69,10 +67,12 @@ containers:
 - A Linux client
 
 Now that the environment is created, let's interact with it by connecting to the Linux client. 
-Just type ``docker ssh sa-0`` in your terminal. From there you'll can check your backend connection 
-and install whatever you need. 
+Just type ``docker ssh sa-0`` in your terminal. By default, the ``ssh`` command will log you
+into the first client. If you have multiple clients and you've assigned them names, you can
+specify the client by typing ``docker ssh sa-0 control-0`` (where ``control-0`` is the name
+you've defined for that client). 
 
-Now let's check what environment variables have been created. Remember
+Once you're logged in, let's check what environment variables have been created. Remember
 this is all being run from the connector. 
 
 .. code-block:: bash

@@ -10,3 +10,4 @@ include ferry/data/plans/*
 recursive-include ferry/data/templates *
 global-exclude *.pyc
 global-exclude *.pyo
+global-exclude *~

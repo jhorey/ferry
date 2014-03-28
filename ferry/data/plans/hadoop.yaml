@@ -1,0 +1,8 @@
+backend:
+   - storage:
+        personality: "hadoop"
+        instances: 2
+        layers:
+           - "hive"
+connectors:
+   - personality: "hadoop-client"

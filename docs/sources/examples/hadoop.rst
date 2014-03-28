@@ -10,25 +10,19 @@ Getting started with Hadoop
 Hadoop is a popular big data platform that includes both storage (HDFS) and compute (YARN). 
 In this example, we'll create a small 2 node Hadoop cluster, and a single Linux client. 
 		
-The first thing to do is to define our big data stack in a file (let's call it ``hadoop.json``). 
+The first thing to do is to define our big data stack in a file (let's call it ``hadoop.yaml``). 
 The file should look something like this:
 
-.. code-block:: javascript
+.. code-block:: yaml
 
-   {
-     "backend":[
-      {
-       "storage":
-           {
-  	      "personality":"hadoop",
-  	      "instances":2,
-  	      "layers":["hive"]
-	   }
-      }], 
-      "connectors":[
-	   {"personality":"hadoop-client"}
-     ]
-   }
+   backend:
+      - storage:
+           personality: "hadoop"
+           instances: 2
+           layers:
+              - "hive"
+   connectors:
+      - personality: "hadoop-client"
 
 There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
 ``storage`` backend. This ``storage`` backend is going to run two instances of ``hadoop`` and also install

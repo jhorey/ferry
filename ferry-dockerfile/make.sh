@@ -135,8 +135,13 @@ function make_images_internal {
 function make_ferry_image {
     OUTPUT=$(docker inspect ferry/ferry-server | grep "\[")
     if [[ $OUTPUT == "[]" ]] || [[ $1 == "-u" ]] || [[ $1 == "-f" ]]; then
-    	echo -e "${GREEN}building the ferry image${NC}"
-    	docker build --rm=true --no-cache=true -t ferry/ferry-server .
+	if [[ $1 == "-f" ]]; then
+    	    echo -e "${GREEN}building the ferry image${NC}"
+    	    docker build --rm=true --no-cache=true -t ferry/ferry-server .
+	else
+    	    echo -e "${GREEN}pulling the ferry image${NC}"
+    	    docker pull ferry/ferry-server
+	fi
     else
     	echo -e "${BLUE}found ferry image, proceeding${NC}"
     fi

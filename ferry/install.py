@@ -141,10 +141,16 @@ class Installer(object):
             logging.error('ferry docker daemon not started')
             return msg
 
+        # Normally we don't want to build the Dockerfiles,
+        # but sometimes we may for testing, etc. 
+        build = False
+        if '-b' in options:
+            build = True
+
         if '-u' in options:
             # We want to re-build all the images. 
             logging.warning("performing forced rebuild")
-            self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO )
+            self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO, build)
         else:
             # We want to be selective about which images
             # to rebuild. Useful if one image breaks, etc. 
@@ -154,7 +160,7 @@ class Installer(object):
                 logging.warning("performing select rebuild (%s)" % str(to_build))
                 self.build_from_list(to_build, 
                                      DEFAULT_IMAGE_DIR,
-                                     DEFAULT_DOCKER_REPO)
+                                     DEFAULT_DOCKER_REPO, build)
 
         # Check that all the images were built.
         not_installed = self._check_all_images()
@@ -329,7 +335,7 @@ class Installer(object):
     """
     Build the docker images
     """
-    def build_from_list(self, to_build, image_dir, repo):
+    def build_from_list(self, to_build, image_dir, repo, build=False):
         if self._docker_running():
             built_images = {}
             for f in os.listdir(image_dir):
@@ -340,7 +346,7 @@ class Installer(object):
                 image = self._get_image(dockerfile)
                 if image in to_build:
                     logging.warning("building image " + image)
-                    self._build_image(dockerfile, repo, built_images, recurse=True)
+                    self._build_image(dockerfile, repo, built_images, recurse=True, build=build)
 
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
@@ -350,14 +356,14 @@ class Installer(object):
     """
     Build the docker images
     """
-    def build_from_dir(self, image_dir, repo):
+    def build_from_dir(self, image_dir, repo, build=False):
         if self._docker_running():
             built_images = {}
             for f in os.listdir(image_dir):
                 self._transform_dockerfile(image_dir, f, repo)
             for f in os.listdir("/tmp/dockerfiles/"):
                 dockerfile = "/tmp/dockerfiles/" + f + "/Dockerfile"
-                self._build_image(dockerfile, repo, built_images, recurse=True)
+                self._build_image(dockerfile, repo, built_images, recurse=True, build=build)
 
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
@@ -392,12 +398,12 @@ class Installer(object):
             out.write(s)
         out.close()
 
-    def _build_image(self, f, repo, built_images, recurse=False):
+    def _build_image(self, f, repo, built_images, recurse=False, build=False):
         base = self._get_base(f)
         if recurse and base != "base":
             image_dir = os.path.dirname(os.path.dirname(f))
             dockerfile = image_dir + '/' + base + '/Dockerfile'
-            self._build_image(dockerfile, repo, built_images, recurse)
+            self._build_image(dockerfile, repo, built_images, recurse, build)
 
         image = os.path.dirname(f).split("/")[-1]
         if not image in built_images:
@@ -405,7 +411,7 @@ class Installer(object):
                 self._pull_image(base)
 
             built_images[image] = True
-            self._compile_image(image, repo, os.path.dirname(f))
+            self._compile_image(image, repo, os.path.dirname(f), build)
 
     def _get_image(self, dockerfile):
         for l in open(dockerfile, 'r'):
@@ -426,28 +432,38 @@ class Installer(object):
                     return base[-1]
         return base
 
+    def _continuous_print(self, process):
+        while True:
+            out = process.stdout.read(15)
+            if out == '':
+                break
+            else:
+                sys.stdout.write(out)
+                sys.stdout.flush()
+
     def _pull_image(self, image):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
         logging.warning(cmd)
 
         child = Popen(cmd, stdout=PIPE, shell=True)
-        while True:
-            l = child.stdout.readline()
-            if not l:
-                break
-            logging.warning(l.strip())
+        self._continuous_print(child)
         
-    def _compile_image(self, image, repo, image_dir):
+    def _compile_image(self, image, repo, image_dir, build=False):
         # Now build the image. 
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
-        logging.warning(cmd)
+        if build:
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
+            logging.warning(cmd)
+            child = Popen(cmd, stdout=PIPE, shell=True)
+            self._continuous_print(child)
 
-        child = Popen(cmd, stdout=PIPE, shell=True)
-        while True:
-            l = child.stdout.readline()
-            if not l:
-                break
-            logging.warning(l.strip())
+            # Now tag the image. 
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s/%s %s/%s:%s' % (repo, image, repo, image, ferry.__version__)
+            logging.warning(cmd)
+            child = Popen(cmd, stdout=PIPE, shell=True)
+        else:
+            # Just pull the image from the public repo. 
+            image_name = "%s/%s" % (repo, image)
+            self._pull_image(image_name)
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'

@@ -11,32 +11,23 @@ Cassandra is a highly scalable, "wide-column" store used to store large amounts
 of semi-structured data. It is often used for applications that insert lots of
 streaming data (i.e., sensors, web metrics, etc.), and where high availability is a premium. 
 
-The first thing to do is define our stack in a file (let's call it ``cassandra.json``). 
+The first thing to do is define our stack in a file (let's call it ``cassandra.yaml``). 
 The file should look something like this:
 
-.. code-block:: javascript
+.. code-block:: yaml
 
-    {
-      "backend":[
-       {
-        "storage":
-            {
-  	       "personality":"cassandra",
-  	       "instances":2,
-  	       "args":{
-	          "db":"users"
-  	       }
-	    }
-       }], 
-      "connectors":[
-	    {
-	       "personality":"cassandra-client",
-  	       "args":{
-	          "db":"users"
-  	       }
-	    }
-      ]
-    }
+   backend:
+      - storage:
+           personality: "cassandra"
+           instances: 2
+           layers: 
+              - "titan"
+           args: 
+              db: "users"
+   connectors:
+      - personality: "cassandra-client"
+        args: 
+           db: "users"
 
 There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
 ``storage`` backend with two Cassandra instances. We're also specifying the name of the default 

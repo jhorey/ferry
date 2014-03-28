@@ -26,6 +26,7 @@ import re
 import shutil
 import StringIO
 import sys
+import yaml
 from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
 from ferry.table.prettytable import *
@@ -381,16 +382,21 @@ class CLI(object):
                 # Check if the user wants to use one of the global plans.
                 global_path = FERRY_HOME + '/data/plans/' + arg
 
-                # Check if the user has passed in a file extension.
-                # If not go ahead and add one. 
+                # If the user has not supplied a file extension, look for the
+                # file with a YAML extension
                 file_path = global_path
                 n, e = os.path.splitext(global_path)
                 if e == '':
-                    file_path += '.json'
+                    file_path += '.yaml'
+                    e = 'yaml'
 
                 if os.path.exists(file_path):
-                    json_string = self._read_file_arg(file_path)
-                    json_arg = json.loads(json_string)
+                    if e == 'json':
+                        json_string = self._read_file_arg(file_path)
+                        json_arg = json.loads(json_string)
+                    elif e == 'yaml':
+                        yaml_file = open(file_path, 'r')
+                        json_arg = yaml.load(yaml_file)
                     json_arg['_file_path'] = file_path
                 json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
