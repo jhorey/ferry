@@ -7,6 +7,8 @@ ORANGE='\e[0;33m'
 BLUE='\e[0;34m'
 NC='\e[0m'
 
+VERSION='0.1.24'
+
 # Compare two version numbers. 
 function vercomp () {
     if [[ $1 == $2 ]]
@@ -137,7 +139,8 @@ function make_ferry_image {
     if [[ $OUTPUT == "[]" ]] || [[ $1 == "-u" ]] || [[ $1 == "-f" ]]; then
 	if [[ $1 == "-f" ]]; then
     	    echo -e "${GREEN}building the ferry image${NC}"
-    	    docker build --rm=true --no-cache=true -t ferry/ferry-server .
+    	    docker build --rm=true -t ferry/ferry-server .
+	    docker tag ferry/ferry-server ferry/ferry-server:$VERSION
 	else
     	    echo -e "${GREEN}pulling the ferry image${NC}"
     	    docker pull ferry/ferry-server
