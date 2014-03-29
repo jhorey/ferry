@@ -57,14 +57,17 @@ def _supported_python():
     return sys.version_info[0] == 2
 
 def _touch_file(file_name, content, root=False):
-    f = open(file_name, 'w+')
-    f.write(content)
-    f.close()
+    try:
+        f = open(file_name, 'w+')
+        f.write(content)
+        f.close()
 
-    if root:
-        uid, gid = _get_ferry_user()
-        os.chown(file_name, uid, gid)
-        os.chmod(file_name, 0664)
+        if root:
+            uid, gid = _get_ferry_user()
+            os.chown(file_name, uid, gid)
+            os.chmod(file_name, 0664)
+    except IOError as e:
+        logging.error("Could not create %s.\n" % file_name)
 
 FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'

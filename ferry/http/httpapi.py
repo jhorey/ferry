@@ -18,11 +18,6 @@ import logging
 from flask import Flask, request
 from ferry.docker.manager import DockerManager
 
-# Initialize logging
-logging.basicConfig(format='%(asctime)s %(message)s', 
-                    datefmt='%m/%d/%Y %I:%M:%S %p',
-                    level=logging.INFO)
-
 # Initialize Flask
 app = Flask(__name__)
 
