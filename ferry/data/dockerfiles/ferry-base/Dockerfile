@@ -24,7 +24,7 @@ RUN dpkg-divert --rename --remove /bin/mknod
 RUN chmod 1777 /tmp
 
 # Make the various directories needed
-RUN mkdir -p /service/keys /var/run/sshd
+RUN mkdir -p /service/keys /service/sbin /var/run/sshd
 
 # Download some dependencies
 RUN apt-get update;apt-get --yes install openssh-server
@@ -35,3 +35,5 @@ RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-passwor
 # Generate an ssh key for this image.
 RUN ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null
 RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
+
+ADD ./setup /service/sbin/

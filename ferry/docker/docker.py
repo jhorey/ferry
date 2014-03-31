@@ -212,8 +212,11 @@ class DockerCLI(object):
     """
     Start a stopped container. 
     """
-    def start(self, container, service_type, args):
-        cmd = self.docker + ' ' + self.start_cmd + ' ' + container
+    def start(self, container, service_type, args, default_cmd=None):
+        if not default_cmd:
+            default_cmd = ''
+
+        cmd = self.docker + ' ' + self.start_cmd + ' ' + container + ' ' + default_cmd
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
@@ -228,7 +231,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, phys_net, security_group, expose_group=None, hostname=None, args=None):
+    def run(self, service_type, image, volumes, keys, phys_net, security_group, expose_group=None, hostname=None, default_cmd=None, args=None):
         flags = self.daemon 
         if phys_net != None:
             flags += self.net_flag
@@ -262,9 +265,12 @@ class DockerCLI(object):
             for v in keys.keys():
                 flags += self.volume_flag
                 flags += ' %s:%s' % (v, keys[v])
-            
+
+        if not default_cmd:
+            default_cmd = ''
+
         # Now construct the final docker command. 
-        cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image
+        cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 

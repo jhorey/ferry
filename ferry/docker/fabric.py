@@ -18,6 +18,7 @@ import logging
 import time
 from subprocess import Popen, PIPE
 from ferry.docker.docker import DockerCLI
+from ferry.ip.dhcp import DHCPClient
 
 """
 Allocate local docker instances
@@ -27,6 +28,12 @@ class DockerFabric(object):
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI()
+        self.network = DHCPClient(self._get_gateway())
+
+    def _get_gateway(self):
+        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
+        gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+        return "%s/24" % gw
 
     """
     Read the location of the directory containing the keys
@@ -53,10 +60,14 @@ class DockerFabric(object):
     Restart the stopped containers.
     """
     def restart(self, container_info):
+        ip = self.network.assign_ip(container_info)
+        default_cmd = "/service/sbin/startnode restart %s" % ip
         container = self.cli.start(container_info['container'],
                                    container_info['type'],
-                                   container_info['args'])
+                                   container_info['args'],
+                                   default_cmd)
         container.default_user = self.docker_user
+        container.internal_ip = ip
         return container
 
     """
@@ -66,6 +77,11 @@ class DockerFabric(object):
         containers = []
         mounts = {}
         for c in container_info:
+            # Get a new IP address for this container and construct
+            # a default command. 
+            ip = self.network.assign_ip(c)
+            c['default_cmd'] = "/service/sbin/startnode init %s" % ip
+
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
             container = self.cli.run(service_type = c['type'], 
@@ -76,9 +92,12 @@ class DockerFabric(object):
                                      security_group = c['ports'],
                                      expose_group = c['exposed'], 
                                      hostname = c['hostname'],
+                                     default_cmd = c['default_cmd'],
                                      args= c['args'])
             container.default_user = self.docker_user
+            container.internal_ip = ip
             containers.append(container)
+            self.network.set_owner(ip, container.container)
 
             # Not all containers have a unique name. 
             if 'name' in c:

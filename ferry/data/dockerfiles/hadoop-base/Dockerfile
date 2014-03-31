@@ -2,7 +2,7 @@ FROM $USER/gluster
 NAME hadoop-base
 
 # Make the various directories needed
-RUN mkdir -p /service/packages /service/data/main /service/data/hive /service/data/logs /service/data/tmp /service/data/staging /service/sbin /service/scripts
+RUN mkdir -p /service/packages /service/data/main /service/data/hive /service/data/logs /service/data/tmp /service/data/staging /service/scripts
 
 # Download some dependencies
 RUN apt-get --yes install openjdk-7-jdk zlib1g lib32z1 libpostgresql-jdbc-java software-properties-common

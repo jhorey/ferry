@@ -251,11 +251,18 @@ class Installer(object):
         # Sleep a little while to let Mongo start receiving.
         time.sleep(2)
 
-        # Start the HTTP servers
+        # Set the MongoDB env. variable. 
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
+
+        # Start the DHCP server
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)
         cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
+        Popen(cmd, stdout=PIPE, shell=True, env=my_env)
+
+        # Start the Ferry HTTP servers
+        logging.warning("starting dhcp server")
+        cmd = 'gunicorn -t 3600 -b 127.0.0.1:5000 ferry.ip.dhcp:app &'
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def stop_web(self):
