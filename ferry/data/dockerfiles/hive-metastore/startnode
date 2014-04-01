@@ -3,7 +3,11 @@
 source /etc/profile
 source /service/sbin/setup
 
-if [ $1 == "start" ]; then 
+if [ $1 == "init" ]; then 
+    # Keep ssh open so that we can interact with the container
+    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
+    /usr/sbin/sshd -D
+elif [ $1 == "start" ]; then 
     if [ $2 == "metastore" ]; then
         # Start the PostGres service
 	service postgresql start
@@ -16,12 +20,16 @@ if [ $1 == "start" ]; then
 	su ferry -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
 	sleep 2
     fi
-elif [ $1 == "init" ]; then 
-    set_ip_address $2
+elif [ $1 == "restart" ]; then 
+    if [ $2 == "metastore" ]; then
+        # Start the PostGres service
+	service postgresql start
 
-    # Keep ssh open so that we can interact with the container
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/sshd -D
+        # Start the metastore service. Give it a couple seconds to start 
+	# before stopping the script otherwise sometimes it doesn't start. 
+	su ferry -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
+	sleep 2
+    fi
 elif [ $1 == "stop" ]; then 
     # Stop Hive and PostGres
     pkill -f hive 

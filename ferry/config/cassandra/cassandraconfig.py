@@ -51,7 +51,8 @@ class CassandraInitializer(object):
 
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
-        
+    def restart_service(self, containers, entry_point, fabric):
+        self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "stop")
 

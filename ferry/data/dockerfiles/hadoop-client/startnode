@@ -4,7 +4,6 @@ source /service/sbin/setup
 
 if [ $1 == "init" ]; then 
     create_fuse_dev
-    set_ip_address $2
 
     cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
     /usr/sbin/sshd -D

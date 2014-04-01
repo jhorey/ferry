@@ -60,15 +60,14 @@ class DockerFabric(object):
     Restart the stopped containers.
     """
     def restart(self, container_info):
-        ip = self.network.assign_ip(container_info)
-        default_cmd = "/service/sbin/startnode restart %s" % ip
-        container = self.cli.start(container_info['container'],
-                                   container_info['type'],
-                                   container_info['args'],
-                                   default_cmd)
-        container.default_user = self.docker_user
-        container.internal_ip = ip
-        return container
+        containers = []
+        for c in container_info:
+            container = self.cli.start(c['container'],
+                                       c['type'],
+                                       c['args'])
+            container.default_user = self.docker_user
+            containers.append(container)
+        return containers
 
     """
     Allocate several instances.
@@ -80,7 +79,16 @@ class DockerFabric(object):
             # Get a new IP address for this container and construct
             # a default command. 
             ip = self.network.assign_ip(c)
-            c['default_cmd'] = "/service/sbin/startnode init %s" % ip
+            gw = self._get_gateway().split("/")[0]
+
+            lxc_opts = ["lxc.network.type = veth",
+                        "lxc.network.ipv4 = %s" % ip, 
+                        "lxc.network.ipv4.gateway = %s" % gw,
+                        "lxc.network.link = drydock0",
+                        "lxc.network.name = eth0",
+                        "lxc.network.flags = up"]
+
+            c['default_cmd'] = "/service/sbin/startnode init"
 
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
@@ -93,7 +101,8 @@ class DockerFabric(object):
                                      expose_group = c['exposed'], 
                                      hostname = c['hostname'],
                                      default_cmd = c['default_cmd'],
-                                     args= c['args'])
+                                     args= c['args'],
+                                     lxc_opts = lxc_opts)
             container.default_user = self.docker_user
             container.internal_ip = ip
             containers.append(container)

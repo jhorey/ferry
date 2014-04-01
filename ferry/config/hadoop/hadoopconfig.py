@@ -49,7 +49,7 @@ class HadoopInitializer(object):
     """
     Start the service on the containers. 
     """
-    def start_service(self, containers, entry_point, fabric):
+    def _execute_service(self, containers, entry_point, fabric, cmd):
         yarn_master = entry_point['yarn']
         hdfs_master = None
 
@@ -59,9 +59,9 @@ class HadoopInitializer(object):
             for c in containers:
                 if c.service_type == 'hadoop':
                     if c.internal_ip == hdfs_master:
-                        output = fabric.cmd([c], '/service/sbin/startnode start namenode')
+                        output = fabric.cmd([c], '/service/sbin/startnode %s namenode' % cmd)
                     elif c.internal_ip != yarn_master:
-                        output = fabric.cmd([c], '/service/sbin/startnode start datanode')
+                        output = fabric.cmd([c], '/service/sbin/startnode %s datanode' % cmd)
 
             # Now wait a couple seconds to make sure
             # everything has started.
@@ -75,14 +75,19 @@ class HadoopInitializer(object):
         for c in containers:
             if c.service_type == 'hadoop' or c.service_type == 'yarn':
                 if c.internal_ip == yarn_master:
-                    output = fabric.cmd([c], '/service/sbin/startnode start yarnmaster')
+                    output = fabric.cmd([c], '/service/sbin/startnode %s yarnmaster' % cmd)
                 elif c.internal_ip != hdfs_master:
-                    output = fabric.cmd([c], '/service/sbin/startnode start yarnslave')
+                    output = fabric.cmd([c], '/service/sbin/startnode %s yarnslave' % cmd)
 
         # Now start the Hive metastore. 
         for c in containers:
             if c.service_type == 'hive':
-                self.hive_ms._execute_service([c], None, fabric, "start")
+                self.hive_ms._execute_service([c], None, fabric, cmd)
+
+    def start_service(self, containers, entry_point, fabric):
+        self._execute_service(containers, entry_point, fabric, "start")
+    def restart_service(self, containers, entry_point, fabric):
+        self._execute_service(containers, entry_point, fabric, "restart")
 
     def stop_service(self, containers, entry_point, fabric):
         output = fabric.cmd(containers, '/service/sbin/startnode stop')

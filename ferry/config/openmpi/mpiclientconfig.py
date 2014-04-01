@@ -56,6 +56,8 @@ class OpenMPIClientInitializer(object):
     """
     def start_service(self, containers, entry_point, fabric):
         self.mpi.start_service(containers, entry_point, fabric)
+    def restart_service(self, containers, entry_point, fabric):
+        self.mpi.restart_service(containers, entry_point, fabric)
     def stop_service(self, containers, entry_point, fabric):        
         self.mpi.stop_service(containers, entry_point, fabric)
 

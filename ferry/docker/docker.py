@@ -93,6 +93,8 @@ class DockerCLI(object):
         self.port_flag = ' -p'
         self.expose_flag = ' -expose'
         self.volume_flag = ' -v'
+        self.lxc_flag = ' -lxc-conf'
+        self.disable_net = ' -n=false'
         self.net_flag = ' -nb'
         self.host_flag = ' -h'
         self.fs_flag = ' -s'
@@ -212,11 +214,8 @@ class DockerCLI(object):
     """
     Start a stopped container. 
     """
-    def start(self, container, service_type, args, default_cmd=None):
-        if not default_cmd:
-            default_cmd = ''
-
-        cmd = self.docker + ' ' + self.start_cmd + ' ' + container + ' ' + default_cmd
+    def start(self, container, service_type, args):
+        cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
@@ -231,7 +230,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, phys_net, security_group, expose_group=None, hostname=None, default_cmd=None, args=None):
+    def run(self, service_type, image, volumes, keys, phys_net, security_group, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
         flags = self.daemon 
         if phys_net != None:
             flags += self.net_flag
@@ -266,6 +265,13 @@ class DockerCLI(object):
                 flags += self.volume_flag
                 flags += ' %s:%s' % (v, keys[v])
 
+        # Add the lxc options
+        if lxc_opts != None:
+            flags += self.disable_net
+            for o in lxc_opts:
+                flags += self.lxc_flag
+                flags += ' \"%s\"' % o
+
         if not default_cmd:
             default_cmd = ''
 
@@ -277,6 +283,12 @@ class DockerCLI(object):
         # Now parse the output to get the IP and port
         container = output.strip()
         return self.inspect(container, volumes, hostname, service_type, args)
+
+    def _get_lxc_net(self, lxc_tuples):
+        for l in lxc_tuples:
+            if l['Key'] == 'lxc.network.ipv4':
+                return l['Value']
+        return None
 
     """
     Inspect a container and return information on how
@@ -297,6 +309,12 @@ class DockerCLI(object):
         instance.image = data['Config']['Image']
         instance.container = data['ID']
         instance.internal_ip = data['NetworkSettings']['IPAddress']
+
+        # If we've used the lxc config, then the networking information
+        # will be located somewhere else. 
+        if instance.internal_ip == "":
+            instance.internal_ip = self._get_lxc_net(data['HostConfig']['LxcConf'])
+            logging.warning("FOUND LXC: " + instance.internal_ip)
 
         if hostname:
             instance.host_name = hostname

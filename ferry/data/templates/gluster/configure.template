@@ -9,6 +9,8 @@ if [ $$1 == "start" ]; then
    gluster volume set $VOLUME_ID nfs.disable on >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
    gluster volume start $VOLUME_ID >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
    echo "volume start success"
+elif [ $$1 == "restart" ]; then
+   gluster volume start $VOLUME_ID >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
 elif [ $$1 == "stop" ]; then
    yes | gluster volume stop $VOLUME_ID >> /tmp/gluster_deploy.log 2>> /tmp/gluster_deploy.err
 elif [ $$1 == "clean" ]; then 

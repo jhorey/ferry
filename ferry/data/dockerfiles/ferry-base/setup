@@ -1,0 +1,16 @@
+#!/bin/bash
+
+function create_fuse_dev {
+    # We'll need to create /dev/fuse since we removed 
+    # it during the installation (since build doesn't support
+    # privileged operations)
+    if [ ! -e /dev/fuse ]; then
+	mknod /dev/fuse c 10 229
+    fi
+}
+
+# function set_ip_address {
+#     gateway=$(ip route show dev eth0 | grep default | awk '{print $3}')
+#     ifconfig eth0 $1 broadcast 0.0.0.0 netmask 255.255.0.0
+#     route add default gw $gateway eth0
+# }

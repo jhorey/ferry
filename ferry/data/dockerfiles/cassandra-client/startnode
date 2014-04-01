@@ -3,17 +3,9 @@
 source /service/sbin/setup
 
 if [ $1 == "init" ]; then 
-    set_ip_address $2
-
     # We need to fix the "hosts" file so that we can route to our new
     # hostname. This is a necessary fix for Cassandra.
     echo 127.0.0.1 $(hostname) >> /etc/hosts
-
-    # Keep ssh open so that we can interact with the container
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/sshd -D
-elif [ $1 == "restart" ]; then 
-    set_ip_address $2
 
     # Keep ssh open so that we can interact with the container
     cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys

@@ -20,8 +20,9 @@ ADD ./mounthelper.py /service/sbin/
 ADD ./helloworld.cpp /service/examples/
 ADD ./start01.sh /service/runscripts/start/
 ADD ./stop10.sh /service/runscripts/stop/
+ADD ./restart01.sh /service/runscripts/restart/
 ADD ./test01.sh /service/runscripts/test/
-RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/test/*
+RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/test/*;chmod a+x /service/runscripts/restart/*
 
 # Make environment variables
 RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile

@@ -87,7 +87,7 @@ Allocate the backend from a snapshot.
 def _allocate_backend_from_snapshot(payload):
     snapshot_uuid = payload['_file']
     backends = docker.fetch_snapshot_backend(snapshot_uuid)
-    return _allocate_fresh_backend(payload = None,
+    return _allocate_backend(payload = None,
                                    backends = backends)
 
 """
@@ -98,7 +98,7 @@ def _allocate_backend_from_deploy(payload, params=None):
     backends = docker.fetch_deployed_backend(app_uuid, params)
     
     if backends:
-        return _allocate_fresh_backend(payload = None,
+        return _allocate_backend(payload = None,
                                  backends = backends)
 
 """
@@ -109,8 +109,9 @@ def _allocate_backend_from_stopped(payload):
     backends = docker.fetch_stopped_backend(app_uuid)
     
     if backends:
-        return _allocate_fresh_backend(payload = None,
-                                       backends = backends)
+        return _allocate_backend(payload = None,
+                                 backends = backends,
+                                 uuid = app_uuid)
 
 """
 Allocate fresh compute backend. 
@@ -140,9 +141,10 @@ def _allocate_fresh_compute(computes, storage_uuid):
 """
 Allocate a brand new backend
 """
-def _allocate_fresh_backend(payload,
-                            backends=None,
-                            replace=False):
+def _allocate_backend(payload,
+                      backends=None,
+                      replace=False,
+                      uuid=None):
     if not backends:
         if 'backend' in payload:
             backends = payload['backend']
@@ -153,28 +155,40 @@ def _allocate_fresh_backend(payload,
                      'backend' : backends }
     for b in backends:
         storage = b['storage']
-        storage_type = storage['personality']
-        num_instances = int(storage['instances'])
-        layers = []
-        if 'layers' in storage:
-            layers = storage['layers']
 
         args = None
         if 'args' in storage:
             args = storage['args']
 
         # Now create the storage. 
-        storage_uuid = docker.allocate_storage(storage_type = storage_type, 
-                                               num_instances = num_instances,
-                                               layers = layers,
-                                               args = args,
-                                               replace = replace)
+        if not uuid:
+            storage_type = storage['personality']
+            num_instances = int(storage['instances'])
+            layers = []
+            if 'layers' in storage:
+                layers = storage['layers']
+            storage_uuid = docker.allocate_storage(storage_type = storage_type, 
+                                                   num_instances = num_instances,
+                                                   layers = layers,
+                                                   args = args,
+                                                   replace = replace)
+        else:
+            logging.warning("REUSING STORAGE: " + str(storage))
+            service_uuid = storage['uuid']
+            containers = storage['containers']
+            storage_type = storage['type']
+            storage_uuid = docker.restart_storage(service_uuid,
+                                                  container_info = containers,
+                                                  storage_type = storage_type)
+                                                  
         # Now get the compute information
         compute_uuid = None
         compute_uuids = []
         if 'compute' in b:
             computes = b['compute']
             compute_uuids = _allocate_fresh_compute(computes, storage_uuid)
+
+        
         backend_info['uuids'].append( {'storage':storage_uuid,
                                        'compute':compute_uuids} )
     return backend_info
@@ -249,7 +263,7 @@ def _allocate_stopped(payload):
 Helper function to allocate and start a new stack. 
 """
 def _allocate_new(payload):
-    backend_info = _allocate_fresh_backend(payload, replace=True)
+    backend_info = _allocate_backend(payload, replace=True)
     connector_info = _allocate_connectors(payload, backend_info['uuids'])
 
     # Register the new cluster. 

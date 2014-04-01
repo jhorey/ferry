@@ -3,9 +3,12 @@
 source /etc/profile
 source /service/sbin/setup
 
-if [ $1 == "start" ]; then 
-    set_ip_address
+if [ $1 == "init" ]; then 
+    create_fuse_dev
 
+    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
+    /usr/sbin/sshd -D
+elif [ $1 == "start" ]; then 
     # Copy all the instance addresses and empty the file
     # afterwards so we only copy it over once. 
     input=/service/conf/instances
@@ -33,17 +36,21 @@ if [ $1 == "start" ]; then
     elif [ $2 == "yarnslave" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
     fi
+elif [ $1 == "restart" ]; then 
+    if [ $2 == "namenode" ]; then
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start namenode'
+    elif [ $2 == "datanode" ]; then
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
+    elif [ $2 == "yarnmaster" ]; then	
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
+    elif [ $2 == "yarnslave" ]; then	
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
+    fi
 elif [ $1 == "mount" ]; then 
     if [ $2 == "gluster" ]; then
 	python /service/scripts/mounthelper.py mount $3	
 	chown -R ferry:docker /service/data
     fi
-elif [ $1 == "init" ]; then 
-    create_fuse_dev
-    set_ip_address $2
-
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/sshd -D
 elif [ $1 == "stop" ]; then 
     input=/tmp/hadoop_services.log
     while read line

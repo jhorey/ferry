@@ -54,6 +54,12 @@ class GlusterInitializer(object):
             if c.internal_ip == master_ip:
                 output = fabric.cmd([c], '/service/sbin/startnode start')
 
+    def restart_service(self, containers, entry_point, fabric):
+        master_ip = entry_point['ip']
+        for c in containers:
+            if c.internal_ip == master_ip:
+                output = fabric.cmd([c], '/service/sbin/startnode restart')
+
     """
     Stop the service on the containers. 
     """
