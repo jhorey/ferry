@@ -877,6 +877,8 @@ class DockerManager(object):
     def restart_storage(self, service_uuid, container_info, storage_type):
         containers = self._restart_containers(container_info)
         container_info = self._serialize_containers(containers)
+        logging.warning("CONTAINER INFO: " + str(container_info))
+
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'storage',
@@ -1164,6 +1166,10 @@ class DockerManager(object):
                    'entry':entry_point,
                    'uniq': name, 
                    'status':'running'}
+        logging.warning("SERVICE: " + json.dumps(service, 
+                                                 sort_keys=True,
+                                                 indent=2,
+                                                 separators=(',',':')))
         self._update_service_configuration(service_uuid, service)
 
         # Start the connector personality. 

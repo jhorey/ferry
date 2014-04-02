@@ -66,6 +66,10 @@ class DockerFabric(object):
                                        c['type'],
                                        c['args'])
             container.default_user = self.docker_user
+
+            # Reassign the key directory. Since the key directory
+            # is a volume mount, it will be listed incorrectly as a volume.
+            del(container.volumes[c['keys']])
             containers.append(container)
         return containers
 

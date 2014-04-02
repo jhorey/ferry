@@ -173,7 +173,6 @@ def _allocate_backend(payload,
                                                    args = args,
                                                    replace = replace)
         else:
-            logging.warning("REUSING STORAGE: " + str(storage))
             service_uuid = storage['uuid']
             containers = storage['containers']
             storage_type = storage['type']

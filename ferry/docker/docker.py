@@ -314,7 +314,6 @@ class DockerCLI(object):
         # will be located somewhere else. 
         if instance.internal_ip == "":
             instance.internal_ip = self._get_lxc_net(data['HostConfig']['LxcConf'])
-            logging.warning("FOUND LXC: " + instance.internal_ip)
 
         if hostname:
             instance.host_name = hostname
@@ -336,5 +335,6 @@ class DockerCLI(object):
             instance.volumes = volumes
         else:
             # Need to inspect to get the volume bindings. 
-            instance.volumes = data['Volumes']
+            # However Docker stores these in reverse :/
+            instance.volumes = dict((v,k) for k, v in data['Volumes'].iteritems())
         return instance
