@@ -69,7 +69,7 @@ class HadoopInitializer(object):
         elif entry_point['storage_type'] == 'gluster':
             mount_url = entry_point['storage_url']
             output = fabric.cmd(containers, 
-                                '/service/sbin/startnode mount gluster %s' % mount_url)
+                                '/service/sbin/startnode %s gluster %s' % (cmd, mount_url))
                                 
         # Now start the YARN cluster. 
         for c in containers:

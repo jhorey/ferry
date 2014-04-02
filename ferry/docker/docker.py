@@ -32,6 +32,7 @@ class DockerInstance(object):
             self.external_port = 0
             self.internal_port = 0
             self.image = ''
+            self.keys = None
             self.volumes = None
             self.default_user = None
             self.name = None
@@ -45,10 +46,11 @@ class DockerInstance(object):
             self.external_port = json_data['external_port']
             self.internal_port = json_data['internal_port']
             self.image = json_data['image']
-            self.volumes = json_data['volumes']
             self.default_user = json_data['user']
             self.name = json_data['name']
             self.args = json_data['args']
+            self.keys = json_data['keys']
+            self.volumes = json_data['volumes']
 
     """
     Return in JSON format. 
@@ -63,6 +65,7 @@ class DockerInstance(object):
                        'container' : self.container,
                        'image' : self.image,
                        'type': self.service_type, 
+                       'keys' : self.keys,
                        'volumes' : self.volumes,
                        'user' : self.default_user,
                        'name' : self.name,
@@ -214,7 +217,7 @@ class DockerCLI(object):
     """
     Start a stopped container. 
     """
-    def start(self, container, service_type, args):
+    def start(self, container, service_type, keys, volumes, args):
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -222,6 +225,8 @@ class DockerCLI(object):
         # Now parse the output to get the IP and port
         container = output.strip()
         return self.inspect(container = container, 
+                            keys = keys,
+                            volumes = volumes,
                             service_type = service_type, 
                             args = args)
 
@@ -263,7 +268,8 @@ class DockerCLI(object):
         if keys != None:
             for v in keys.keys():
                 flags += self.volume_flag
-                flags += ' %s:%s' % (v, keys[v])
+                # flags += ' %s:%s' % (v, keys[v])
+                flags += ' %s:%s' % (keys[v], v)
 
         # Add the lxc options
         if lxc_opts != None:
@@ -282,7 +288,7 @@ class DockerCLI(object):
 
         # Now parse the output to get the IP and port
         container = output.strip()
-        return self.inspect(container, volumes, hostname, service_type, args)
+        return self.inspect(container, keys, volumes, hostname, service_type, args)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -294,7 +300,7 @@ class DockerCLI(object):
     Inspect a container and return information on how
     to connect to the container. 
     """
-    def inspect(self, container, volumes=None, hostname=None, service_type=None, args=None):
+    def inspect(self, container, keys=None, volumes=None, hostname=None, service_type=None, args=None):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
         logging.warning(cmd)
 
@@ -336,5 +342,9 @@ class DockerCLI(object):
         else:
             # Need to inspect to get the volume bindings. 
             # However Docker stores these in reverse :/
-            instance.volumes = dict((v,k) for k, v in data['Volumes'].iteritems())
+            instance.volumes = data['Volumes']
+            # instance.volumes = dict((v,k) for k, v in data['Volumes'].iteritems())
+
+        if keys:
+            instance.keys = keys
         return instance

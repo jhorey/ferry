@@ -1,4 +1,5 @@
 #!/bin/bash
 
-# Stop the ssh daemon. 
+# Unmount & stop the ssh daemon. 
+python /service/sbin/mounthelper.py umount
 pkill -f sshd

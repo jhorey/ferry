@@ -44,7 +44,7 @@ class CLI(object):
         self.cmds.add_option("-k", "--key", "Specify key directory")
         self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-u", "--upgrade", "Upgrade Ferry")
-        self.cmds.add_option("-b", "--build", "Manually build Ferry images")
+        self.cmds.add_option("-b", "--build", "Build Ferry images")
         self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
         self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("deploy", "Deploy a service to the cloud")

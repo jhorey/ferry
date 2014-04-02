@@ -14,6 +14,7 @@
 #
 
 import ferry.install
+import json
 import logging
 import time
 from subprocess import Popen, PIPE
@@ -64,14 +65,19 @@ class DockerFabric(object):
         for c in container_info:
             container = self.cli.start(c['container'],
                                        c['type'],
+                                       c['keys'],
+                                       c['volumes'],
                                        c['args'])
             container.default_user = self.docker_user
+            logging.warning("CONTAINER: " + json.dumps(container_info, 
+                                                       sort_keys=True,
+                                                       indent=2,
+                                                       separators=(',',':')))
+            logging.warning("VOLUMES: " + json.dumps(container.volumes, 
+                                                     sort_keys=True,
+                                                     indent=2,
+                                                     separators=(',',':')))
 
-            # Reassign the key directory. Since the key directory
-            # is a volume mount, it will be listed incorrectly as a volume.
-            if 'keys' in c and c['keys'] in container.volumes:
-                logging.warning("DELETING KEYS")
-                del(container.volumes[c['keys']])
             containers.append(container)
         return containers
 

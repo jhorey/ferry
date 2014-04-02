@@ -35,6 +35,9 @@ elif [ $1 == "start" ]; then
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
     elif [ $2 == "yarnslave" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
+    elif [ $2 == "gluster" ]; then 
+	python /service/scripts/mounthelper.py mount $3	
+	chown -R ferry:docker /service/data
     fi
 elif [ $1 == "restart" ]; then 
     if [ $2 == "namenode" ]; then
@@ -45,9 +48,7 @@ elif [ $1 == "restart" ]; then
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
     elif [ $2 == "yarnslave" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
-    fi
-elif [ $1 == "mount" ]; then 
-    if [ $2 == "gluster" ]; then
+    elif [ $2 == "gluster" ]; then 
 	python /service/scripts/mounthelper.py mount $3	
 	chown -R ferry:docker /service/data
     fi
@@ -63,6 +64,8 @@ elif [ $1 == "stop" ]; then
 	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop resourcemanager'
 	elif [ "$line" == "yarnslave" ]; then	
 	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop nodemanager'
+	elif [ "$line" == "gluster" ]; then 
+	    python /service/scripts/mounthelper.py umount
 	fi
     done < "$input"
 

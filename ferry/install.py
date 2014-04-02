@@ -151,9 +151,14 @@ class Installer(object):
             build = True
 
         if '-u' in options:
-            # We want to re-build all the images. 
-            logging.warning("performing forced rebuild")
-            self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO, build)
+            if len(options['-u']) > 0:
+                logging.warning("performing select rebuild (%s)" % str(options['-u']))
+                self.build_from_list(options['-u'], 
+                                     DEFAULT_IMAGE_DIR,
+                                     DEFAULT_DOCKER_REPO, build, recurse=False)
+            else:
+                logging.warning("performing forced rebuild")
+                self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO, build)
         else:
             # We want to be selective about which images
             # to rebuild. Useful if one image breaks, etc. 
@@ -345,7 +350,7 @@ class Installer(object):
     """
     Build the docker images
     """
-    def build_from_list(self, to_build, image_dir, repo, build=False):
+    def build_from_list(self, to_build, image_dir, repo, build=False, recurse=True):
         if self._docker_running():
             built_images = {}
             for f in os.listdir(image_dir):
@@ -356,7 +361,7 @@ class Installer(object):
                 image = self._get_image(dockerfile)
                 if image in to_build:
                     logging.warning("building image " + image)
-                    self._build_image(dockerfile, repo, built_images, recurse=True, build=build)
+                    self._build_image(dockerfile, repo, built_images, recurse=recurse, build=build)
 
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")

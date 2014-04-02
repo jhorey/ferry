@@ -21,9 +21,16 @@ def mount(entry_point, mount_point):
     logging.info(cmd)
     logging.info(output)
 
+def umount(mount_point):
+    cmd = 'umount %s' % mount_point
+    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+    logging.info(cmd)
+    logging.info(output)
+
 cmd = sys.argv[1]
 if cmd == "mount":
     entry = sys.argv[2]
     mkdir('/service/data')
     mount(entry, '/service/data')
-
+elif cmd == "umount":
+    umount('/service/data')

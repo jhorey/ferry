@@ -465,7 +465,8 @@ class DockerManager(object):
     def _read_key_dir(self):
         f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
         k = f.read().strip().split("://")
-        return { k[1] : '/service/keys' }
+        # return { k[1] : '/service/keys' }
+        return { '/service/keys' : k[1]  }
 
     """
     Prepare the environment for storage containers.
@@ -921,13 +922,9 @@ class DockerManager(object):
         self._transfer_config(config_dirs)
 
         container_info = self._serialize_containers(containers)
-        for k in self._read_key_dir().keys():
-            keydir = k
-
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'storage',
-                   'keys': keydir, 
                    'type':storage_type,
                    'entry':entry_point,
                    'status':'running'}
@@ -997,9 +994,11 @@ class DockerManager(object):
             self._snapshot_stack(stack_uuid)
         elif(action == 'stop'):
             if self.is_running(stack_uuid):
+                logging.warning("STOPPING STACK")
                 self._stop_stack(stack_uuid)
                 status = 'stopped'
                 service_status = { 'uuid':stack_uuid, 'status':status }
+                logging.warning("ALL STOPPED")
                 self._update_stack(stack_uuid, service_status)
         elif(action == 'rm'):
             # First need to check if the stack is stopped.
@@ -1160,21 +1159,13 @@ class DockerManager(object):
 
         # Update the connector state. 
         container_info = self._serialize_containers(connectors)
-        for k in self._read_key_dir().keys():
-            keydir = k
-
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'connector',
-                   'keys': keydir, 
                    'type':connector_type,
                    'entry':entry_point,
                    'uniq': name, 
                    'status':'running'}
-        logging.warning("SERVICE: " + json.dumps(service, 
-                                                 sort_keys=True,
-                                                 indent=2,
-                                                 separators=(',',':')))
         self._update_service_configuration(service_uuid, service)
 
         # Start the connector personality. 
