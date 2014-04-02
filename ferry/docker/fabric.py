@@ -69,7 +69,9 @@ class DockerFabric(object):
 
             # Reassign the key directory. Since the key directory
             # is a volume mount, it will be listed incorrectly as a volume.
-            del(container.volumes[c['keys']])
+            if 'keys' in c and c['keys'] in container.volumes:
+                logging.warning("DELETING KEYS")
+                del(container.volumes[c['keys']])
             containers.append(container)
         return containers
 

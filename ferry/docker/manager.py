@@ -831,11 +831,14 @@ class DockerManager(object):
 
         # Now copy over the configuration.
         self._transfer_config(config_dirs)
+        for k in self._read_key_dir().keys():
+            keydir = k
 
         container_info = self._serialize_containers(containers)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'compute',
+                   'keys': keydir, 
                    'type':compute_type,
                    'entry':entry_point,
                    'storage':storage_uuid, 
@@ -877,7 +880,6 @@ class DockerManager(object):
     def restart_storage(self, service_uuid, container_info, storage_type):
         containers = self._restart_containers(container_info)
         container_info = self._serialize_containers(containers)
-        logging.warning("CONTAINER INFO: " + str(container_info))
 
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
@@ -919,9 +921,13 @@ class DockerManager(object):
         self._transfer_config(config_dirs)
 
         container_info = self._serialize_containers(containers)
+        for k in self._read_key_dir().keys():
+            keydir = k
+
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'storage',
+                   'keys': keydir, 
                    'type':storage_type,
                    'entry':entry_point,
                    'status':'running'}
@@ -1069,12 +1075,7 @@ class DockerManager(object):
                 s = self._get_service_configuration(cuid, detailed=True)
                 if s and 'containers' in s:
                     for c in s['containers']:
-                        connector_info.append(self.restart_connector(service_uuid = app_uuid,
-                                                                     connector_type = c['type'],
-                                                                     backend = backend_info,
-                                                                     name = c['name'], 
-                                                                     args = c['args'],
-                                                                     container = c['container']))
+                        connector_info.append(self._restart_connector(app_uuid, c, backend_info))
         return connector_info
 
     """
@@ -1118,17 +1119,17 @@ class DockerManager(object):
     """
     Restart a stopped connector with an existing storage service. 
     """
-    def restart_connector(self,
+    def _restart_connector(self,
                           service_uuid, 
-                          connector_type, 
-                          backend=None,
-                          name=None, 
-                          args=None,
-                          container=None):
+                          container_info, 
+                          backend=None):
+        connector_type = container_info['type']
+        name = container_info['name']
+        args = container_info['args']
+        container = container_info['container']
+
         service = self._get_service(connector_type)
-        connectors = self._restart_containers([{ 'container': container,
-                                                 'type' : connector_type,
-                                                 'args' : args}])
+        connectors = self._restart_containers([container_info])
 
         # Initialize the connector and connect to the storage. 
         storage_entry = []
@@ -1159,9 +1160,13 @@ class DockerManager(object):
 
         # Update the connector state. 
         container_info = self._serialize_containers(connectors)
+        for k in self._read_key_dir().keys():
+            keydir = k
+
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'connector',
+                   'keys': keydir, 
                    'type':connector_type,
                    'entry':entry_point,
                    'uniq': name, 
