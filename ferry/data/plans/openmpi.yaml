@@ -3,10 +3,10 @@ backend:
         personality: "gluster"
         instances: 2
      compute:
-        - personality: "mpi"
+        - personality: "openmpi"
           instances: 2
           layers: 
              - "hive"
 connectors:
-   - personality: "mpi-client"
+   - personality: "openmpi-client"
      name: "control-0"

@@ -340,9 +340,9 @@ class Installer(object):
             build_images = []
             for f in os.listdir(image_dir):
                 dockerfile = image_dir + '/' + f + '/Dockerfile'
-                image_name = self._check_dockerfile(dockerfile, repo)
-                if image_name:
-                    build_images.append(image_name)
+                image_names = self._check_dockerfile(dockerfile, repo)
+                if len(image_names) > 0:
+                    build_images += image_names
             return build_images
         else:
             logging.error("ferry daemon not started")
@@ -358,10 +358,16 @@ class Installer(object):
 
             for f in os.listdir("/tmp/dockerfiles/"):
                 dockerfile = '/tmp/dockerfiles/' + f + '/Dockerfile'
-                image = self._get_image(dockerfile)
-                if image in to_build:
+                images = self._get_image(dockerfile)
+                intersection = [i for i in images if i in to_build]
+                if len(intersection) > 0:
+                    image = images.pop(0)
                     logging.warning("building image " + image)
-                    self._build_image(dockerfile, repo, built_images, recurse=recurse, build=build)
+                    self._build_image(image, dockerfile, repo, built_images, recurse=recurse, build=build)
+
+                    if len(images) > 0:
+                        logging.warning("tagging images " + image)
+                        self._tag_images(image, repo, images)
 
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
@@ -378,7 +384,13 @@ class Installer(object):
                 self._transform_dockerfile(image_dir, f, repo)
             for f in os.listdir("/tmp/dockerfiles/"):
                 dockerfile = "/tmp/dockerfiles/" + f + "/Dockerfile"
-                self._build_image(dockerfile, repo, built_images, recurse=True, build=build)
+                images = self._get_image(dockerfile)
+                image = images.pop(0)
+                self._build_image(image, dockerfile, repo, built_images, recurse=True, build=build)
+
+                if len(images) > 0:
+                    logging.warning("tagging images " + image)
+                    self._tag_images(image, repo, images)
 
             # After building everything, get rid of the temp dir.
             shutil.rmtree("/tmp/dockerfiles")
@@ -389,15 +401,15 @@ class Installer(object):
         return os.path.exists('/var/run/ferry.sock')
 
     def _check_dockerfile(self, dockerfile, repo):
-        image = self._get_image(dockerfile)
-        qualified = DEFAULT_DOCKER_REPO + '/' + image
-
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect ' + qualified + ' 2> /dev/null'
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        if output.strip() == '[]':
-            return image
-        else:
-            return None
+        not_installed = []
+        images = self._get_image(dockerfile)
+        for image in images:
+            qualified = DEFAULT_DOCKER_REPO + '/' + image
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect ' + qualified + ' 2> /dev/null'
+            output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+            if output.strip() == '[]':
+                not_installed.append(image)
+        return not_installed
 
     def _transform_dockerfile(self, image_dir, f, repo):
         if not os.path.exists("/tmp/dockerfiles/" + f):
@@ -413,14 +425,14 @@ class Installer(object):
             out.write(s)
         out.close()
 
-    def _build_image(self, f, repo, built_images, recurse=False, build=False):
+    def _build_image(self, image, f, repo, built_images, recurse=False, build=False):
         base = self._get_base(f)
         if recurse and base != "base":
             image_dir = os.path.dirname(os.path.dirname(f))
             dockerfile = image_dir + '/' + base + '/Dockerfile'
-            self._build_image(dockerfile, repo, built_images, recurse, build)
+            self._build_image(base, dockerfile, repo, built_images, recurse, build)
 
-        image = os.path.dirname(f).split("/")[-1]
+        # image = os.path.dirname(f).split("/")[-1]
         if not image in built_images:
             if base == "base":
                 self._pull_image(base)
@@ -429,13 +441,14 @@ class Installer(object):
             self._compile_image(image, repo, os.path.dirname(f), build)
 
     def _get_image(self, dockerfile):
+        names = []
         for l in open(dockerfile, 'r'):
             if l.strip() != '':
                 s = l.split()
                 if len(s) > 0:
                     if s[0].upper() == 'NAME':
-                        return s[1].strip()
-        return None
+                        names.append(s[1].strip())
+        return names
 
     def _get_base(self, dockerfile):
         base = None
@@ -479,6 +492,15 @@ class Installer(object):
             # Just pull the image from the public repo. 
             image_name = "%s/%s" % (repo, image)
             self._pull_image(image_name)
+
+    def _tag_images(self, image, repo, alternatives):
+        for a in alternatives:
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s/%s:%s %s/%s:%s' % (repo, image, ferry.__version__, repo, a, ferry.__version__)
+            logging.warning(cmd)
+            child = Popen(cmd, stdout=PIPE, shell=True)
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s/%s:latest %s/%s:latest' % (repo, image, repo, a)
+            logging.warning(cmd)
+            child = Popen(cmd, stdout=PIPE, shell=True)
 
     def _clean_images(self):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'

@@ -97,8 +97,10 @@ class GlusterInitializer(object):
     """
     def get_total_instances(self, num_instances, layers):
         instances = []
+
         for i in range(num_instances):
             instances.append('gluster')
+
         return instances
 
     """

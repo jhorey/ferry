@@ -8,13 +8,13 @@
 	},
     "compute":[
 	{
-	  "personality":"mpi",
+	  "personality":"openmpi",
 	  "instances":2
 	}]
    }],
   "connectors":[
 	{
-	  "personality":"mpi-client",
+	  "personality":"openmpi-client",
 	  "name":"control-0"
 	}
   ]

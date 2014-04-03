@@ -1,5 +1,6 @@
 FROM $USER/hadoop-base
 NAME hadoop
+NAME yarn
 
 ## Add the control script to the image. 
 ADD ./startnode /service/sbin/

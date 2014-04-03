@@ -34,7 +34,17 @@ class DockerFabric(object):
     def _get_gateway(self):
         cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
-        return "%s/24" % gw
+
+        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
+        netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+        mask = netmask.split(".")
+        cidr = 1
+        if mask[3] == 0:
+            cidr = 8
+        if mask[2] == 0:
+            cidr *= 2
+
+        return "%s/%d" % (gw, 32 - cidr)
 
     """
     Read the location of the directory containing the keys
@@ -143,6 +153,7 @@ class DockerFabric(object):
     """
     def remove(self, containers):
         for c in containers:
+            self.network.free_ip(c.internal_ip)
             self.cli.remove(c.container)
 
     """

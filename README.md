@@ -28,25 +28,17 @@ Ferry is a Python application and runs on your local machine. All you have to do
 `docker` installed and type the following `pip install -U ferry`. Afterwards you can start creating
 your big data application. Here's an example stack:
 
-```javascript
-{
-  "backend":[
-   {
-    "storage":
-        {
-  	   "personality":"gluster",
-  	   "instances":2
-	},
-    "compute":[
-	{
-	  "personality":"mpi",
-	  "instances":2
-	}]
-   }],
-  "connectors":[
-	{"personality":"mpi-client"}
-  ]
-}
+```yaml
+   backend:
+      - storage:
+           personality: "gluster"
+           instances: 2
+        compute:
+           - personality: "mpi"
+             instances: 2
+   connectors:
+      - personality: "mpi-client"
+        name: "control-0"
 ```
 
 This stack consists of two GlusterFS data nodes, and two OpenMPI compute nodes. There's also a Linux

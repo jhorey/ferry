@@ -1,5 +1,6 @@
 FROM $USER/hadoop-base
 NAME hive-metastore
+NAME hive
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/

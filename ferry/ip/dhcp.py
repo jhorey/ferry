@@ -46,21 +46,63 @@ class DHCPClient(object):
 
 class DHCP(object):
     def __init__(self):
+        self.free_ips = []
         self.ips = {}
+        self.num_ips = 1
         self.num_addrs = 0
         self._init_state_db()
 
     def assign_cidr(self, cidr_block):
         if self.num_addrs == 0:
-            self.latest_ip, self.prefix = self._parse_cidr(cidr_block)
-            s = map(int, self.latest_ip.split("."))
-            self.num_ips = s[3]
-            self.num_addrs = 2**(32 - self.prefix)
+            self.cidr_collection.insert( { 'cidr' : cidr_block } )
+            self._parse_cidr(cidr_block)
+
+    def _parse_cidr(self, cidr_block):
+        self.gw_ip, self.prefix = self._parse_cidr(cidr_block)
+        addr = map(int, self.gw_ip.split("."))
+        if self.prefix == 24:
+            self.latest_ip = "%d.%d.%d.0" % (addr[0], addr[1], addr[2])
+        elif self.prefix == 16:
+            self.latest_ip = "%d.%d.0.0" % (addr[0], addr[1])
+        self.num_addrs = 2**(32 - self.prefix)
 
     def _init_state_db(self):
         self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
         self.dhcp_collection = self.mongo['network']['dhcp']
+        self.cidr_collection = self.mongo['network']['cidr']
 
+        cidr = self.cidr_collection.find_one()
+        if cidr:
+            logging.warning("recovering network gateway: " + cidr)
+            self._parse_cidr(cidr)
+
+        all_ips = self.dhcp_collection.find()
+        if all_ips:
+            logging.warning("recovering assigned IP addresses")
+            for ip_status in all_ips:
+                ip = ip_status['ip']
+                status = ip_status['status']
+                self.num_ips += 1
+                self.ips[ip] = { 'status' : status }
+
+                if status == 'free':
+                    self.free_ips.append(ip)
+                else:
+                    self.ips[ip]['container'] = ip_status['container']
+
+                self.latest_ip = self._recover_latest_ip(ip)
+
+    def _recover_latest_ip(self, ip):
+        l = map(int, self.latest_ip.split("."))
+        s = map(int, ip.split("."))
+
+        for i in [0, 1, 2, 3]:
+            if s[i] > l[i]:
+                self.latest_ip = ip
+                break
+            elif l[i] > s[i]:
+                break
+                
     def _parse_cidr(self, block):
         s = block.split("/")
         return s[0], int(s[1])
@@ -75,9 +117,19 @@ class DHCP(object):
                 else:
                     s[i] = 0
 
-            self.num_ips += 1
+            # Make sure we skip over the gateway IP. 
             self.latest_ip = "%d.%d.%d.%d" % (s[0], s[1], s[2], s[3])
-            return self.latest_ip
+            if self.latest_ip == self.gw_ip:
+                return self._increment_ip()
+            else:
+                self.num_ips += 1
+                return self.latest_ip
+
+    def _get_new_ip(self):
+        if len(self.free_ips) > 0:
+            return self.free_ips.pop(0)
+        else:
+            return self._increment_ip()
 
     def stop_ip(self, ip):
         """
@@ -99,22 +151,20 @@ class DHCP(object):
                     self.ips[k]['status'] = 'active'
                     self.dhcp_collection.update( { 'ip' : k },
                                                  { '$set' : { 'status' : 'active' }} )
-                    logging.warning("REASSIGNING IP: " + k)
                     return k
             
-        new_ip = self._increment_ip()
+        new_ip = self._get_new_ip()
         self.ips[new_ip] = { 'status': 'active',
                              'container': None }
         self.dhcp_collection.update( { 'ip' : new_ip },
                                      { '$set' : self.ips[new_ip]} )
-
-        logging.warning("ASSIGNING IP: " + new_ip)
         return new_ip
 
     def free_ip(self, ip):
         """
         Container is being removed and the IP address should be freed. 
         """
+        self.free_ips.append(ip)
         self.ips[ip] = { 'status': 'free' }
         self.dhcp_collection.update( { 'ip' : ip },
                                      { '$set' : self.ips[ip] } )

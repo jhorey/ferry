@@ -116,7 +116,7 @@ def _allocate_backend_from_stopped(payload):
 """
 Allocate fresh compute backend. 
 """
-def _allocate_fresh_compute(computes, storage_uuid):
+def _allocate_compute(computes, storage_uuid):
     uuids = []
     for c in computes:
         compute_type = c['personality']
@@ -136,6 +136,17 @@ def _allocate_fresh_compute(computes, storage_uuid):
                                                num_instances = num_instances,
                                                layers = layers)
         uuids.append(compute_uuid)
+    return uuids
+
+def _restart_compute(computes):
+    uuids = []
+    for c in computes:
+        service_uuid = c['uuid']
+        containers = c['containers']
+        compute_type = c['type']
+        uuids.append(docker.restart_compute(service_uuid,
+                                            containers, 
+                                            compute_type))
     return uuids
 
 """
@@ -181,13 +192,13 @@ def _allocate_backend(payload,
                                                   storage_type = storage_type)
                                                   
         # Now get the compute information
-        compute_uuid = None
         compute_uuids = []
         if 'compute' in b:
-            computes = b['compute']
-            compute_uuids = _allocate_fresh_compute(computes, storage_uuid)
+            if not uuid:
+                compute_uuids = _allocate_compute(b['compute'], storage_uuid)
+            else:
+                compute_uuids = _restart_compute(b['compute'])
 
-        
         backend_info['uuids'].append( {'storage':storage_uuid,
                                        'compute':compute_uuids} )
     return backend_info

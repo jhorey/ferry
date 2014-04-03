@@ -36,17 +36,6 @@ class DockerManager(object):
     SSH_PORT = 22
 
     def __init__(self):
-        # Image names
-        self.DOCKER_GLUSTER = DEFAULT_DOCKER_REPO + '/gluster'
-        self.DOCKER_HADOOP = DEFAULT_DOCKER_REPO + '/hadoop'
-        self.DOCKER_HIVE = DEFAULT_DOCKER_REPO + '/hive-metastore'
-        self.DOCKER_CASSANDRA = DEFAULT_DOCKER_REPO + '/cassandra'
-        self.DOCKER_TITAN = DEFAULT_DOCKER_REPO + '/titan'
-        self.DOCKER_MPI = DEFAULT_DOCKER_REPO + '/openmpi'
-        self.DOCKER_MPI_CLIENT = DEFAULT_DOCKER_REPO + '/openmpi-client'
-        self.DOCKER_HADOOP_CLIENT = DEFAULT_DOCKER_REPO + '/hadoop-client'
-        self.DOCKER_CASSANDRA_CLIENT = DEFAULT_DOCKER_REPO + '/cassandra-client'
-
         # Generate configuration.
         self.config = ConfigFactory()
 
@@ -486,12 +475,8 @@ class DockerManager(object):
         plan = {'localhost':{'containers':[]}}
 
         # Get the actual number of containers needed. 
-        if storage_type == 'gluster':
-            instances = self.config.gluster.get_total_instances(num_instances, layers)
-        elif storage_type == 'cassandra':
-            instances = self.config.cassandra.get_total_instances(num_instances, layers)
-        elif storage_type == 'hadoop':
-            instances = self.config.hadoop.get_total_instances(num_instances, layers)
+        storage_service = self._get_service(storage_type)
+        instances = storage_service.get_total_instances(num_instances, layers)
 
         # Now get the new container-specific information. 
         i = 0
@@ -539,10 +524,8 @@ class DockerManager(object):
         plan = {'localhost':{'containers':[]}}
 
         # Get the actual number of containers needed. 
-        if compute_type == 'yarn':
-            instances = self.config.yarn.get_total_instances(num_instances, layers)
-        elif compute_type == 'mpi':
-            instances = self.config.mpi.get_total_instances(num_instances, layers)
+        compute_service = self._get_service(compute_type)
+        instances = compute_service.get_total_instances(num_instances, layers)
 
         i = 0
         for t in instances:
@@ -569,29 +552,10 @@ class DockerManager(object):
     service, then just use the raw image. Otherwise, look for a snapshot image. 
     """
     def _get_instance_image(self, instance_type, uuid=None):
-        image = None
-        if instance_type == 'hadoop-client':
-            image = self.DOCKER_HADOOP_CLIENT
-        elif instance_type == 'cassandra-client':
-            image = self.DOCKER_CASSANDRA_CLIENT
-        elif instance_type == 'mpi-client':
-            image = self.DOCKER_MPI_CLIENT
-        elif instance_type == 'gluster':
-            image = self.DOCKER_GLUSTER
-        elif instance_type == 'cassandra':
-            image = self.DOCKER_CASSANDRA
-        elif instance_type == 'titan':
-            image = self.DOCKER_TITAN
-        elif instance_type == 'hadoop':
-            image = self.DOCKER_HADOOP
-        elif instance_type == 'hive':
-            image = self.DOCKER_HIVE
-        elif instance_type == 'mpi':
-            image = self.DOCKER_MPI
-        elif instance_type == 'yarn':
-            image = self.DOCKER_HADOOP
-
-        return image
+        s = instance_type.split('/')
+        if len(s) == 1:
+            instance_type = DEFAULT_DOCKER_REPO + '/' + instance_type
+        return instance_type
 
     """
     Prepare the environment for connector containers.
@@ -802,6 +766,21 @@ class DockerManager(object):
                                              {"$set": cluster_state } )
 
     """
+    Restart an stopped compute cluster.
+    """
+    def restart_compute(self, service_uuid, container_info, compute_type):
+        containers = self._restart_containers(container_info)
+        container_info = self._serialize_containers(containers)
+
+        service = {'uuid':service_uuid, 
+                   'containers':container_info, 
+                   'status':'running'}
+        self._update_service_configuration(service_uuid, service)
+
+        self._restart_service(service_uuid, containers, compute_type)
+        return service_uuid        
+
+    """
     Allocate a new compute cluster.
     """
     def allocate_compute(self,
@@ -885,7 +864,6 @@ class DockerManager(object):
 
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
-                   'class':'storage',
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
 
@@ -999,7 +977,6 @@ class DockerManager(object):
                 self._stop_stack(stack_uuid)
                 status = 'stopped'
                 service_status = { 'uuid':stack_uuid, 'status':status }
-                logging.warning("ALL STOPPED")
                 self._update_stack(stack_uuid, service_status)
         elif(action == 'rm'):
             # First need to check if the stack is stopped.
@@ -1023,18 +1000,23 @@ class DockerManager(object):
     def fetch_stopped_backend(self, uuid):
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
-            logging.warning("STOPPED BACKEND: " + str(cluster['backends']))
             backends = []
+            logging.warning("BACKEND CONF: " + json.dumps(cluster['backends'], 
+                                                          sort_keys=True,
+                                                          indent=2,
+                                                          separators=(',',':')))
+
             for i, uuid in enumerate(cluster['backends']['uuids']):
-                logging.warning("UUID: " + str(uuid))
                 storage_uuid = uuid['storage']
                 storage_conf = self._get_service_configuration(storage_uuid, 
                                                                detailed=True)
 
-                if 'compute' in cluster['backends']['backend'][i]:
-                    compute_confs = cluster['backends']['backend'][i]['compute']
-                else:
-                    compute_confs = []
+                compute_confs = []
+                if 'compute' in uuid:
+                    for c in uuid['compute']:
+                        compute_conf = self._get_service_configuration(c, detailed=True)
+                        compute_confs.append(compute_conf)
+                
                 backends.append( {'storage' : storage_conf,
                                   'compute' : compute_confs} )
             return backends
@@ -1141,22 +1123,22 @@ class DockerManager(object):
                 for c in b['compute']:
                     compute_entry.append(self._get_service_configuration(c))
 
-        # # Generate the environment variables that will be 
-        # # injected into the containers. 
-        # env_vars = self.config.generate_env_vars(storage_entry,
-        #                                          compute_entry)
+        # Generate the environment variables that will be 
+        # injected into the containers. 
+        env_vars = self.config.generate_env_vars(storage_entry,
+                                                 compute_entry)
 
-        # # Now generate the configuration files that will be
-        # # transferred to the containers. 
-        # config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-        #                                                                         connectors, 
-        #                                                                         service,
-        #                                                                         storage_entry,
-        #                                                                         compute_entry,
-        #                                                                         args)
-        # # Now copy over the configuration.
-        # self._transfer_config(config_dirs)
-        # self._transfer_env_vars(connectors, env_vars)
+        # Now generate the configuration files that will be
+        # transferred to the containers. 
+        config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+                                                                                connectors, 
+                                                                                service,
+                                                                                storage_entry,
+                                                                                compute_entry,
+                                                                                args)
+        # Now copy over the configuration.
+        self._transfer_config(config_dirs)
+        self._transfer_env_vars(connectors, env_vars)
 
         # Update the connector state. 
         container_info = self._serialize_containers(connectors)
