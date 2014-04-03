@@ -17,12 +17,10 @@ RUN ln -s /service/packages/openmpi-1.7.3 /service/packages/openmpi
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
 ADD ./mounthelper.py /service/sbin/
-ADD ./helloworld.cpp /service/examples/
 ADD ./start01.sh /service/runscripts/start/
 ADD ./stop10.sh /service/runscripts/stop/
 ADD ./restart01.sh /service/runscripts/restart/
-ADD ./test01.sh /service/runscripts/test/
-RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/test/*;chmod a+x /service/runscripts/restart/*
+RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/restart/*
 
 # Make environment variables
 RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile
@@ -31,7 +29,3 @@ RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile
 RUN mkdir /home/ferry/.ssh;ssh-keygen -f /home/ferry/.ssh/id_rsa -t rsa -N '' > /dev/null
 RUN cat /home/ferry/.ssh/id_rsa.pub >> /home/ferry/.ssh/authorized_keys;echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
 RUN chown -R ferry:ferry /home/ferry/.ssh
-
-# Run the ssh daemon in the foreground (Docker does
-# like daemons running in background)
-CMD ["/service/sbin/startnode", "listen"]

@@ -39,13 +39,13 @@ class DockerManager(object):
         # Image names
         self.DOCKER_GLUSTER = DEFAULT_DOCKER_REPO + '/gluster'
         self.DOCKER_HADOOP = DEFAULT_DOCKER_REPO + '/hadoop'
-        self.DOCKER_HADOOP_CLIENT = DEFAULT_DOCKER_REPO + '/hadoop-client'
         self.DOCKER_HIVE = DEFAULT_DOCKER_REPO + '/hive-metastore'
         self.DOCKER_CASSANDRA = DEFAULT_DOCKER_REPO + '/cassandra'
-        self.DOCKER_CASSANDRA_CLIENT = DEFAULT_DOCKER_REPO + '/cassandra-client'
         self.DOCKER_TITAN = DEFAULT_DOCKER_REPO + '/titan'
         self.DOCKER_MPI = DEFAULT_DOCKER_REPO + '/openmpi'
-        self.DOCKER_MPI_CLIENT = DEFAULT_DOCKER_REPO + '/openmpi'
+        self.DOCKER_MPI_CLIENT = DEFAULT_DOCKER_REPO + '/openmpi-client'
+        self.DOCKER_HADOOP_CLIENT = DEFAULT_DOCKER_REPO + '/hadoop-client'
+        self.DOCKER_CASSANDRA_CLIENT = DEFAULT_DOCKER_REPO + '/cassandra-client'
 
         # Generate configuration.
         self.config = ConfigFactory()
@@ -1141,22 +1141,22 @@ class DockerManager(object):
                 for c in b['compute']:
                     compute_entry.append(self._get_service_configuration(c))
 
-        # Generate the environment variables that will be 
-        # injected into the containers. 
-        env_vars = self.config.generate_env_vars(storage_entry,
-                                                 compute_entry)
+        # # Generate the environment variables that will be 
+        # # injected into the containers. 
+        # env_vars = self.config.generate_env_vars(storage_entry,
+        #                                          compute_entry)
 
-        # Now generate the configuration files that will be
-        # transferred to the containers. 
-        config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-                                                                                connectors, 
-                                                                                service,
-                                                                                storage_entry,
-                                                                                compute_entry,
-                                                                                args)
-        # Now copy over the configuration.
-        self._transfer_config(config_dirs)
-        self._transfer_env_vars(connectors, env_vars)
+        # # Now generate the configuration files that will be
+        # # transferred to the containers. 
+        # config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+        #                                                                         connectors, 
+        #                                                                         service,
+        #                                                                         storage_entry,
+        #                                                                         compute_entry,
+        #                                                                         args)
+        # # Now copy over the configuration.
+        # self._transfer_config(config_dirs)
+        # self._transfer_env_vars(connectors, env_vars)
 
         # Update the connector state. 
         container_info = self._serialize_containers(connectors)

@@ -38,8 +38,8 @@ class ConfigFactory(object):
         self.hive = MetaStoreInitializer()
         self.cassandra = CassandraInitializer()
         self.titan = TitanInitializer()
-        self.cass_client = CassandraClientInitializer()
         self.mpi = OpenMPIInitializer()
+        self.cass_client = CassandraClientInitializer()
         self.mpi_client = OpenMPIClientInitializer()
         self.hadoop_client = HadoopClientInitializer()
 
