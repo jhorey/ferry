@@ -131,11 +131,12 @@ class DockerManager(object):
 
     def _get_snapshot_info(self, stack_uuid):
         v = self.cluster_collection.find_one( {'uuid' : stack_uuid} )
-        s = self.snapshot_collection.find_one( {'snapshot_uuid':v['snapshot_uuid']} )
-        if s:
-            time = s['snapshot_ts'].strftime("%m/%w/%Y (%I:%M %p)")
-            return { 'snapshot_ts' : time,
-                     'snapshot_uuid' : v['snapshot_uuid'] }
+        if v:
+            s = self.snapshot_collection.find_one( {'snapshot_uuid':v['snapshot_uuid']} )
+            if s:
+                time = s['snapshot_ts'].strftime("%m/%w/%Y (%I:%M %p)")
+                return { 'snapshot_ts' : time,
+                         'snapshot_uuid' : v['snapshot_uuid'] }
 
     def _get_service(self, service_type):
         service = None
@@ -1029,11 +1030,11 @@ class DockerManager(object):
                 storage_uuid = uuid['storage']
                 storage_conf = self._get_service_configuration(storage_uuid, 
                                                                detailed=True)
-                # for compute_uuid in uuid['compute']:
-                #     compute_confs.append(self._get_service_configuration(compute_uuid, 
-                #                                                    detailed=True))
 
-                compute_confs = cluster['backends']['backend'][i]['compute']
+                if 'compute' in cluster['backends']['backend'][i]:
+                    compute_confs = cluster['backends']['backend'][i]['compute']
+                else:
+                    compute_confs = []
                 backends.append( {'storage' : storage_conf,
                                   'compute' : compute_confs} )
             return backends
@@ -1169,7 +1170,7 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service)
 
         # Start the connector personality. 
-        self._start_service(service_uuid, connectors, connector_type)
+        self._restart_service(service_uuid, connectors, connector_type)
         return service_uuid
                 
     """

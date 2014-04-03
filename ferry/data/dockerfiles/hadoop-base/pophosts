@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Copy all the instance addresses and empty the file
+# afterwards so we only copy it over once. 
+function pophosts {
+    input=/service/conf/instances
+    while read line
+    do
+	split=( $line )
+	name=${split[1]}
+	echo $line >> /etc/hosts
+    done < "$input"
+}

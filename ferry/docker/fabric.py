@@ -69,15 +69,6 @@ class DockerFabric(object):
                                        c['volumes'],
                                        c['args'])
             container.default_user = self.docker_user
-            logging.warning("CONTAINER: " + json.dumps(container_info, 
-                                                       sort_keys=True,
-                                                       indent=2,
-                                                       separators=(',',':')))
-            logging.warning("VOLUMES: " + json.dumps(container.volumes, 
-                                                     sort_keys=True,
-                                                     indent=2,
-                                                     separators=(',',':')))
-
             containers.append(container)
         return containers
 

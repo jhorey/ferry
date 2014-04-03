@@ -25,3 +25,5 @@ ENV HIVE_HOME /service/packages/hive
 ENV HADOOP_LIBEXEC_DIR /service/packages/hadoop/libexec
 ENV JAVA_LIBRARY_PATH /service/packages/hadoop/lib/native/
 RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile;echo export HADOOP_HOME=/service/packages/hadoop >> /etc/profile;echo export HIVE_HOME=/service/packages/hive >> /etc/profile;echo export HADOOP_LIBEXEC_DIR=/service/packages/hadoop/libexec >> /etc/profile;echo export JAVA_LIBRARY_PATH=/service/packages/hadoop/lib/native/ >> /etc/profile
+
+ADD ./pophosts /service/sbin/

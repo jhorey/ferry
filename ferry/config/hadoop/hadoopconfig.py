@@ -334,9 +334,10 @@ class HadoopInitializer(object):
             except:
                 sys.stderr.write('could not create config dir ' + new_config_dir)
 
+            # Only add the container to the instances list once. 
+            entry_point['instances'].append([c['data_ip'], c['host_name']])
             instances_file = open(new_config_dir + '/instances', 'w+')
             for server in containers:
-                entry_point['instances'].append([server['data_ip'], server['host_name']])
                 instances_file.write("%s %s\n" % (server['data_ip'], server['host_name']))
             instances_file.close()
 

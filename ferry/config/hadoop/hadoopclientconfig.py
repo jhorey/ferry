@@ -56,6 +56,8 @@ class HadoopClientInitializer(object):
                                 '/service/sbin/startnode %s gluster %s' % (cmd, mount_url))
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
+    def restart_service(self, containers, entry_point, fabric):
+        self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):        
         self._execute_service(containers, entry_point, fabric, "stop")
 
@@ -212,8 +214,13 @@ class HadoopClientInitializer(object):
             self._generate_mapred_site(config, containers, new_config_dir)
             self._generate_yarn_site(config.yarn_master, new_config_dir)
 
-        # Slaves file used to figure out who hosts the actual work/data
+
+        # Record our own hostname. 
         instances_file = open(new_config_dir + '/instances', 'w+')
+        instances_file.write("%s %s\n" % (containers[0]['data_ip'], 
+                                          containers[0]['host_name']))
+
+        # Record the names of all the storage nodes.
         for c in storage['instances']:
             instances_file.write("%s %s\n" % (c[0], c[1]))
 
