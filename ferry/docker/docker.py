@@ -30,8 +30,7 @@ class DockerInstance(object):
             self.host_name = None
             self.external_ip = None
             self.internal_ip = None
-            self.external_port = 0
-            self.internal_port = 0
+            self.ports = {}
             self.image = ''
             self.keys = None
             self.volumes = None
@@ -44,8 +43,7 @@ class DockerInstance(object):
             self.host_name = json_data['hostname']
             self.external_ip = json_data['external_ip']
             self.internal_ip = json_data['internal_ip']
-            self.external_port = json_data['external_port']
-            self.internal_port = json_data['internal_port']
+            self.ports = json_data['ports']
             self.image = json_data['image']
             self.default_user = json_data['user']
             self.name = json_data['name']
@@ -60,8 +58,7 @@ class DockerInstance(object):
         json_reply = { '_type' : 'docker',
                        'external_ip' : self.external_ip,
                        'internal_ip' : self.internal_ip,
-                       'external_port' : self.external_port,
-                       'internal_port' : self.internal_port,
+                       'ports' : self.ports,
                        'hostname' : self.host_name,
                        'container' : self.container,
                        'image' : self.image,
@@ -333,20 +330,15 @@ class DockerCLI(object):
         instance.service_type = service_type
         instance.args = args
 
-        port_mapping = data['NetworkSettings']['PortMapping']
+        port_mapping = data['NetworkSettings']['Ports']
         if port_mapping:
-            for origin in port_mapping:
-                instance.internal_port = origin
-                instance.external_port = port_mapping[origin]
+            instance.ports = port_mapping
 
         # Add any data volume information. 
         if volumes:
             instance.volumes = volumes
         else:
-            # Need to inspect to get the volume bindings. 
-            # However Docker stores these in reverse :/
             instance.volumes = data['Volumes']
-            # instance.volumes = dict((v,k) for k, v in data['Volumes'].iteritems())
 
         if keys:
             instance.keys = keys

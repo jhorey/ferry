@@ -88,7 +88,7 @@ def _allocate_backend_from_snapshot(payload):
     snapshot_uuid = payload['_file']
     backends = docker.fetch_snapshot_backend(snapshot_uuid)
     return _allocate_backend(payload = None,
-                                   backends = backends)
+                             backends = backends)
 
 """
 Allocate the backend from a deployment. 
@@ -220,10 +220,15 @@ def _allocate_connectors(payload, backend_info):
             if 'args' in c:
                 args = c['args']
 
+            ports = []
+            if 'ports' in c:
+                ports = c['ports']
+
             connector_info.append(docker.allocate_connector(connector_type = connector_type,
                                                             backend = backend_info, 
                                                             name = connector_name, 
-                                                            args = args))
+                                                            args = args,
+                                                            ports = ports))
     return connector_info
 
 """

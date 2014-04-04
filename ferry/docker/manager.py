@@ -26,6 +26,7 @@ import sys
 import time
 import uuid
 from pymongo import MongoClient
+from sets import Set
 from ferry.install import *
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.fabric        import DockerFabric
@@ -38,6 +39,31 @@ class DockerManager(object):
     def __init__(self):
         # Generate configuration.
         self.config = ConfigFactory()
+
+        # Service mappings
+        self.service = {
+            'openmpi' : { 
+                'server' : self.config.mpi,
+                'client' : self.config.mpi_client },
+            'yarn': { 
+                'server' : self.config.yarn,
+                'client' : self.config.hadoop_client },
+            'gluster': { 
+                'server' : self.config.gluster,
+                'client' : self.config.mpi_client},
+            'cassandra': { 
+                'server' : self.config.cassandra,
+                'client' : self.config.cassandra_client},
+            'titan': { 
+                'server' : self.config.titan,
+                'client' : self.config.cassandra_client},
+            'hadoop': { 
+                'server' : self.config.hadoop,
+                'client' : self.config.hadoop_client},
+            'hive': { 
+                'server' : self.config.hadoop,
+                'client' : self.config.hadoop_client}
+            }
 
         # Docker tools
         self.docker = DockerFabric()
@@ -128,38 +154,29 @@ class DockerManager(object):
                          'snapshot_uuid' : v['snapshot_uuid'] }
 
     def _get_service(self, service_type):
-        service = None
-        if service_type == 'mpi':
-            service = self.config.mpi
-        elif service_type == 'yarn':
-            service = self.config.yarn
-        elif service_type == 'gluster':
-            service = self.config.gluster
-        elif service_type == 'cassandra':
-            service = self.config.cassandra
-        elif service_type == 'titan':
-            service = self.config.titan
-        elif service_type == 'hadoop':
-            service = self.config.hadoop
-        elif service_type == 'hive':
-            service = self.config.hadoop
-        elif service_type == 'hadoop-client':
-            service = self.config.hadoop_client
-        elif service_type == 'cassandra-client':
-            service = self.config.cass_client
-        elif service_type == 'mpi-client':
-            service = self.config.mpi_client
+        if service_type in self.service:
+            return self.service[service_type]['server']
         else:
             logging.error("unknown service " + service_type)
-        return service
+            return None
 
-    def _get_client_service(self, storage_entry, compute_entry):
+    def _get_client_services(self, storage_entry, compute_entry):
         """
         Get a list of all the client types that are needed for the supplied
         storage and compute backends. So, for example, if the user has specified
         a Hadoop backend, then we'll need to supply the Hadoop client, etc. 
         """
-        return []
+        client_services = Set()
+        service_names = []
+        for storage in storage_entry:
+            if storage['type'] in self.service:
+                client_services.add(self.service[storage['type']]['client'])
+                service_names.append(storage['type'])
+        for compute in compute_entry:
+            if compute['type'] in self.service:
+                client_services.add(self.service[compute['type']]['client'])
+                service_names.append(compute['type'])
+        return client_services, service_names
 
     """
     Helper method to copy directories. shutil fails if the 
@@ -586,29 +603,28 @@ class DockerManager(object):
                                        connector_type, 
                                        instance_type=None,
                                        name=None, 
+                                       ports=[],
                                        args=None):
-        ports = []
-        exposed = []
         plan = {'localhost':{'containers':[]}}
 
         # Determine the instance type from the connector type. 
         if not instance_type:
             instance_type = self._get_instance_image(connector_type)
 
-        service = self._get_service(connector_type)
-        container_dir, log_dir, host_name, ports, exposed = self._get_service_environment(service, 0, 1)
-        new_log_dir = self._new_log_dir(service_uuid, connector_type, 0)
-        dir_info = { new_log_dir : log_dir }
+        if not name:
+            host_name = "client-%s" % str(service_uuid)
+        else:
+            host_name = name
         container_info = { 'image':instance_type,
-                           'volumes':dir_info,
-                           'volume_user':DEFAULT_FERRY_OWNER, 
                            'keys': self._read_key_dir(), 
+                           'volumes':{},
                            'type':connector_type, 
                            'ports':ports,
-                           'exposed':exposed, 
+                           'exposed':[], 
                            'hostname':host_name,
                            'name':name, 
                            'args':args}
+
         plan['localhost']['containers'].append(container_info)
         return plan
 
@@ -849,33 +865,46 @@ class DockerManager(object):
 
         # After the docker instance start, we need to start the
         # actual storage service (gluster, etc.). 
-        self._start_service(service_uuid, containers, compute_type)
+        self._start_service(service_uuid, containers, compute_type, entry_point)
         return service_uuid
         
     def _start_service(self,
                        uuid,
                        containers,
-                       service_type):
-        entry_point = self._get_service_configuration(uuid)
-        service = self._get_service(service_type)
+                       service_type,
+                       entry_point, 
+                       service=None):
+        if not service:
+            service = self._get_service(service_type)
         service.start_service(containers, entry_point, self.docker)
 
     def _restart_service(self,
                          uuid,
                          containers,
                          service_type):
-        entry_point = self._get_service_configuration(uuid)
-        service = self._get_service(service_type)
-        service.restart_service(containers, entry_point, self.docker)
+        service_info = self._get_service_configuration(uuid, detailed=True)
+        entry_point = service_info['entry']        
+        if service_info['class'] != 'connector':
+            service = self._get_service(service_type)
+            service.restart_service(containers, entry_point, self.docker)
+        else:
+            for backend in service_info['backends']:
+                service = self.service[backend]['client']
+                service.restart_service(containers, entry_point, self.docker)
 
     def _stop_service(self,
                       uuid,
                       containers,
                       service_type):
-        entry_point = self._get_service_configuration(uuid)
-        service = self._get_service(service_type)
-        service.stop_service(containers, entry_point, self.docker)
-
+        service_info = self._get_service_configuration(uuid, detailed=True)
+        entry_point = service_info['entry']        
+        if service_info['class'] != 'connector':
+            service = self._get_service(service_type)
+            service.stop_service(containers, entry_point, self.docker)
+        else:
+            for backend in service_info['backends']:
+                service = self.service[backend]['client']
+                service.stop_service(containers, entry_point, self.docker)
     """
     Restart an stopped storage cluster.
     """
@@ -932,7 +961,7 @@ class DockerManager(object):
 
         # After the docker instance start, we need to start the
         # actual storage service (gluster, etc.). 
-        self._start_service(service_uuid, containers, storage_type)
+        self._start_service(service_uuid, containers, storage_type, entry_point)
         return service_uuid
 
     """
@@ -994,7 +1023,6 @@ class DockerManager(object):
             self._snapshot_stack(stack_uuid)
         elif(action == 'stop'):
             if self.is_running(stack_uuid):
-                logging.warning("STOPPING STACK")
                 self._stop_stack(stack_uuid)
                 status = 'stopped'
                 service_status = { 'uuid':stack_uuid, 'status':status }
@@ -1093,6 +1121,7 @@ class DockerManager(object):
                                                               backend = backend_info,
                                                               name = c['name'], 
                                                               args = c['args'],
+                                                              ports = s['ports'].keys(),
                                                               image = c['image']))
         return connector_info
                 
@@ -1110,6 +1139,7 @@ class DockerManager(object):
                                                               backend = backend_info,
                                                               name = s['name'], 
                                                               args = s['args'],
+                                                              ports = s['ports'].keys(),
                                                               image = s['image']))
         return connector_info
                 
@@ -1179,6 +1209,7 @@ class DockerManager(object):
                            backend=None,
                            name=None, 
                            args=None,
+                           ports=None, 
                            image=None):
         # Initialize the connector and connect to the storage. 
         storage_entry = []
@@ -1198,45 +1229,46 @@ class DockerManager(object):
 
         # Allocate a UUID.
         service_uuid = self._new_service_uuid()
-        service = self._get_service(connector_type)
-        # services = self._get_client_services(storage_entry, compute_entry)
-
-        # Generate the data volumes. This basically defines which
-        # directories on the host get mounted in the container. 
         plan = self._prepare_connector_environment(service_uuid = service_uuid, 
                                                    connector_type = connector_type, 
                                                    instance_type = image,
                                                    name = name,
+                                                   ports = ports, 
                                                    args = args)
-
-        # Allocate all the containers. 
         containers = self._start_containers(plan)
 
         # Now generate the configuration files that will be
         # transferred to the containers. 
-        config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-                                                                                containers, 
-                                                                                service,
-                                                                                storage_entry,
-                                                                                compute_entry,
-                                                                                args)
-        # Now copy over the configuration.
-        self._transfer_config(config_dirs)
-        self._transfer_env_vars(containers, env_vars)
+        entry_points = {}
+        services, backend_names = self._get_client_services(storage_entry, compute_entry)
+        for service in services:
+            config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+                                                                                    containers, 
+                                                                                    service,
+                                                                                    storage_entry,
+                                                                                    compute_entry,
+                                                                                    args)
+            # Merge all the entry points. 
+            entry_points = dict(entry_point.items() + entry_points.items())
+
+            # Now copy over the configuration.
+            self._transfer_config(config_dirs)
+            self._transfer_env_vars(containers, env_vars)
+
+            # Start the connector personality. 
+            self._start_service(service_uuid, containers, connector_type, entry_point, service)
 
         # Update the connector state. 
         container_info = self._serialize_containers(containers)
-        service = {'uuid':service_uuid, 
-                   'containers':container_info, 
-                   'class':'connector',
-                   'type':connector_type,
-                   'entry':entry_point,
-                   'uniq': name, 
-                   'status':'running'}
-        self._update_service_configuration(service_uuid, service)
-
-        # Start the connector personality. 
-        self._start_service(service_uuid, containers, connector_type)
+        service_info = {'uuid':service_uuid, 
+                        'containers':container_info, 
+                        'backends':backend_names, 
+                        'class':'connector',
+                        'type':connector_type,
+                        'entry':entry_points,
+                        'uniq': name, 
+                        'status':'running'}
+        self._update_service_configuration(service_uuid, service_info)
         return service_uuid
 
     """

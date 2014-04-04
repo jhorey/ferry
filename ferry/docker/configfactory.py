@@ -39,7 +39,7 @@ class ConfigFactory(object):
         self.cassandra = CassandraInitializer()
         self.titan = TitanInitializer()
         self.mpi = OpenMPIInitializer()
-        self.cass_client = CassandraClientInitializer()
+        self.cassandra_client = CassandraClientInitializer()
         self.mpi_client = OpenMPIClientInitializer()
         self.hadoop_client = HadoopClientInitializer()
 
@@ -52,7 +52,7 @@ class ConfigFactory(object):
         self.gluster.template_dir =       template_dir + '/gluster/'
         self.cassandra.template_dir =     template_dir + '/cassandra/'
         self.titan.template_dir =         template_dir + '/titan/'
-        self.cass_client.template_dir =   template_dir + '/cassandra/'
+        self.cassandra_client.template_dir =   template_dir + '/cassandra/'
         self.mpi.template_dir =           template_dir + '/openmpi/'
         self.mpi_client.template_dir =    template_dir + '/openmpi/'
 

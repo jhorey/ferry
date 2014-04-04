@@ -161,6 +161,8 @@ class DockerFabric(object):
     def snapshot(self, containers, cluster_uuid, num_snapshots):
         snapshots = []
         for c in containers:
+            # Get the open ports for this container.
+            cn = self.cli.inspect(c)
             snapshot_name = '%s-%s-%s:SNAPSHOT-%s' % (c.image, 
                                                       cluster_uuid,
                                                       c.host_name,
@@ -169,7 +171,8 @@ class DockerFabric(object):
                                'base' : c.image,
                                'type' : c.service_type, 
                                'name' : c.name, 
-                               'args' : c.args} )
+                               'args' : c.args,
+                               'ports': cn.ports} )
             self.cli.commit(c, snapshot_name)
         return snapshots
 
@@ -179,13 +182,16 @@ class DockerFabric(object):
     def deploy(self, containers, registry=None):
         deployed = []
         for c in containers:
+            # Get the open ports for this container.
+            cn = self.cli.inspect(c)
             image_name = '%s-%s:DEPLOYED' % (c.image, 
                                              c.host_name)
             deployed.append( {'image' : image_name,
                               'base' : c.image,
                               'type' : c.service_type, 
                               'name' : c.name, 
-                              'args' : c.args} )
+                              'args' : c.args,
+                              'ports': cn.ports} )
             if not registry:
                 self.cli.commit(c, image_name)
             else:

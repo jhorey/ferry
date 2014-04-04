@@ -6,3 +6,4 @@ backend:
            - "hive"
 connectors:
    - personality: "hadoop-client"
+     ports: [8080]

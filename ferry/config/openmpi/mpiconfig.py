@@ -73,7 +73,7 @@ class OpenMPIInitializer(object):
         instances = []
 
         for i in range(num_instances):
-            instances.append('mpi')
+            instances.append('openmpi')
 
         return instances
 
@@ -113,7 +113,7 @@ class OpenMPIInitializer(object):
     Apply the configuration to the instances
     """
     def apply(self, config, containers):
-        entry_point = { 'type' : 'mpi' }
+        entry_point = { 'type' : 'openmpi' }
         config_dirs = []
 
         new_config_dir = "/tmp/" + self._generate_config_dir(config.uuid)
