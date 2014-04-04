@@ -74,6 +74,7 @@ DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
 DEFAULT_DOCKER_REPO='ferry'
+GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'
 DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'

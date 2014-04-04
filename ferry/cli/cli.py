@@ -31,7 +31,7 @@ from requests.exceptions import ConnectionError
 from subprocess import Popen, PIPE
 from ferry.table.prettytable import *
 from ferry.options import CmdHelp
-from ferry.install import Installer, FERRY_HOME
+from ferry.install import Installer, FERRY_HOME, GUEST_DOCKER_REPO
 
 class CLI(object):
     def __init__(self):
@@ -51,7 +51,7 @@ class CLI(object):
         self.cmds.add_cmd("help", "Print this help message")
         self.cmds.add_cmd("info", "Print version information")
         self.cmds.add_cmd("inspect", "Return low-level information on a service")
-        self.cmds.add_cmd("install", "Install all the Ferry images")
+        self.cmds.add_cmd("install", "Install the Ferry images")
         self.cmds.add_cmd("logs", "Copy over the logs to the host")
         self.cmds.add_cmd("ps", "List deployed and running services")
         self.cmds.add_cmd("rm", "Remove a service or snapshot")
@@ -370,6 +370,21 @@ class CLI(object):
     def dispatch_cmd(self, cmd, args, options):
         if(cmd == 'start'):
             self._check_ssh_key()
+
+            if '-b' in options:
+                build_dir = options['-b']
+                names = self.installer._get_image(dockerfile)
+                name = names.pop().split("/")
+                if len(name) == 1:
+                    repo = GUEST_DOCKER_REPO
+                    image = name[0]
+                else:
+                    repo = name[0]
+                    image = name[1]
+
+                self.installer._compile_image(image, repo, build_dir, build=True)
+                if len(names) > 0:
+                    self.installer._tag_images(image, repo, names)
 
             arg = args.pop(0)
             json_arg = {}

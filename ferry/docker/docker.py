@@ -330,7 +330,7 @@ class DockerCLI(object):
         instance.service_type = service_type
         instance.args = args
 
-        port_mapping = data['NetworkSettings']['Ports']
+        port_mapping = data['HostConfig']['PortBindings']
         if port_mapping:
             instance.ports = port_mapping
 
