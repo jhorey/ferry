@@ -153,6 +153,14 @@ class DockerManager(object):
             logging.error("unknown service " + service_type)
         return service
 
+    def _get_client_service(self, storage_entry, compute_entry):
+        """
+        Get a list of all the client types that are needed for the supplied
+        storage and compute backends. So, for example, if the user has specified
+        a Hadoop backend, then we'll need to supply the Hadoop client, etc. 
+        """
+        return []
+
     """
     Helper method to copy directories. shutil fails if the 
     destination already exists. 
@@ -324,15 +332,28 @@ class DockerManager(object):
     Allocate new UUIDs. 
     """
     def _new_service_uuid(self):
-        services = self.service_collection.find()
-        return "se-" + str(services.count())
+        while True:
+            longid = str(uuid.uuid4())
+            shortid = 'se-' + longid.split('-')[0]
+            services = self.service_collection.find_one( {'uuid' : shortid} )
+            if not services:
+                return shortid
 
     def _new_stack_uuid(self):
-        clusters = self.cluster_collection.find()
-        return "sa-" + str(clusters.count())
+        while True:
+            longid = str(uuid.uuid4())
+            shortid = 'sa-' + longid.split('-')[0]
+            services = self.cluster_collection.find_one( {'uuid' : shortid} )
+            if not services:
+                return shortid
 
     def _new_snapshot_uuid(self, cluster_uuid):
-        return "sn-%s-%s" % (cluster_uuid, str(uuid.uuid4()))
+        while True:
+            longid = str(uuid.uuid4())
+            shortid = 'sn-' + longid.split('-')[0]
+            services = self.snapshot_collection.find_one( {'snapshot_uuid' : shortid} )
+            if not services:
+                return shortid
 
     """
     Determine if the supplied UUID is a valid snapshot. 
@@ -1001,11 +1022,6 @@ class DockerManager(object):
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
             backends = []
-            logging.warning("BACKEND CONF: " + json.dumps(cluster['backends'], 
-                                                          sort_keys=True,
-                                                          indent=2,
-                                                          separators=(',',':')))
-
             for i, uuid in enumerate(cluster['backends']['uuids']):
                 storage_uuid = uuid['storage']
                 storage_conf = self._get_service_configuration(storage_uuid, 
@@ -1164,22 +1180,6 @@ class DockerManager(object):
                            name=None, 
                            args=None,
                            image=None):
-        # Allocate a UUID.
-        service_uuid = self._new_service_uuid()
-        service = self._get_service(connector_type)
-
-        # Generate the data volumes. This basically defines which
-        # directories on the host get mounted in the container. 
-        plan = self._prepare_connector_environment(service_uuid = service_uuid, 
-                                                   connector_type = connector_type, 
-                                                   instance_type = image,
-                                                   name = name,
-                                                   args = args)
-
-
-        # Allocate all the containers. 
-        containers = self._start_containers(plan)
-
         # Initialize the connector and connect to the storage. 
         storage_entry = []
         compute_entry = []
@@ -1195,6 +1195,22 @@ class DockerManager(object):
         # injected into the containers. 
         env_vars = self.config.generate_env_vars(storage_entry,
                                                  compute_entry)
+
+        # Allocate a UUID.
+        service_uuid = self._new_service_uuid()
+        service = self._get_service(connector_type)
+        # services = self._get_client_services(storage_entry, compute_entry)
+
+        # Generate the data volumes. This basically defines which
+        # directories on the host get mounted in the container. 
+        plan = self._prepare_connector_environment(service_uuid = service_uuid, 
+                                                   connector_type = connector_type, 
+                                                   instance_type = image,
+                                                   name = name,
+                                                   args = args)
+
+        # Allocate all the containers. 
+        containers = self._start_containers(plan)
 
         # Now generate the configuration files that will be
         # transferred to the containers. 

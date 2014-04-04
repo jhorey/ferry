@@ -29,7 +29,7 @@ import time
 from distutils import spawn
 from string import Template
 from subprocess import Popen, PIPE
-from ferry.ip import DHCPClient
+from ferry.ip.client import DHCPClient
 
 def _get_ferry_home():
     if 'FERRY_HOME' in os.environ:
@@ -228,7 +228,6 @@ class Installer(object):
         self._clean_web()
 
         # self.docker = DockerFabric()
-        # keydir, _ = self._read_key_dir()
         # container_info = {'image': DEFAULT_DOCKER_REPO + '/mongodb',
         #                   'type':'mongodb', 
         #                   'volumes': { DEFAULT_MONGO_DB : '/service/data',
@@ -244,9 +243,10 @@ class Installer(object):
         #     exit(1)
 
         # Start the Mongo server.
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (keydir, mongo_keys,
-                                                                                                     DEFAULT_MONGO_DB, mongo_data,
-                                                                                                     DEFAULT_MONGO_LOG, mongo_log,
+        keydir, _ = self._read_key_dir()
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (keydir, '/service/keys',
+                                                                                                     DEFAULT_MONGO_DB, '/service/data',
+                                                                                                     DEFAULT_MONGO_LOG, '/service/logs',
                                                                                                      DEFAULT_DOCKER_REPO)
         logging.warning(cmd)
         child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
@@ -265,6 +265,11 @@ class Installer(object):
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         output_json = json.loads(output.strip())
         ip = output_json[0]['NetworkSettings']['IPAddress']
+        _touch_file('/tmp/mongodb.ip', ip, root=True)
+
+        # Set the MongoDB env. variable. 
+        my_env = os.environ.copy()
+        my_env['MONGODB'] = ip
 
         # Sleep a little while to let Mongo start receiving.
         time.sleep(2)
@@ -273,14 +278,10 @@ class Installer(object):
         logging.warning("starting dhcp server")
         cmd = 'gunicorn -t 3600 -b 127.0.0.1:5000 -w 1 ferry.ip.dhcp:app &'
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
-        _touch_file('/tmp/mongodb.ip', ip, root=True)
+        time.sleep(2)
 
         # Reserve the Mongo IP.
         self.network.reserve_ip(ip)
-
-        # Set the MongoDB env. variable. 
-        my_env = os.environ.copy()
-        my_env['MONGODB'] = ip
 
         # Start the Ferry HTTP servers
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)

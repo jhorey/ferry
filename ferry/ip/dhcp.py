@@ -50,7 +50,7 @@ class DHCP(object):
         cidr = self.cidr_collection.find_one()
         if cidr:
             logging.warning("recovering network gateway: " + str(cidr['cidr']))
-            self._parse_cidr_address(cidr['cidr'])
+            self._parse_cidr(cidr['cidr'])
 
         all_ips = self.dhcp_collection.find()
         if all_ips:
@@ -66,7 +66,7 @@ class DHCP(object):
                 else:
                     self.ips[ip]['container'] = ip_status['container']
 
-                self.latest_ip = self._recover_latest_ip(ip)
+                self._recover_latest_ip(ip)
 
     def _recover_latest_ip(self, ip):
         l = map(int, self.latest_ip.split("."))
@@ -115,7 +115,8 @@ class DHCP(object):
         """
         self.ips[ip]['status'] = 'stopped'
         self.dhcp_collection.update( { 'ip' : ip },
-                                     { '$set' : self.ips[ip] } )
+                                     { '$set' : self.ips[ip] },
+                                     upsert = True )
 
     def reserve_ip(self, ip):
         """
@@ -136,13 +137,15 @@ class DHCP(object):
                     self.ips[k]['status'] = 'active'
                     self.dhcp_collection.update( { 'ip' : k },
                                                  { '$set' : { 'status' : 'active' }} )
+                                                 
                     return k
             
         new_ip = self._get_new_ip()
         self.ips[new_ip] = { 'status': 'active',
                              'container': None }
         self.dhcp_collection.update( { 'ip' : new_ip },
-                                     { '$set' : self.ips[new_ip]} )
+                                     { '$set' : self.ips[new_ip]},
+                                     upsert = True )
         return new_ip
 
     def free_ip(self, ip):
