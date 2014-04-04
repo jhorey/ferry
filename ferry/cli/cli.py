@@ -372,7 +372,8 @@ class CLI(object):
             self._check_ssh_key()
 
             if '-b' in options:
-                build_dir = options['-b']
+                build_dir = options['-b'][0]
+                dockerfile = build_dir + '/Dockerfile'
                 names = self.installer._get_image(dockerfile)
                 name = names.pop().split("/")
                 if len(name) == 1:
@@ -389,8 +390,15 @@ class CLI(object):
             arg = args.pop(0)
             json_arg = {}
             if os.path.exists(arg):
-                json_string = self._read_file_arg(arg)
-                json_arg = json.loads(json_string)
+                n, e = os.path.splitext(arg)
+                if e == 'json':
+                    json_string = self._read_file_arg(arg)
+                    json_arg = json.loads(json_string)
+                elif e == 'yaml':
+                    yaml_file = open(arg, 'r')
+                    json_arg = yaml.load(yaml_file)
+                    logging.warning("JSON ARG: " + str(json_arg))
+
                 json_arg['_file'] = arg
                 json_arg['_file_path'] = arg
             else:
@@ -413,6 +421,7 @@ class CLI(object):
                         yaml_file = open(file_path, 'r')
                         json_arg = yaml.load(yaml_file)
                     json_arg['_file_path'] = file_path
+
                 json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
         elif(cmd == 'ps'):
