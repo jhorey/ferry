@@ -29,7 +29,7 @@ import time
 from distutils import spawn
 from string import Template
 from subprocess import Popen, PIPE
-from ferry.options import CmdHelp
+from ferry.ip import DHCPClient
 
 def _get_ferry_home():
     if 'FERRY_HOME' in os.environ:
@@ -86,6 +86,8 @@ DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
+    def __init__(self):
+        self.network = DHCPClient()
 
     def _read_key_dir(self):
         f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
@@ -225,11 +227,23 @@ class Installer(object):
         # Check if there are any other Mongo instances runnig.
         self._clean_web()
 
+        # self.docker = DockerFabric()
+        # keydir, _ = self._read_key_dir()
+        # container_info = {'image': DEFAULT_DOCKER_REPO + '/mongodb',
+        #                   'type':'mongodb', 
+        #                   'volumes': { DEFAULT_MONGO_DB : '/service/data',
+        #                                DEFAULT_MONGO_LOG : '/service/logs' },
+        #                   'volume_user':DEFAULT_FERRY_OWNER, 
+        #                   'keys': { '/service/keys' : keydir }, 
+        #                   'ports':[],
+        #                   'exposed':[], 
+        #                   'hostname':'ferry-state',
+        #                   'args':None}
+        # containers = self.docker.alloc(container_info)
+        # if len(containers) == 0:
+        #     exit(1)
+
         # Start the Mongo server.
-        mongo_data = '/service/data'
-        mongo_log = '/service/logs'
-        mongo_keys = '/service/keys'
-        keydir, _ = self._read_key_dir()
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (keydir, mongo_keys,
                                                                                                      DEFAULT_MONGO_DB, mongo_data,
                                                                                                      DEFAULT_MONGO_LOG, mongo_log,
@@ -251,23 +265,26 @@ class Installer(object):
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         output_json = json.loads(output.strip())
         ip = output_json[0]['NetworkSettings']['IPAddress']
-        _touch_file('/tmp/mongodb.ip', ip, root=True)
 
         # Sleep a little while to let Mongo start receiving.
         time.sleep(2)
+
+        # Start the DHCP server
+        logging.warning("starting dhcp server")
+        cmd = 'gunicorn -t 3600 -b 127.0.0.1:5000 -w 1 ferry.ip.dhcp:app &'
+        Popen(cmd, stdout=PIPE, shell=True, env=my_env)
+        _touch_file('/tmp/mongodb.ip', ip, root=True)
+
+        # Reserve the Mongo IP.
+        self.network.reserve_ip(ip)
 
         # Set the MongoDB env. variable. 
         my_env = os.environ.copy()
         my_env['MONGODB'] = ip
 
-        # Start the DHCP server
+        # Start the Ferry HTTP servers
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)
         cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
-        Popen(cmd, stdout=PIPE, shell=True, env=my_env)
-
-        # Start the Ferry HTTP servers
-        logging.warning("starting dhcp server")
-        cmd = 'gunicorn -t 3600 -b 127.0.0.1:5000 ferry.ip.dhcp:app &'
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def stop_web(self):
@@ -546,3 +563,18 @@ class Installer(object):
                 os.remove('/var/run/ferry.sock')
             except OSError:
                 pass
+
+    def _get_gateway(self):
+        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
+        gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+
+        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
+        netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+        mask = map(int, netmask.split("."))
+        cidr = 1
+        if mask[3] == 0:
+            cidr = 8
+        if mask[2] == 0:
+            cidr *= 2
+
+        return "%s/%d" % (gw, 32 - cidr)

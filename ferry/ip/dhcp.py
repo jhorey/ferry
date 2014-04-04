@@ -16,37 +16,13 @@
 import json
 import logging
 import os
-import requests
 from flask import Flask, request
 from pymongo import MongoClient
-
-class DHCPClient(object):
-    def __init__(self, cidr_block):
-        payload = { 'cidr' : cidr_block }
-        res = requests.post(DHCP_SERVER + '/cidr', data=payload)
-
-    def assign_ip(self, container):
-        payload = { 'container' : json.dumps(container) }
-        res = requests.get(DHCP_SERVER + '/ip', params=payload)
-        j = json.loads(res.text)
-        return j['ip']
-
-    def set_owner(self, ip, container):
-        payload = { 'args' : json.dumps({ 'ip' : ip,
-                                          'container' : container}) }
-        requests.post(DHCP_SERVER + '/node', data=payload)
-
-    def stop_ip(self, ip):
-        payload = { 'ip' : ip }
-        requests.post(DHCP_SERVER + '/ip', data=payload)
-
-    def free_ip(self, ip):
-        payload = { 'ip' : ip }
-        requests.delete(DHCP_SERVER + '/ip', data=payload)
 
 class DHCP(object):
     def __init__(self):
         self.free_ips = []
+        self.reserved_ips = []
         self.ips = {}
         self.num_ips = 1
         self.num_addrs = 0
@@ -58,7 +34,7 @@ class DHCP(object):
             self._parse_cidr(cidr_block)
 
     def _parse_cidr(self, cidr_block):
-        self.gw_ip, self.prefix = self._parse_cidr(cidr_block)
+        self.gw_ip, self.prefix = self._parse_cidr_address(cidr_block)
         addr = map(int, self.gw_ip.split("."))
         if self.prefix == 24:
             self.latest_ip = "%d.%d.%d.0" % (addr[0], addr[1], addr[2])
@@ -73,8 +49,8 @@ class DHCP(object):
 
         cidr = self.cidr_collection.find_one()
         if cidr:
-            logging.warning("recovering network gateway: " + cidr)
-            self._parse_cidr(cidr)
+            logging.warning("recovering network gateway: " + str(cidr['cidr']))
+            self._parse_cidr_address(cidr['cidr'])
 
         all_ips = self.dhcp_collection.find()
         if all_ips:
@@ -103,7 +79,7 @@ class DHCP(object):
             elif l[i] > s[i]:
                 break
                 
-    def _parse_cidr(self, block):
+    def _parse_cidr_address(self, block):
         s = block.split("/")
         return s[0], int(s[1])
 
@@ -120,6 +96,8 @@ class DHCP(object):
             # Make sure we skip over the gateway IP. 
             self.latest_ip = "%d.%d.%d.%d" % (s[0], s[1], s[2], s[3])
             if self.latest_ip == self.gw_ip:
+                return self._increment_ip()
+            elif self.latest_ip in self.reserved_ips:
                 return self._increment_ip()
             else:
                 self.num_ips += 1
@@ -138,6 +116,13 @@ class DHCP(object):
         self.ips[ip]['status'] = 'stopped'
         self.dhcp_collection.update( { 'ip' : ip },
                                      { '$set' : self.ips[ip] } )
+
+    def reserve_ip(self, ip):
+        """
+        Reserve an IP. This basically takes this IP out of commission. 
+        """
+        logging.warning("RESERVED IP: " + ip)
+        self.reserved_ips.append(ip)
 
     def assign_ip(self, container):
         """
@@ -177,7 +162,6 @@ class DHCP(object):
         self.dhcp_collection.update( { 'ip' : ip },
                                      { '$set' : { 'container' : container}} )
 
-DHCP_SERVER = 'http://localhost:5000'
 dhcp = DHCP()
 app = Flask(__name__)
 
@@ -197,6 +181,12 @@ def assign_ip():
 def stop_ip():
     ip = request.form['ip']
     dhcp.stop_ip(ip)
+    return ""
+
+@app.route('/ip', methods=['PUT'])
+def reserve_ip():
+    ip = request.form['ip']
+    dhcp.reserve_ip(ip)
     return ""
 
 @app.route('/ip', methods=['DELETE'])

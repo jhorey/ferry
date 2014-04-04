@@ -19,7 +19,7 @@ import logging
 import time
 from subprocess import Popen, PIPE
 from ferry.docker.docker import DockerCLI
-from ferry.ip.dhcp import DHCPClient
+from ferry.ip.client import DHCPClient
 
 """
 Allocate local docker instances
@@ -37,7 +37,7 @@ class DockerFabric(object):
 
         cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
         netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
-        mask = netmask.split(".")
+        mask = map(int, netmask.split("."))
         cidr = 1
         if mask[3] == 0:
             cidr = 8
@@ -109,35 +109,34 @@ class DockerFabric(object):
                                      image = c['image'], 
                                      volumes = c['volumes'],
                                      keys = c['keys'], 
-                                     phys_net = None, 
                                      security_group = c['ports'],
                                      expose_group = c['exposed'], 
                                      hostname = c['hostname'],
                                      default_cmd = c['default_cmd'],
                                      args= c['args'],
                                      lxc_opts = lxc_opts)
-            container.default_user = self.docker_user
-            container.internal_ip = ip
-            containers.append(container)
-            self.network.set_owner(ip, container.container)
+            if container:
+                container.default_user = self.docker_user
+                container.internal_ip = ip
+                containers.append(container)
+                self.network.set_owner(ip, container.container)
 
-            # Not all containers have a unique name. 
-            if 'name' in c:
-                container.name = c['name']
+                if 'name' in c:
+                    container.name = c['name']
 
-            if 'volume_user' in c:
-                mounts[container] = {'user':c['volume_user'],
-                                     'vols':c['volumes'].items()}
+                if 'volume_user' in c:
+                    mounts[container] = {'user':c['volume_user'],
+                                         'vols':c['volumes'].items()}
 
-        # We should wait for a second to let the ssh server start
-        # on the containers (otherwise sometimes we get a connection refused)
-        time.sleep(2)
+                # We should wait for a second to let the ssh server start
+                # on the containers (otherwise sometimes we get a connection refused)
+                time.sleep(2)
 
-        # Check if we need to set the file permissions
-        # for the mounted volumes. 
-        for c, i in mounts.items():
-            for _, v in i['vols']:
-                self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+                # Check if we need to set the file permissions
+                # for the mounted volumes. 
+                for c, i in mounts.items():
+                    for _, v in i['vols']:
+                        self.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
         return containers
 

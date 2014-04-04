@@ -16,6 +16,7 @@
 import os
 import json
 import logging
+import re
 from subprocess import Popen, PIPE
 
 DOCKER_SOCK='unix:////var/run/ferry.sock'
@@ -98,7 +99,6 @@ class DockerCLI(object):
         self.volume_flag = ' -v'
         self.lxc_flag = ' -lxc-conf'
         self.disable_net = ' -n=false'
-        self.net_flag = ' -nb'
         self.host_flag = ' -h'
         self.fs_flag = ' -s'
 
@@ -200,16 +200,15 @@ class DockerCLI(object):
     """
     Stop a running container
     """
-    def stop(self, container, phys_net=None, remove=False):
+    def stop(self, container):
         cmd = self.docker + ' ' + self.stop_cmd + ' ' + container
         logging.warning(cmd)
-        # Popen(cmd, stdout=PIPE, shell=True)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
 
     """
     Remove a container
     """
-    def remove(self, container, phys_net=None, remove=False):
+    def remove(self, container):
         cmd = self.docker + ' ' + self.rm_cmd + ' ' + container
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -235,11 +234,8 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, phys_net, security_group, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
+    def run(self, service_type, image, volumes, keys, security_group, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
         flags = self.daemon 
-        if phys_net != None:
-            flags += self.net_flag
-            flags += ' %s ' % phys_net
 
         # Specify the hostname (this is optional)
         if hostname != None:
@@ -284,10 +280,17 @@ class DockerCLI(object):
         # Now construct the final docker command. 
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
 
-        # Now parse the output to get the IP and port
-        container = output.strip()
+        err = child.stderr.read().strip()
+        if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
+            logging.error("Ferry docker daemon does not appear to be running")
+            return None
+        elif re.compile('Unable to find image[\'\s\w]*').match(err):
+            logging.error("%s not present" % image)
+            return None
+
+        container = child.stdout.read().strip()
         return self.inspect(container, keys, volumes, hostname, service_type, args)
 
     def _get_lxc_net(self, lxc_tuples):
