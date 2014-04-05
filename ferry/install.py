@@ -154,7 +154,7 @@ class Installer(object):
             build = True
 
         if '-u' in options:
-            if len(options['-u']) > 0 and options['-u'][0] != True
+            if len(options['-u']) > 0 and options['-u'][0] != True:
                 logging.warning("performing select rebuild (%s)" % str(options['-u']))
                 self.build_from_list(options['-u'], 
                                      DEFAULT_IMAGE_DIR,
