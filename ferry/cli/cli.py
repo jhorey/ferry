@@ -389,19 +389,7 @@ class CLI(object):
 
             arg = args.pop(0)
             json_arg = {}
-            if os.path.exists(arg):
-                n, e = os.path.splitext(arg)
-                if e == 'json':
-                    json_string = self._read_file_arg(arg)
-                    json_arg = json.loads(json_string)
-                elif e == 'yaml':
-                    yaml_file = open(arg, 'r')
-                    json_arg = yaml.load(yaml_file)
-                    logging.warning("JSON ARG: " + str(json_arg))
-
-                json_arg['_file'] = arg
-                json_arg['_file_path'] = arg
-            else:
+            if not os.path.exists(arg):
                 # Check if the user wants to use one of the global plans.
                 global_path = FERRY_HOME + '/data/plans/' + arg
 
@@ -411,18 +399,21 @@ class CLI(object):
                 n, e = os.path.splitext(global_path)
                 if e == '':
                     file_path += '.yaml'
-                    e = 'yaml'
+            else:
+                file_path = arg
 
-                if os.path.exists(file_path):
-                    if e == 'json':
-                        json_string = self._read_file_arg(file_path)
-                        json_arg = json.loads(json_string)
-                    elif e == 'yaml':
-                        yaml_file = open(file_path, 'r')
-                        json_arg = yaml.load(yaml_file)
-                    json_arg['_file_path'] = file_path
+            if os.path.exists(file_path):
+                file_path = os.path.abspath(file_path)
+                n, e = os.path.splitext(file_path)
+                if e == '.json':
+                    json_string = self._read_file_arg(file_path)
+                    json_arg = json.loads(json_string)
+                elif e == '.yaml':
+                    yaml_file = open(file_path, 'r')
+                    json_arg = yaml.load(yaml_file)
+                json_arg['_file_path'] = file_path
 
-                json_arg['_file'] = arg
+            json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
         elif(cmd == 'ps'):
             if len(args) > 0 and args[0] == '-a':

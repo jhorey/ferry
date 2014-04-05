@@ -1,25 +1,16 @@
 Ferry: big data development engine
 ====================================
 
-Ferry lets you provision and deploy big data stacks on your local machine using [Docker](https://www.docker.io).
+Ferry lets you share and deploy big data applications on your local machine using [Docker](https://www.docker.io).
 
-Ferry currently supports Hadoop/Yarn, GlusterFS/OpenMPI, and Cassandra (with more in the future). 
-By using Ferry developers can get started creating their big data applications right away without
-the pain of installing and configuring all the complex backend software.
+First create and package your Hadoop/Yarn, GlusterFS/OpenMPI, or Cassandra application in a Dockerfile. 
+Then deploy your application without the pain of installing and configuring all the complex backend software.
 
-Big Data in small places
-========================
-
-Big data technologies are designed to operate and scale over many machines and usually consist
-of multiple functional parts. Developers interested in creating a 
-Hadoop application, for example, must first download the appropriate packages, configure these
-systems to operate in a single-machine environment (or multiple machines for operational environments), 
-and configure other required services (e.g., PostgreSQL). 
-
-Fortunately for us, Ferry and Docker vastly simplify the entire process by capturing the entire process
+Big data technologies are designed to scale over many machines and are complex to install and set up. 
+Fortunately for us, Ferry simplifies the entire process by capturing the entire process
 in a set of lightweight Linux containers. This enables developers to quickly stand up a big data stack and 
-attach connectors/clients with zero manual configuration. Because Docker is so lightweight, you can even test 
-multiple big data stacks with minimal overhead. 
+develop applications with zero manual configuration. Because Ferry uses Docker, developers can then share
+their Dockerfiles for others to use. 
 
 Getting started
 ===============
@@ -41,11 +32,21 @@ your big data application. Here's an example stack:
         name: "control-0"
 ```
 
-This stack consists of two GlusterFS data nodes, and two OpenMPI compute nodes. There's also a Linux
-client that automatically connects to those backend components. To create this stack, just type
-`ferry start openmpi`. Once you create the stack, you can log in by typing `ferry ssh sa-0`. 
+This stack consists of two GlusterFS data nodes, and two Open MPI compute nodes. There's also an MPI
+client that automatically connects to those backend components. Of course you can substitute your own
+customized client. To create this stack, just type `ferry start openmpi`. Once you create the stack, 
+you can log in by typing `ferry ssh control-0`. 
 
 More detailed installation instructions and examples can be found [here](http://ferry.opencore.io). 
+
+Use cases
+=========
+
+Ferry can be used to:
+
+* Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
+* Share and evaluate other people's big data application quickly and safely via Dockerfiles
+* Develop and test applications locally before being deployed onto an operational cluster
 
 Under the hood
 ==============
