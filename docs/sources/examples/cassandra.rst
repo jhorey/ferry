@@ -145,8 +145,6 @@ progress. You can do this by typing:
 
 This will produce a ``snapshot`` that you can restart later. You can create as many snapshots as you want. 
 
-*Note that due to some underlying issues with Docker, data saved outside the connector (i.e., in Cassandra) will not be saved across restarts.*
-
 More resources
 --------------
 

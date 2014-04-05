@@ -7,7 +7,7 @@
 Big Data Development Environment using Docker
 =============================================
 
-Ferry lets you provision and deploy big data stacks on your local machine using Docker. Just define
+Ferry lets you share and deploy big data stacks on your local machine using Docker. Just define
 your application like this:
 
 .. code-block:: yaml
@@ -40,8 +40,8 @@ For example, let's inspect all the running services
    sa-1    se-3 [u'se-4']       se-5 stopped openmpi   --
    sa-0    se-0 [u'se-1']       se-2 running cassandra --
 
-Ferry currently supports Cassandra, Hadoop, GlusterFS, and Open MPI. Use cases include:
+Ferry currently supports Cassandra, Hadoop, GlusterFS, and Open MPI. Ferry can be used to:
 
-- Experimenting with big data technologies like Hadoop and Cassandra
-- Prototyping big data stacks on a single machine
-- Mirroring an operational environment on development machines
+- Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
+- Share and evaluate other people's big data application quickly and safely via Dockerfiles
+- Develop and test applications locally before being deployed onto an operational cluster

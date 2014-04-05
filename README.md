@@ -1,5 +1,5 @@
-Ferry: big data development engine
-====================================
+Ferry: Big Data Development Environment using Docker
+====================================================
 
 Ferry lets you share and deploy big data applications on your local machine using [Docker](https://www.docker.io).
 

@@ -17,3 +17,10 @@
 - Images are now tagged with version
 - Images are now hosted on Docker public index
 - YAML support
+
+### 0.1.26 (2014-04-05)
+
+- Skipped version 0.1.25 due to packaging error
+- Stop/restart storage services without losing data
+- Use custom Dockerfile images for connectors
+- Connectors get random names unless supplied with user-defined name

@@ -10,6 +10,7 @@ Getting Started
    :maxdepth: 1
 
    basics
+   advanced
    cassandra
    hadoop
    openmpi
