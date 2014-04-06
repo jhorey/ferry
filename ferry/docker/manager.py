@@ -1183,7 +1183,7 @@ class DockerManager(object):
 
             # Now copy over the configuration.
             self._transfer_config(config_dirs)
-            self._transfer_env_vars(containers, env_vars)
+            self._transfer_env_vars(connectors, env_vars)
 
         # Update the connector state. 
         container_info = self._serialize_containers(connectors)
