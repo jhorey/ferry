@@ -50,4 +50,4 @@ For example, let's inspect all the running services
 
 Ferry is under active development, so follow us on `Twitter <https://twitter.com/open_core_io/>`_ to keep up to date. 
 
-If you're interested in collaborating or have any questions, feel free to send an email to `OpenCore <mailto://info@opencore.io/>`_. 
+If you're interested in collaborating or have any questions, feel free to send an email to `OpenCore <mailto:info\@opencore.io/>`_. 
