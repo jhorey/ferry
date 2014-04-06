@@ -7,8 +7,8 @@
 Big Data Development Environment using Docker
 =============================================
 
-Ferry lets you share and deploy big data stacks on your local machine using Docker. Just define
-your application like this:
+Ferry lets you share and deploy big data applications on your local machine. Define your big data stack using YAML and
+share your application with :ref:`Dockerfiles <advanced>`. Here's an example Hadoop cluster:
 
 .. code-block:: yaml
 
@@ -22,7 +22,15 @@ your application like this:
       - personality: "hadoop-client"
 
 Then get started by typing ``ferry start hadoop``. This will automatically create a two node
-Hadoop cluster and a single Linux client. There are commands to:
+Hadoop cluster and a single Linux client. You can customize the Linux client during runtime or define your own using a Dockerfile. In addition to Hadoop, Ferry also supports Cassandra, GlusterFS, and Open MPI. 
+
+Ferry is useful for:
+
+- Data scientists that want to experiment and learn about big data technologies
+- Developers that need a locally accessible big data development environment
+- Users that want to share big data application quickly and safely
+
+Ferry provides several useful commands for your applications: 
 
 - Start and stop services
 - View status and create snapshots
@@ -40,8 +48,6 @@ For example, let's inspect all the running services
    sa-1    se-3 [u'se-4']       se-5 stopped openmpi   --
    sa-0    se-0 [u'se-1']       se-2 running cassandra --
 
-Ferry currently supports Cassandra, Hadoop, GlusterFS, and Open MPI. Ferry can be used to:
+Ferry is under active development, so follow us on `Twitter <https://twitter.com/open_core_io/>`_ to keep up to date. 
 
-- Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
-- Share and evaluate other people's big data application quickly and safely via Dockerfiles
-- Develop and test applications locally before being deployed onto an operational cluster
+If you're interested in collaborating or have any questions, feel free to send an email to `OpenCore <mailto://info@opencore.io/>`_. 
