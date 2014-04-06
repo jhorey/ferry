@@ -242,7 +242,7 @@ class DockerManager(object):
 
         storage_uuids = []
         compute_uuids = []
-        if cluster and 'baackends' in cluster:
+        if cluster and 'backends' in cluster:
             for b in cluster['backends']['uuids']:
                 if b['storage'] != None:
                     storage_uuids.append(b['storage'])
@@ -1096,8 +1096,7 @@ class DockerManager(object):
                 # contain the container ID. 
                 s = self._get_service_configuration(cuid, detailed=True)
                 if s and 'containers' in s:
-                    for c in s['containers']:
-                        connector_info.append(self._restart_connector(app_uuid, c, backend_info))
+                    connector_info.append(self._restart_connectors(cuid, s['containers'], backend_info))
         return connector_info
 
     """
@@ -1143,15 +1142,10 @@ class DockerManager(object):
     """
     Restart a stopped connector with an existing storage service. 
     """
-    def _restart_connector(self,
-                          service_uuid, 
-                          container_info, 
-                          backend=None):
-        connector_type = container_info['type']
-        name = container_info['name']
-        args = container_info['args']
-        container = container_info['container']
-
+    def _restart_connectors(self,
+                            service_uuid, 
+                            container_info, 
+                            backend=None):
         # Initialize the connector and connect to the storage. 
         storage_entry = []
         compute_entry = []
@@ -1163,7 +1157,9 @@ class DockerManager(object):
                     compute_entry.append(self._get_service_configuration(c))
 
         # Start the connectors.
-        connectors = self._restart_containers([container_info])
+        connector_type = container_info[0]['type']
+        args = container_info[0]['args']
+        connectors = self._restart_containers(container_info)
 
         # Generate the environment variables that will be 
         # injected into the containers. 
@@ -1185,19 +1181,15 @@ class DockerManager(object):
             self._transfer_config(config_dirs)
             self._transfer_env_vars(connectors, env_vars)
 
-        # Update the connector state. 
+        # Start the containers and update the state. 
+        self._restart_service(service_uuid, connectors, connector_type)
         container_info = self._serialize_containers(connectors)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
-                   'class':'connector',
-                   'type':connector_type,
+                   'backends':backend_names, 
                    'entry':entry_points,
-                   'uniq': name, 
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
-
-        # Start the connector personality. 
-        self._restart_service(service_uuid, connectors, connector_type)
         return service_uuid
                 
     """
