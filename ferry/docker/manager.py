@@ -202,14 +202,10 @@ class DockerManager(object):
                 return
 
     def copy_logs(self, stack_uuid, to_dir):
-        connectors, compute, storage = self._get_cluster_instances(stack_uuid)
+        _, compute, storage = self._get_cluster_instances(stack_uuid)
         storage_dir = to_dir + '/' + stack_uuid + '/storage'
         compute_dir = to_dir + '/' + stack_uuid + '/compute'
-        connector_dir = to_dir + '/' + stack_uuid + '/connectors'
 
-        for c in connectors:
-            for i in c['instances']:
-                self._copy_instance_logs(i, connector_dir)
         for c in compute:
             for i in c['instances']:
                 self._copy_instance_logs(i, compute_dir)
@@ -1156,9 +1152,6 @@ class DockerManager(object):
         args = container_info['args']
         container = container_info['container']
 
-        service = self._get_service(connector_type)
-        connectors = self._restart_containers([container_info])
-
         # Initialize the connector and connect to the storage. 
         storage_entry = []
         compute_entry = []
@@ -1169,22 +1162,28 @@ class DockerManager(object):
                 for c in b['compute']:
                     compute_entry.append(self._get_service_configuration(c))
 
+        # Start the connectors.
+        connectors = self._restart_containers([container_info])
+
         # Generate the environment variables that will be 
         # injected into the containers. 
         env_vars = self.config.generate_env_vars(storage_entry,
                                                  compute_entry)
+        services, backend_names = self._get_client_services(storage_entry, compute_entry)
+        entry_points = {}
+        for service in services:
+            config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+                                                                                    connectors, 
+                                                                                    service,
+                                                                                    storage_entry,
+                                                                                    compute_entry,
+                                                                                    args)
+            # Merge all the entry points. 
+            entry_points = dict(entry_point.items() + entry_points.items())
 
-        # Now generate the configuration files that will be
-        # transferred to the containers. 
-        config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-                                                                                connectors, 
-                                                                                service,
-                                                                                storage_entry,
-                                                                                compute_entry,
-                                                                                args)
-        # Now copy over the configuration.
-        self._transfer_config(config_dirs)
-        self._transfer_env_vars(connectors, env_vars)
+            # Now copy over the configuration.
+            self._transfer_config(config_dirs)
+            self._transfer_env_vars(containers, env_vars)
 
         # Update the connector state. 
         container_info = self._serialize_containers(connectors)
@@ -1192,7 +1191,7 @@ class DockerManager(object):
                    'containers':container_info, 
                    'class':'connector',
                    'type':connector_type,
-                   'entry':entry_point,
+                   'entry':entry_points,
                    'uniq': name, 
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
