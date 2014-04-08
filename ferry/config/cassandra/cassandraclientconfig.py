@@ -142,12 +142,13 @@ class CassandraClientInitializer(object):
                 sys.stderr.write('could not create config dir ' + host_dir)
 
             self._apply_cassandra(host_dir, entry_point, config, containers[0])
-            self._apply_titan(host_dir, storage_entry, containers[0])
 
-            # Record the Rex server IP for easier config. 
-            out_file = open(host_dir + '/servers', 'w+')
-            out_file.write("%s %s" % (storage_entry['titan']['ip'], 'rexserver'))
-            out_file.close
+            # See if we need to apply
+            if 'titan' in storage_entry:
+                self._apply_titan(host_dir, storage_entry, containers[0])
+                out_file = open(host_dir + '/servers', 'w+')
+                out_file.write("%s %s" % (storage_entry['titan']['ip'], 'rexserver'))
+                out_file.close
 
             # The config dirs specifies what to transfer over. We want to 
             # transfer over specific files into a directory. 
