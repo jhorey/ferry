@@ -411,6 +411,16 @@ class CLI(object):
                 elif e == '.yaml' or e == '.yml':
                     yaml_file = open(file_path, 'r')
                     json_arg = yaml.load(yaml_file)
+                else:
+                    # This is an unknown file type. We're going to try to
+                    # pretend it is a JSON file and see if we fail.
+                    try:
+                        json_string = self._read_file_arg(file_path)
+                        json_arg = json.loads(json_string)
+                    except ValueError as e:
+                        logging.error("could not load file " + file_path)
+                        exit(1)
+
                 json_arg['_file_path'] = file_path
             json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
