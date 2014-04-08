@@ -408,11 +408,10 @@ class CLI(object):
                 if e == '.json':
                     json_string = self._read_file_arg(file_path)
                     json_arg = json.loads(json_string)
-                elif e == '.yaml':
+                elif e == '.yaml' or e == '.yml':
                     yaml_file = open(file_path, 'r')
                     json_arg = yaml.load(yaml_file)
                 json_arg['_file_path'] = file_path
-
             json_arg['_file'] = arg
             return self._create_stack(json_arg, args)
         elif(cmd == 'ps'):
