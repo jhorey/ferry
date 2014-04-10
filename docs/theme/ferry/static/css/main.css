@@ -1,4 +1,4 @@
-body {
+ody {
   min-width: 940px;
   font-size:18.0px;
   font-weight:lighter;
@@ -232,7 +232,7 @@ div.alert.alert-block {
 }
 
 .badges {
-  margin-left: 40px;
+  margin-left: 38px;
 }
 
 .opencore {
