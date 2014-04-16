@@ -231,19 +231,13 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, security_group, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
+    def run(self, service_type, image, volumes, keys, open_ports, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
         flags = self.daemon 
 
         # Specify the hostname (this is optional)
         if hostname != None:
             flags += self.host_flag
             flags += ' %s ' % hostname
-
-        # Add the port value if provided a valid port. 
-        if security_group != None:
-            for p in security_group:
-                flags += self.port_flag
-                flags += ' %s' % str(p)
 
         # Add the port value if provided a valid port. 
         if expose_group != None and len(expose_group) > 0:
@@ -288,7 +282,7 @@ class DockerCLI(object):
             return None
 
         container = child.stdout.read().strip()
-        return self.inspect(container, keys, volumes, hostname, service_type, args)
+        return self.inspect(container, keys, volumes, hostname, open_ports, service_type, args)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -300,7 +294,7 @@ class DockerCLI(object):
     Inspect a container and return information on how
     to connect to the container. 
     """
-    def inspect(self, container, keys=None, volumes=None, hostname=None, service_type=None, args=None):
+    def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], service_type=None, args=None):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
         logging.warning(cmd)
 
@@ -330,9 +324,13 @@ class DockerCLI(object):
         instance.service_type = service_type
         instance.args = args
 
-        port_mapping = data['HostConfig']['PortBindings']
-        if port_mapping:
-            instance.ports = port_mapping
+        if len(open_ports) == 0:
+            port_mapping = data['HostConfig']['PortBindings']
+            if port_mapping:
+                instance.ports = port_mapping
+        else:
+            for p in open_ports:
+                instance.ports[p] = []
 
         # Add any data volume information. 
         if volumes:

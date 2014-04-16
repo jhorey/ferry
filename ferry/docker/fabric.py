@@ -103,13 +103,17 @@ class DockerFabric(object):
 
             c['default_cmd'] = "/service/sbin/startnode init"
 
+            # Check if we need to forward any ports. 
+            for p in c['ports']:
+                self.network.forward_rule('0.0.0.0', p, ip, p)
+
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
             container = self.cli.run(service_type = c['type'], 
                                      image = c['image'], 
                                      volumes = c['volumes'],
                                      keys = c['keys'], 
-                                     security_group = c['ports'],
+                                     open_ports = c['ports'],
                                      expose_group = c['exposed'], 
                                      hostname = c['hostname'],
                                      default_cmd = c['default_cmd'],
@@ -152,6 +156,8 @@ class DockerFabric(object):
     """
     def remove(self, containers):
         for c in containers:
+            for p in c.ports:
+                self.network.delete_rule(c.internal_ip, p)
             self.network.free_ip(c.internal_ip)
             self.cli.remove(c.container)
 

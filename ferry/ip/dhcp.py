@@ -18,6 +18,7 @@ import logging
 import os
 from flask import Flask, request
 from pymongo import MongoClient
+from ferry.ip.nat import NAT
 
 class DHCP(object):
     def __init__(self):
@@ -26,6 +27,7 @@ class DHCP(object):
         self.ips = {}
         self.num_ips = 1
         self.num_addrs = 0
+        self.nat = NAT()
         self._init_state_db()
 
     def assign_cidr(self, cidr_block):
@@ -109,6 +111,18 @@ class DHCP(object):
         else:
             return self._increment_ip()
 
+    def delete_rule(self, dest_ip, dest_port):
+        """
+        Delete port forwarding
+        """
+        self.nat.delete_rule(dest_ip, dest_port)
+
+    def forward_rule(self, source_ip, source_port, dest_ip, dest_port):
+        """
+        Port forwarding
+        """
+        self.nat.forward_rule(source_ip, source_port, dest_ip, dest_port)
+
     def stop_ip(self, ip):
         """
         Store the container's IP for future use. 
@@ -122,7 +136,6 @@ class DHCP(object):
         """
         Reserve an IP. This basically takes this IP out of commission. 
         """
-        logging.warning("RESERVED IP: " + ip)
         self.reserved_ips.append(ip)
 
     def assign_ip(self, container):
