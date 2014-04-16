@@ -205,6 +205,18 @@ def reserve_ip():
     dhcp.reserve_ip(ip)
     return ""
 
+@app.route('/port', methods=['POST'])
+def forward_rule():
+    args = json.loads(request.form['args'])
+    dhcp.forward_rule(args['src_ip'], args['src_port'], args['dest_ip'], args['dest_port'])
+    return ""
+
+@app.route('/port', methods=['DELETE'])
+def delete_rule():
+    args = json.loads(request.form['args'])
+    dhcp.delete_rule(args['dest_ip'], args['dest_port'])
+    return ""
+
 @app.route('/ip', methods=['DELETE'])
 def free_ip():
     ip = request.form['ip']

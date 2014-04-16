@@ -28,7 +28,6 @@ import StringIO
 import sys
 import yaml
 from requests.exceptions import ConnectionError
-from subprocess import Popen, PIPE
 from ferry.table.prettytable import *
 from ferry.options import CmdHelp
 from ferry.install import Installer, FERRY_HOME, GUEST_DOCKER_REPO

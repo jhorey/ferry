@@ -330,7 +330,7 @@ class DockerCLI(object):
                 instance.ports = port_mapping
         else:
             for p in open_ports:
-                instance.ports[p] = []
+                instance.ports[str(p)] = []
 
         # Add any data volume information. 
         if volumes:

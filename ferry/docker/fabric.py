@@ -46,6 +46,10 @@ class DockerFabric(object):
 
         return "%s/%d" % (gw, 32 - cidr)
 
+    def _get_host(self):
+        cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
+        return Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+
     """
     Read the location of the directory containing the keys
     used to communicate with the containers. 
@@ -105,6 +109,7 @@ class DockerFabric(object):
 
             # Check if we need to forward any ports. 
             for p in c['ports']:
+                logging.warning("FORWARD PORT " + str(p))
                 self.network.forward_rule('0.0.0.0', p, ip, p)
 
             # Start a container with a specific image, in daemon mode,
@@ -157,6 +162,7 @@ class DockerFabric(object):
     def remove(self, containers):
         for c in containers:
             for p in c.ports:
+                logging.warning("DELETE PORT " + str(p))
                 self.network.delete_rule(c.internal_ip, p)
             self.network.free_ip(c.internal_ip)
             self.cli.remove(c.container)

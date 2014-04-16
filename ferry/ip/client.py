@@ -39,6 +39,18 @@ class DHCPClient(object):
                                           'container' : container}) }
         requests.post(DHCP_SERVER + '/node', data=payload)
 
+    def forward_rule(self, source_ip, source_port, dest_ip, dest_port):
+        payload = { 'src_ip' : source_ip,
+                    'src_port' : source_port,
+                    'dest_ip' : dest_ip,
+                    'dest_port' : dest_port }
+        requests.post(DHCP_SERVER + '/port', data={'args': json.dumps(payload)})
+
+    def delete_rule(self, dest_ip, dest_port):
+        payload = { 'dest_ip' : dest_ip,
+                    'dest_port' : dest_port }
+        requests.delete(DHCP_SERVER + '/port', data={'args': json.dumps(payload)})
+
     def stop_ip(self, ip):
         payload = { 'ip' : ip }
         requests.post(DHCP_SERVER + '/ip', data=payload)
