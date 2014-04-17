@@ -20,7 +20,8 @@ from subprocess import Popen, PIPE
 
 class NAT(object):
     def __init__(self):
-        self.reserved_ports = []
+        self._current_port = 999
+        self.reserved_ports = [4000, 5000]
         self._init_state_db()
         self._clear_nat()
         self._init_nat()
@@ -38,9 +39,6 @@ class NAT(object):
         Popen(cmds[0], shell=True)
         Popen(cmds[1], shell=True)
         Popen(cmds[2], shell=True)
-        logging.warning(cmds[0])
-        logging.warning(cmds[1])
-        logging.warning(cmds[2])
 
     def _init_nat(self):
         logging.warning("init nat")
@@ -48,8 +46,6 @@ class NAT(object):
                 'iptables -t nat -A PREROUTING -j FERRY_CHAIN']
         Popen(cmds[0], shell=True)
         Popen(cmds[1], shell=True)
-        logging.warning(cmds[0])
-        logging.warning(cmds[1])
 
     def _repop_nat(self):
         rules = self.nat_collection.find()
@@ -60,22 +56,27 @@ class NAT(object):
         logging.warning("forward rule %s:%s -> %s:%s" % (source_ip, str(source_port), dest_ip, str(dest_port)))
         cmd = 'iptables -t nat -A FERRY_CHAIN -d %s -p tcp --dport %s -j DNAT --to %s:%s' % (source_ip, str(source_port), dest_ip, str(dest_port))
         out = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        logging.warning(cmd)
 
     def _delete_nat(self, source_ip, source_port, dest_ip, dest_port):
         logging.warning("delete rule %s:%s -> %s:%s" % (source_ip, str(source_port), dest_ip, str(dest_port)))
         Popen('iptables -t nat -D FERRY_CHAIN -d %s -p tcp --dport %s -j DNAT --to %s:%s' % (source_ip, str(source_port), dest_ip, str(dest_port)), shell=True)
 
     def _save_forwarding_rule(self, source_ip, source_port, dest_ip, dest_port):
-        self.nat_collection.update( { 'ip' : dest_ip },
-                                    { '$set' : { 'port': dest_port,
-                                                 'src_ip' : source_ip,
-                                                 'src_port' : source_port }},
-                                     upsert = True )
+        self.nat_collection.insert({ 'ip' : dest_ip,
+                                     'port' : dest_port,
+                                     'src_ip' : source_ip,
+                                     'src_port' : source_port })
 
     def _delete_forwarding_rule(self, dest_ip, dest_port):
         self.nat_collection.remove( { 'ip' : dest_ip,
                                       'port' : dest_port } )
+
+    def random_port(self):
+        while True:
+            port = self._current_port
+            self._current_port += 1
+            if not port in self.reserved_ports:
+                return str(port)
 
     def has_rule(self, dest_ip, dest_port):
         rule = self.nat_collection.find_one( { 'ip' : dest_ip,
@@ -83,6 +84,9 @@ class NAT(object):
         if rule:
             return rule['src_ip'], rule['src_port']
         else:
+            rules = self.nat_collection.find( {'ip' : dest_ip} )
+            for r in rules:
+                logging.warning("r: " + str(r))
             return None, None
 
     def delete_rule(self, dest_ip, dest_port):
@@ -94,7 +98,8 @@ class NAT(object):
             self._delete_forwarding_rule(dest_ip, dest_port)
             self._delete_nat(src_ip, src_port, dest_ip, dest_port)
         else:
-            logging.warning("no such dest " + dest_ip)
+            logging.warning("no such dest %s:%s" % (dest_ip, dest_port))
+
     def forward_rule(self, source_ip, source_port, dest_ip, dest_port):
         """
         Add a new forwarding rule. 

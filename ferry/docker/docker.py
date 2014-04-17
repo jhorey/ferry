@@ -231,7 +231,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, open_ports, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
+    def run(self, service_type, image, volumes, keys, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
         flags = self.daemon 
 
         # Specify the hostname (this is optional)
@@ -282,7 +282,7 @@ class DockerCLI(object):
             return None
 
         container = child.stdout.read().strip()
-        return self.inspect(container, keys, volumes, hostname, open_ports, service_type, args)
+        return self.inspect(container, keys, volumes, hostname, open_ports, host_map, service_type, args)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -294,7 +294,7 @@ class DockerCLI(object):
     Inspect a container and return information on how
     to connect to the container. 
     """
-    def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], service_type=None, args=None):
+    def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
         logging.warning(cmd)
 
@@ -330,7 +330,10 @@ class DockerCLI(object):
                 instance.ports = port_mapping
         else:
             for p in open_ports:
-                instance.ports[str(p)] = []
+                if host_map and p in host_map:
+                    instance.ports[p] = host_map[p]
+                else:
+                    instance.ports[p] = []
 
         # Add any data volume information. 
         if volumes:

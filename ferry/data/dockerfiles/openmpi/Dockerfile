@@ -29,3 +29,5 @@ RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile
 RUN mkdir /home/ferry/.ssh;ssh-keygen -f /home/ferry/.ssh/id_rsa -t rsa -N '' > /dev/null
 RUN cat /home/ferry/.ssh/id_rsa.pub >> /home/ferry/.ssh/authorized_keys;echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
 RUN chown -R ferry:ferry /home/ferry/.ssh
+
+CMD ["/service/sbin/startnode", "init"]

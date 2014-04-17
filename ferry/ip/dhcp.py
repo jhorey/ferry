@@ -111,6 +111,12 @@ class DHCP(object):
         else:
             return self._increment_ip()
 
+    def random_port(self):
+        """
+        Get a random port
+        """
+        return self.nat.random_port()
+
     def delete_rule(self, dest_ip, dest_port):
         """
         Delete port forwarding
@@ -204,6 +210,10 @@ def reserve_ip():
     ip = request.form['ip']
     dhcp.reserve_ip(ip)
     return ""
+
+@app.route('/port', methods=['GET'])
+def random_port():
+    return dhcp.random_port()
 
 @app.route('/port', methods=['POST'])
 def forward_rule():

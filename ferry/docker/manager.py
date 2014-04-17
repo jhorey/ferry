@@ -632,6 +632,7 @@ class DockerManager(object):
             container = c[0]
             from_dir = c[1]
             to_dir = c[2]
+            logging.warning("transfer config %s -> %s" % (from_dir, to_dir))
             self.docker.copy([container], from_dir, to_dir)
 
     """

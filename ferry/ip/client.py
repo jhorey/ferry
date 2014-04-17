@@ -39,6 +39,10 @@ class DHCPClient(object):
                                           'container' : container}) }
         requests.post(DHCP_SERVER + '/node', data=payload)
 
+    def random_port(self):
+        res = requests.get(DHCP_SERVER + '/port')
+        return res.text
+
     def forward_rule(self, source_ip, source_port, dest_ip, dest_port):
         payload = { 'src_ip' : source_ip,
                     'src_port' : source_port,

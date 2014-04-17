@@ -84,6 +84,10 @@ class DockerFabric(object):
                                        c['args'])
             container.default_user = self.docker_user
             containers.append(container)
+
+        # We should wait for a second to let the ssh server start
+        # on the containers (otherwise sometimes we get a connection refused)
+        time.sleep(2)
         return containers
 
     """
@@ -108,9 +112,19 @@ class DockerFabric(object):
             c['default_cmd'] = "/service/sbin/startnode init"
 
             # Check if we need to forward any ports. 
+            host_map = {}
             for p in c['ports']:
-                logging.warning("FORWARD PORT " + str(p))
-                self.network.forward_rule('0.0.0.0', p, ip, p)
+                p = str(p)
+                s = p.split(":")
+                if len(s) > 1:
+                    host = s[0]
+                    dest = s[1]
+                else:
+                    host = self.network.random_port()
+                    dest = s[0]
+                host_map[dest] = [{'HostIp' : '0.0.0.0',
+                                   'HostPort' : host}]
+                self.network.forward_rule('0.0.0.0/0', host, ip, dest)
 
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
@@ -118,7 +132,8 @@ class DockerFabric(object):
                                      image = c['image'], 
                                      volumes = c['volumes'],
                                      keys = c['keys'], 
-                                     open_ports = c['ports'],
+                                     open_ports = host_map.keys(),
+                                     host_map = host_map, 
                                      expose_group = c['exposed'], 
                                      hostname = c['hostname'],
                                      default_cmd = c['default_cmd'],
@@ -161,8 +176,7 @@ class DockerFabric(object):
     """
     def remove(self, containers):
         for c in containers:
-            for p in c.ports:
-                logging.warning("DELETE PORT " + str(p))
+            for p in c.ports.keys():
                 self.network.delete_rule(c.internal_ip, p)
             self.network.free_ip(c.internal_ip)
             self.cli.remove(c.container)
