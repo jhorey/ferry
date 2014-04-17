@@ -73,3 +73,20 @@ The ``-b`` flag tells Ferry where to find your Dockerfile. Without that flag, it
    kairosdb
 
 Creating a Dockerfile for your application is a convenient way to store and share your application. By providing the Dockerfile (along with any files that are included in the Dockerfile), any user can run the same application in Ferry. 
+
+Port forwarding
+---------------
+
+If your connector exposes a web service, you can find the IP address of your connector using the ``inspect`` command. This IP can then be used to access your connector so long as you're on the same host (this IP is not exposed to the outside world). However, if you wanted to expose this web service to the outside world, you can use *port forwarding*. This concept is very similar to the native Docker *port* feature. Simply add the ``ports`` argument to your YAML stack file like below:
+
+.. code-block:: yaml
+
+   backend:
+      - storage:
+           personality: "cassandra"
+           instances: 2
+   connectors:
+      - personality: "james/cassandra-examples"
+	ports: ["7888:8000"]
+
+Here we're specifying both the exposed port on the host (7888) and the internal port used by your web service (8000). If you use a single value ("8000"`), Ferry will simply choose a random port to expose on the host. You can find the exposed port value via the ``inspect`` command. 
