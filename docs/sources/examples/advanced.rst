@@ -89,4 +89,21 @@ If your connector exposes a web service, you can find the IP address of your con
       - personality: "james/cassandra-examples"
 	ports: ["7888:8000"]
 
-Here we're specifying both the exposed port on the host (7888) and the internal port used by your web service (8000). If you use a single value ("8000"`), Ferry will simply choose a random port to expose on the host. You can find the exposed port value via the ``inspect`` command. 
+Here we're specifying both the exposed port on the host (7888) and the internal port used by your web service (8000). If you use a single value ("8000"`), Ferry will simply choose a random port to expose on the host. You can find the exposed port value via the ``inspect`` command. For example, here's a shortened version of what you should see:
+
+.. code-block:: bash
+
+{
+  "connectors":[
+    {
+      "containers":[
+        {
+          "internal_ip":"10.1.0.5",
+          "ports":{
+            "8000":[
+              {
+                "HostIp":"0.0.0.0",
+                "HostPort":"7888"
+              }
+            ]
+          }
