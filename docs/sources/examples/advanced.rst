@@ -93,17 +93,17 @@ Here we're specifying both the exposed port on the host (7888) and the internal 
 
 .. code-block:: bash
 
-{
-  "connectors":[
-    {
-      "containers":[
-        {
-          "internal_ip":"10.1.0.5",
-          "ports":{
-            "8000":[
-              {
-                "HostIp":"0.0.0.0",
-                "HostPort":"7888"
-              }
-            ]
-          }
+   {
+     "connectors":[
+       {
+         "containers":[
+           {
+             "internal_ip":"10.1.0.5",
+             "ports":{
+               "8000":[
+                 {
+                   "HostIp":"0.0.0.0",
+                   "HostPort":"7888"
+                 }
+               ]
+             }
