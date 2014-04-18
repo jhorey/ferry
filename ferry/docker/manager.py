@@ -49,8 +49,7 @@ class DockerManager(object):
                 'server' : self.config.yarn,
                 'client' : self.config.hadoop_client },
             'gluster': { 
-                'server' : self.config.gluster,
-                'client' : self.config.mpi_client},
+                'server' : self.config.gluster },
             'cassandra': { 
                 'server' : self.config.cassandra,
                 'client' : self.config.cassandra_client},
@@ -170,11 +169,13 @@ class DockerManager(object):
         service_names = []
         for storage in storage_entry:
             if storage['type'] in self.service:
-                client_services.add(self.service[storage['type']]['client'])
+                if 'client' in self.service[storage['type']]:
+                    client_services.add(self.service[storage['type']]['client'])
                 service_names.append(storage['type'])
         for compute in compute_entry:
             if compute['type'] in self.service:
-                client_services.add(self.service[compute['type']]['client'])
+                if 'client' in self.service[compute['type']]:
+                    client_services.add(self.service[compute['type']]['client'])
                 service_names.append(compute['type'])
         return client_services, service_names
 
@@ -886,8 +887,9 @@ class DockerManager(object):
             service.restart_service(containers, entry_point, self.docker)
         else:
             for backend in service_info['backends']:
-                service = self.service[backend]['client']
-                service.restart_service(containers, entry_point, self.docker)
+                if 'client' in self.service[backend]:
+                    service = self.service[backend]['client']
+                    service.restart_service(containers, entry_point, self.docker)
 
     def _stop_service(self,
                       uuid,
@@ -900,8 +902,9 @@ class DockerManager(object):
             service.stop_service(containers, entry_point, self.docker)
         else:
             for backend in service_info['backends']:
-                service = self.service[backend]['client']
-                service.stop_service(containers, entry_point, self.docker)
+                if 'client' in self.service[backend]:
+                    service = self.service[backend]['client']
+                    service.stop_service(containers, entry_point, self.docker)
     """
     Restart an stopped storage cluster.
     """
@@ -1234,6 +1237,7 @@ class DockerManager(object):
         entry_points = {}
         services, backend_names = self._get_client_services(storage_entry, compute_entry)
         for service in services:
+            logging.warning("USING CONNECTOR SERVICE: " + str(service))
             config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
                                                                                     containers, 
                                                                                     service,

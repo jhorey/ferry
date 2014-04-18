@@ -441,6 +441,7 @@ class CLI(object):
             self.installer._clean_web()
             self.installer._stop_docker_daemon(force=True)
             self.installer._reset_ssh_key()
+            self.installer._clean_rules()
             return 'cleaned ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])

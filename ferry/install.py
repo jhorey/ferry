@@ -95,6 +95,9 @@ class Installer(object):
         k = f.read().strip().split("://")
         return k[1], k[0]
 
+    def _clean_rules(self):
+        self.network.clean_rules()
+
     def _reset_ssh_key(self):
         keydir, tmp = self._read_key_dir()
 

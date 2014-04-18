@@ -24,3 +24,8 @@
 - Stop/restart storage services without losing data
 - Use custom Dockerfile images for connectors
 - Connectors get random names unless supplied with user-defined name
+
+### 0.1.27 (2014-04-18)
+
+- Port forwarding
+- Fix issues restarting GlusterFS/Yarn stacks

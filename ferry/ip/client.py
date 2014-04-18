@@ -55,6 +55,9 @@ class DHCPClient(object):
                     'dest_port' : dest_port }
         requests.delete(DHCP_SERVER + '/port', data={'args': json.dumps(payload)})
 
+    def clean_rules(self):
+        requests.delete(DHCP_SERVER + '/ports')
+
     def stop_ip(self, ip):
         payload = { 'ip' : ip }
         requests.post(DHCP_SERVER + '/ip', data=payload)

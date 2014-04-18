@@ -117,6 +117,12 @@ class DHCP(object):
         """
         return self.nat.random_port()
 
+    def clean_rules(self):
+        """
+        Clean all rules
+        """
+        self.nat._clear_nat()
+
     def delete_rule(self, dest_ip, dest_port):
         """
         Delete port forwarding
@@ -225,6 +231,11 @@ def forward_rule():
 def delete_rule():
     args = json.loads(request.form['args'])
     dhcp.delete_rule(args['dest_ip'], args['dest_port'])
+    return ""
+
+@app.route('/ports', methods=['DELETE'])
+def clean_rules():
+    dhcp.clean_rules()
     return ""
 
 @app.route('/ip', methods=['DELETE'])

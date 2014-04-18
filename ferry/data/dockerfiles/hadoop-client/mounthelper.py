@@ -20,6 +20,7 @@ def mount(entry_point, mount_point):
     output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
     logging.info(cmd)
     logging.info(output)
+    print output
 
 def umount(mount_point):
     cmd = 'umount %s' % mount_point

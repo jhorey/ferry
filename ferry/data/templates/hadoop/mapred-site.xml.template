@@ -17,20 +17,20 @@
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
-  <property>
-    <name>mapreduce.task.tmp.dir</name>
-    <value>/service/data/tmp/hadoop_tasks</value>
-  </property>
+  <!-- <property> -->
+  <!--   <name>mapreduce.task.tmp.dir</name> -->
+  <!--   <value>/service/data/tmp/hadoop_tasks</value> -->
+  <!-- </property> -->
 
   <property>
     <name>mapreduce.jobtracker.jobhistory.location</name>
     <value>/service/data/logs/mapred/jobhistory</value>
   </property>
 
-  <property>
-    <name>mapreduce.jobtracker.system.dir</name>
-    <value>/service/data/tmp/mapred/system</value>
-  </property>
+  <!-- <property> -->
+  <!--   <name>mapreduce.jobtracker.system.dir</name> -->
+  <!--   <value>/service/data/tmp/mapred/system</value> -->
+  <!-- </property> -->
 
   <property>
     <name>mapreduce.job.ubertask.enable</name>

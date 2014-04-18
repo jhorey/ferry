@@ -6,6 +6,8 @@ source /service/sbin/pophosts
 
 pophosts
 if [ $1 == "gluster" ]; then 
-	python /service/scripts/mounthelper.py mount $2
+    sleep 3
+	python /service/scripts/mounthelper.py mount $2  >> /tmp/gluster.log
 	chown -R ferry:docker /service/data
+	echo "Restart Gluster" >> /tmp/gluster.log
 fi
