@@ -5,7 +5,7 @@
 .. _mpi:
 
 Getting started with Open MPI
-============================
+=============================
 
 MPI is a popular parallel programming tool that abstracts various communication 
 patterns and makes it relatively simple to coordinate code running across many 
