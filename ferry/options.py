@@ -56,12 +56,21 @@ class CmdHelp(object):
                     return True
         return False
 
+    def _get_canonical_option(self, flag):
+        if flag in self.options:
+            return flag
+        else:
+            for f in self.options.keys():
+                if self.options[f]['long'] == flag:
+                    return f
+
     def parse_args(self, args):
         i = 0
         while i < len(args):
             s = args[i].strip()
             if self._is_option(s):
                 j, values = self._parse_values(i + 1, args)
+                s = self._get_canonical_option(s)
                 if len(values) > 0:
                     i = j
                     self.options[s]['args'] += values

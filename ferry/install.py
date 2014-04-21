@@ -53,6 +53,11 @@ def _has_ferry_user():
 def _supported_arch():
     return struct.calcsize("P") * 8 == 64
 
+def _supported_lxc():
+    output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
+    ver = tuple(map(int, (output.strip().split("."))))
+    return ver > (0, 7, 5)
+
 def _supported_python():
     return sys.version_info[0] == 2
 
@@ -129,6 +134,9 @@ class Installer(object):
         if not _supported_python():
             return 'You appear to be running Python3.\nOnly Python2 is supported at the moment.'
 
+        if not _supported_lxc():
+            return 'You appear to be running an older version of LXC.\nOnly versions > 0.7.5 are supported.'
+
         if not _has_ferry_user():
             return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
 
@@ -145,7 +153,7 @@ class Installer(object):
         # Start the Ferry docker daemon. If it does not successfully
         # start, print out a msg. 
         logging.warning("all prerequisites met...")
-        start, msg = self._start_docker_daemon()
+        start, msg = self._start_docker_daemon(options)
         if not start:
             logging.error('ferry docker daemon not started')
             return msg
@@ -203,7 +211,7 @@ class Installer(object):
             return True
 
     def start_web(self, options=None):
-        self._start_docker_daemon()
+        self._start_docker_daemon(options)
 
         # Check if the user wants to use a specific key directory. 
         self._process_ssh_key(options)
@@ -230,21 +238,6 @@ class Installer(object):
 
         # Check if there are any other Mongo instances runnig.
         self._clean_web()
-
-        # self.docker = DockerFabric()
-        # container_info = {'image': DEFAULT_DOCKER_REPO + '/mongodb',
-        #                   'type':'mongodb', 
-        #                   'volumes': { DEFAULT_MONGO_DB : '/service/data',
-        #                                DEFAULT_MONGO_LOG : '/service/logs' },
-        #                   'volume_user':DEFAULT_FERRY_OWNER, 
-        #                   'keys': { '/service/keys' : keydir }, 
-        #                   'ports':[],
-        #                   'exposed':[], 
-        #                   'hostname':'ferry-state',
-        #                   'args':None}
-        # containers = self.docker.alloc(container_info)
-        # if len(containers) == 0:
-        #     exit(1)
 
         # Start the Mongo server.
         keydir, _ = self._read_key_dir()
@@ -534,7 +527,7 @@ class Installer(object):
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         return output.strip() == "btrfs"
 
-    def _start_docker_daemon(self):
+    def _start_docker_daemon(self, options=None):
         # Check if the docker daemon is already running
         try:
             if not self._docker_running():
@@ -543,9 +536,19 @@ class Installer(object):
                     logging.warning("using btrfs backend")
                     bflag = ' -s btrfs'
 
+                # Explicitly supply the DNS.
+                if '-n' in options:
+                    logging.warning("using custom dns")
+                    dflag = ''
+                    for d in options['-n']:
+                        dflag += ' --dns %s' % d
+                else:
+                    logging.warning("using public dns")
+                    dflag = ' --dns 8.8.8.8 --dns 8.8.4.4'
+
                 # We need to fix this so that ICC is set to false. 
                 icc = ' --icc=true'
-                cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
+                cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + dflag + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
                 logging.warning(cmd)
                 Popen(cmd, stdout=PIPE, shell=True)
 

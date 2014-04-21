@@ -39,6 +39,7 @@ class CLI(object):
         self.cmds.version = ferry.__version__
         self.cmds.usage = "ferry COMMAND [arg...]"
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
+        self.cmds.add_option("-n", "--dns", "Use custom DNS")
         self.cmds.add_option("-l", "--log", "Log configuration file")
         self.cmds.add_option("-k", "--key", "Specify key directory")
         self.cmds.add_option("-m", "--mode", "Deployment mode")
@@ -438,10 +439,10 @@ class CLI(object):
         elif(cmd == 'clean'):
             self._check_ssh_key()
             self.installer._start_docker_daemon()
+            self.installer._clean_rules()
             self.installer._clean_web()
             self.installer._stop_docker_daemon(force=True)
             self.installer._reset_ssh_key()
-            self.installer._clean_rules()
             return 'cleaned ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
