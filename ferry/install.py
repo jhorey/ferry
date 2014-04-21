@@ -488,7 +488,7 @@ class Installer(object):
                 sys.stdout.flush()
 
     def _pull_image(self, image):
-        image = image + ':latest'
+        image = image + ':' + ferry.__version__
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
         logging.warning(cmd)
 
