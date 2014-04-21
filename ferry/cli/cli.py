@@ -438,7 +438,7 @@ class CLI(object):
             return msg
         elif(cmd == 'clean'):
             self._check_ssh_key()
-            self.installer._start_docker_daemon()
+            self.installer.start_web()
             self.installer._clean_rules()
             self.installer._clean_web()
             self.installer._stop_docker_daemon(force=True)

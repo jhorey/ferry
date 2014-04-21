@@ -119,7 +119,7 @@ class Installer(object):
         
     def _process_ssh_key(self, options):
         global GLOBAL_KEY_DIR
-        if '-k' in options:
+        if options and '-k' in options:
             GLOBAL_KEY_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
         else:
             GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
@@ -161,10 +161,10 @@ class Installer(object):
         # Normally we don't want to build the Dockerfiles,
         # but sometimes we may for testing, etc. 
         build = False
-        if '-b' in options:
+        if options and '-b' in options:
             build = True
 
-        if '-u' in options:
+        if options and '-u' in options:
             if len(options['-u']) > 0 and options['-u'][0] != True:
                 logging.warning("performing select rebuild (%s)" % str(options['-u']))
                 self.build_from_list(options['-u'], 
