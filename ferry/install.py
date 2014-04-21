@@ -453,7 +453,7 @@ class Installer(object):
         # image = os.path.dirname(f).split("/")[-1]
         if not image in built_images:
             if base == "base":
-                self._pull_image(base)
+                self._pull_image(base, tag='latest')
 
             built_images[image] = True
             self._compile_image(image, repo, os.path.dirname(f), build)
@@ -487,8 +487,10 @@ class Installer(object):
                 sys.stdout.write(out)
                 sys.stdout.flush()
 
-    def _pull_image(self, image):
-        image = image + ':' + ferry.__version__
+    def _pull_image(self, image, tag=None):
+        if not tag:
+            tag = ferry.__version__
+        image = image + ':' + tag
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
         logging.warning(cmd)
 
