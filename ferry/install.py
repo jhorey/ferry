@@ -537,7 +537,7 @@ class Installer(object):
                     bflag = ' -s btrfs'
 
                 # Explicitly supply the DNS.
-                if '-n' in options:
+                if options and '-n' in options:
                     logging.warning("using custom dns")
                     dflag = ''
                     for d in options['-n']:
