@@ -496,6 +496,11 @@ class Installer(object):
 
         child = Popen(cmd, stdout=PIPE, shell=True)
         self._continuous_print(child)
+
+        # Now tag the image with the 'latest' tag. 
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s:%s %s:%s' % (image, tag, image, 'latest')
+        logging.warning(cmd)
+        Popen(cmd, stdout=PIPE, shell=True)
         
     def _compile_image(self, image, repo, image_dir, build=False):
         # Now build the image. 
