@@ -490,8 +490,7 @@ class Installer(object):
     def _pull_image(self, image, tag=None):
         if not tag:
             tag = ferry.__version__
-        image = image + ':' + tag
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s:%s' % (image, tag)
         logging.warning(cmd)
 
         child = Popen(cmd, stdout=PIPE, shell=True)
