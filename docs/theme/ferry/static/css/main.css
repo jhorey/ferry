@@ -34,6 +34,24 @@ p a.btn {
   float: left;
 }
 
+.nav-colors a:hover {
+    color: black;
+    background-color:#EDF0F3;
+}
+.nav-colors > li > a {
+    color: #282A2C;
+}
+.nav-colors > li > a:hover {
+    color: black;
+    background-color:#EDF0F3;
+}
+.nav-colors .active a,
+.nav-colors .active a:hover {
+    color: white;
+    background-color:#9933CC;
+    border-radius: 15px;
+}
+
 .nav-column {
   border-right: 1px solid #ccc
 }
@@ -44,7 +62,7 @@ p a.btn {
 }
 
 .nav-title {
-  margin-top: 86px;
+  margin-top: 156px;
   font-family:"HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", "HelveticaNeue", "HelveticaNeueLT", Helvetica, Arial, "Lucida Grande", sans-serif;
   font-size:18.0px;
   font-weight:normal;
@@ -180,7 +198,7 @@ body {
   float: left;
 }
 .main-content {
-  padding: 74px 76px;
+  padding: 154px 86px;
   margin-bottom: 60px;
 }
 
@@ -381,6 +399,35 @@ dt:hover > a.headerlink {
   color: #666;
   float: right;
   visibility: hidden;
+}
+
+.debug {
+  background-color: red;
+}
+
+.header {
+  background-color: #EDF0F3;
+  padding: 0.5em 0 0.5em 0.01em;
+  margin-bottom: 3em;
+  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.25);
+}
+
+.buffer-space {
+    padding: 0.75em 0 0.75em 0;
+}
+
+.toplevel {
+  text-align:left;
+}
+
+.toplevel-content {
+  margin-top: 1.5em;
+  font-size: 21px;
+}
+
+.link {
+  font-family:"HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", "HelveticaNeue", "HelveticaNeueLT", Helvetica, Arial, "Lucida Grande", sans-serif;
+  font-weight:light;
 }
 
 .literal {
