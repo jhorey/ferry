@@ -211,7 +211,10 @@ class Installer(object):
             return True
 
     def start_web(self, options=None):
-        self._start_docker_daemon(options)
+        start, msg = self._start_docker_daemon(options)
+        if not start:
+            logging.error(msg) 
+            sys.exit(1)
 
         # Check if the user wants to use a specific key directory. 
         self._process_ssh_key(options)
