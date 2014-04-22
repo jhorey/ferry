@@ -10,7 +10,7 @@ Getting started with Hadoop
 Hadoop is a popular big data platform that includes both storage (HDFS) and compute (YARN). 
 In this example, we'll create a small 2 node Hadoop cluster, and a single Linux client. 
 		
-The first thing to do is to define our big data stack in a file (let's call it ``hadoop.yaml``). 
+The first thing to do is to define our big data stack. You can either use YAML or JSON. Let's call our new application stack ``hadoop.yaml``. 
 The file should look something like this:
 
 .. code-block:: yaml
@@ -25,19 +25,19 @@ The file should look something like this:
       - personality: "hadoop-client"
 
 There are two main sections: the ``backend`` and ``connectors``. In this example, we're defining a single
-``storage`` backend. This ``storage`` backend is going to run two instances of ``hadoop`` and also install
+``storage`` backend. This ``storage`` backend is going to run two instances of ``hadoop`` and also installs
 ``hive``, an SQL compatability layer for Hadoop. The ``backend`` may also optionally include a ``compute``
 section (for example additional ``yarn`` instances). However, in this example, we won't need one since 
 Hadoop will automatically come with its own compute capabilities. 
 
-Connectors are basically Linux clients that are able to connect to the backend. In this example, we'll
-instantiate a ``hadoop-client`` (there are several pre-defined types). You can specify as many as you
-want (although you should always specify at least one). 
+Connectors are basically Linux clients that are able to connect to the backend. You'll want at least one to simplify
+interacting with Hadoop. You can also place your application-specific code in the connector (for example, your web server). In this example, we'll
+use the built-in ``hadoop-client``.
 
 Running an example
 ------------------
 
-Now that we've defined our stack, let's start it up. Just type the following in your terminal:
+Now that we've defined our stack, let's start it up. Don't forget that you need the Ferry server to be up and running (via ``sudo ferry server``). Afterwards type the following in your terminal:
 
 .. code-block:: bash
 
@@ -50,8 +50,9 @@ Now that we've defined our stack, let's start it up. Just type the following in 
    sa-0    se-0 [u'se-1']       se-2 running hadoop    --
 
 ``hadoop`` should be replaced with the path to your specific file. Otherwise it will use a default Hadoop
-stack. The entire process should take about 20 seconds. Before we continue, let's take a step back to 
-examine what just happened. After typing ``start``, ``ferry`` created the following Docker
+stack. The entire process should take less than a minute. 
+
+Before we continue, let's take a step back to examine what just happened. After typing ``start``, ``ferry`` created the following Docker
 containers:
 
 - Two Hadoop data/yarn nodes

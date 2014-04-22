@@ -29,3 +29,8 @@
 
 - Port forwarding
 - Fix issues restarting GlusterFS/Yarn stacks
+
+### 0.1.28 (2014-04-25)
+
+- Vagrant support
+- Check LXC version during install
