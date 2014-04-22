@@ -5,13 +5,46 @@
 Install
 =======
 
-There are two ways to install Ferry. The first via `pip` will install Ferry in your local environment. The second is via Docker-in-Docker, in which
+Ferry currently relies on a relatively new version of Linux (Ubuntu 13.10 and 14.04 have both been tested). While other distros will probably work, these instructions are not guaranteed to work on those environments. If you decide to go ahead and try anyway, please let us know how it went and file any issues on Github!
+
+OS X
+----
+
+The easiest way to get started on OS X is via Vagrant_. In theory you could create an Ubuntu VM yourself and install everything (via the Ubuntu instructions), but using Vagrant is much easier. 
+
+.. _Vagrant: http://www.vagrantup.com/
+
+Assuming you're running Vagrant, type the following into your prompt:
+
+.. code-block:: bash
+
+    $ vagrant box add opencore/ferry https://s3.amazonaws.com/opencore/ferry.box
+    $ vagrant init opencore/ferry
+    $ vagrant up
+
+This will create your Vagrant box and initialize everything. Please note that the Ferry box is about 3 GB, so the download will take a while (the box contains all the Docker images pre-built). After the Vagrant box is up and running, *ssh* into it:
+
+.. code-block:: bash
+
+    $ vagrant ssh
+
+Now you can get :ref:`started <GettingStarted>`. Please note that this Vagrant box does not contain very much besides the basic Ferry installation, so you'll probably want to install your favorite text editor, etc.
+
+Ubuntu
+------
+
+There are two ways to install Ferry in Linux. The first via `pip` will install Ferry in your local environment. The second is via Docker-in-Docker, in which
 Ferry will install and run itself in a self-enclosed Docker container. This method is described :ref:`here <alternative>`
 
 If you are upgrading from a prior installation, head over :ref:`here <upgrade>` for a more in-depth explanation. 
 
-If you choose to install via ``pip`` you want to make sure that you're running Python2
-(Python3 is currently not supported). Then we'll need to install Docker. If you're running the latest version of Ubuntu, it's fairly straightforward. 
+If you choose to install via ``pip`` you want to make sure that you're running Python2 (Python3 is currently not supported). The easiest way to get ``pip`` installed is by typing:
+
+.. code-block:: bash
+
+    $ sudo apt-get install python-pip
+
+Afterwards we'll need to install Docker.
 
 .. code-block:: bash
 
@@ -22,8 +55,7 @@ If you choose to install via ``pip`` you want to make sure that you're running P
 
 *Please note that you'll need to install Docker version 0.8.1. This will install additional libraries that Ferry needs.*
 
-If you're running OS X or another version of Linux, you'll probably want to visit
-the Docker_ homepage for more detailed instructions. 
+If you'd like a more in-depth explanation of what's going on, visit the Docker_ homepage for more detailed instructions. 
 
 .. _Docker: http://docs.docker.io/en/latest/installation/
 
@@ -62,8 +94,13 @@ By default Ferry will use a default set of public/private keys so that you can i
 connectors afterwards. You can instruct ``ferry`` to use your own keys by supplying a directory like this 
 ``ferry install -k $KEY_DIR``. The build process may take a while, so sit back and relax. 
 
+Running Ferry
+-------------
+
+.. _GetStarted:
+
 Once Ferry is completely installed, you should be able to start the Ferry server and start writing
-your application. Type the following to check: 
+your application. First you'll need to start the server. 
 
 .. code-block:: bash
 
