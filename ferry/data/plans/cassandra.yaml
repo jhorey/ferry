@@ -1,7 +1,7 @@
 backend:
    - storage:
         personality: "cassandra"
-        instances: 2
+        instances: ">=1"
         layers: 
            - "titan"
         args: 

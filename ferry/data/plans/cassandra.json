@@ -4,7 +4,7 @@
     "storage":
         {
   	   "personality":"cassandra",
-  	   "instances":2,
+  	   "instances":">=2",
 	   "layers":["titan"],
   	   "args":{
 	      "db":"users"
