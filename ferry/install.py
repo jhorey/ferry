@@ -306,6 +306,8 @@ class Installer(object):
         logging.warning("stopping http servers")
         cmd = 'ps -eaf | grep httpapi | awk \'{print $2}\' | xargs kill -15'
         Popen(cmd, stdout=PIPE, shell=True)
+        cmd = 'ps -eaf | grep ferry.ip.dhcp | awk \'{print $2}\' | xargs kill -15'
+        Popen(cmd, stdout=PIPE, shell=True)
 
     def _clean_web(self):
         docker = DOCKER_CMD + ' -H=' + DOCKER_SOCK
@@ -575,7 +577,7 @@ class Installer(object):
     def _stop_docker_daemon(self, force=False):
         if force or self._docker_running():
             logging.warning("stopping docker daemon")
-            cmd = 'pkill -f ferry'
+            cmd = 'pkill -f docker-ferry'
             Popen(cmd, stdout=PIPE, shell=True)
             try:
                 os.remove('/var/run/ferry.sock')

@@ -26,6 +26,7 @@ import re
 import shutil
 import StringIO
 import sys
+from termcolor import colored
 import yaml
 from requests.exceptions import ConnectionError
 from ferry.table.prettytable import *
@@ -75,13 +76,24 @@ class CLI(object):
         payload = { 'payload' : json.dumps(stack_description),
                     'mode' : mode, 
                     'conf' : conf }
-
         try:
             res = requests.post(self.ferry_server + '/create', data=payload)
             return str(res.text)
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+
+    def _resubmit_create(self, reply, stack_description, args):
+        values = {}
+        for q in reply['questions']:
+            question = colored(q['query']['text'], 'red')
+            prompt = colored(' >> ', 'green')
+            v = raw_input(question + prompt)
+            values[q['query']['id']] = v
+        stack_description['iparams'] = values
+        reply = self._create_stack(stack_description, args)
+        reply = json.loads(reply)
+        return reply['text']
 
     def _format_snapshots_query(self, json_data):
         bases = []
@@ -423,7 +435,12 @@ class CLI(object):
 
                 json_arg['_file_path'] = file_path
             json_arg['_file'] = arg
-            return self._create_stack(json_arg, args)
+            reply = self._create_stack(json_arg, args)
+            reply = json.loads(reply)
+            if reply['status'] == 'query':
+                return self._resubmit_create(reply, json_arg, args)
+            else:
+                return reply['text']
         elif(cmd == 'ps'):
             if len(args) > 0 and args[0] == '-a':
                 opt = args.pop(0)
