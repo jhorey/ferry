@@ -11,6 +11,7 @@ if [ $1 == "init" ]; then
 else
     for f in /service/runscripts/$1/*
     do
+	echo "start script ${1}/${f}" >> /tmp/startnode.log
 	$f $2
     done
 fi

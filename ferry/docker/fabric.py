@@ -103,7 +103,7 @@ class DockerFabric(object):
             gw = self._get_gateway().split("/")[0]
 
             lxc_opts = ["lxc.network.type = veth",
-                        "lxc.network.ipv4 = %s" % ip, 
+                        "lxc.network.ipv4 = %s/24" % ip, 
                         "lxc.network.ipv4.gateway = %s" % gw,
                         "lxc.network.link = drydock0",
                         "lxc.network.name = eth0",

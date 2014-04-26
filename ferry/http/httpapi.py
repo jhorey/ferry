@@ -16,6 +16,7 @@
 import json
 import logging
 from flask import Flask, request
+from ferry.install import Installer
 from ferry.docker.manager import DockerManager
 
 # Initialize Flask
@@ -23,37 +24,7 @@ app = Flask(__name__)
 
 # Initialize the storage driver
 docker = DockerManager()
-
-"""
-Generate a filesystem status in JSON format. 
-"""
-class AllocationResponse(object):
-    # Codes to indicate status
-    NOT_EXISTS    = 0
-    BUILDING      = 1
-    READY         = 2
-    SHUTTING_DOWN = 3
-    SHUT_DOWN     = 4
-    TERMINATING   = 5
-    TERMINATED    = 6
-
-    def __init__(self):
-        self.uuid = None
-        self.status = self.NOT_EXISTS
-        self.num_instances = 0
-        self.type = None
-
-    """
-    Return the JSON response. 
-    """
-    def json(self):
-        json_data = {}
-        # json_data['uuid'] = str(self.uuid)
-        # json_data['status'] = str(self.status)
-        # json_data['instances'] = str(self.num_instances)
-        # json_data['type'] = str(self.num_instances)
-
-        return json.dumps(json_data, sort_keys=True)
+installer = Installer()
 
 """
 Fetch the current information for a particular filesystem. 
@@ -292,6 +263,10 @@ def _allocate_connectors(payload, backend_info):
         connectors = payload['connectors']
         for c in connectors:
             connector_type = c['personality']
+            
+            # Check if this connector type has already been pulled
+            # into the local index. If not, manually pull it. 
+            installer._check_and_build_image(connector_type)
 
             # Connector names are created by the user 
             # to help identify particular instances. 

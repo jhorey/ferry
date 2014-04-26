@@ -78,10 +78,10 @@ class CLI(object):
                     'conf' : conf }
         try:
             res = requests.post(self.ferry_server + '/create', data=payload)
-            return str(res.text)
+            return True, str(res.text)
         except ConnectionError:
             logging.error("could not connect to ferry server")
-            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+            return False, "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     def _resubmit_create(self, reply, stack_description, args):
         values = {}
@@ -91,9 +91,13 @@ class CLI(object):
             v = raw_input(question + prompt)
             values[q['query']['id']] = v
         stack_description['iparams'] = values
-        reply = self._create_stack(stack_description, args)
-        reply = json.loads(reply)
-        return reply['text']
+        posted, reply = self._create_stack(stack_description, args)
+        if posted:
+            try:
+                reply = json.loads(reply)
+                return reply['text']
+            except ValueError as e:
+                logging.error(reply)
 
     def _format_snapshots_query(self, json_data):
         bases = []
@@ -369,7 +373,7 @@ class CLI(object):
                 exit(1)
             except IOError as e:
                 if e.errno == errno.EACCES:
-                    logging.error("Could not override keys in %s, please type \'ferry clean\' and try again." % keydir)
+                    logging.error("Could not override keys in %s, please delete those keys and try again." % keydir)
                 exit(1)
 
             ferry.install._touch_file(ferry.install.DEFAULT_DOCKER_KEY, 
@@ -394,7 +398,7 @@ class CLI(object):
                 else:
                     repo = name[0]
                     image = name[1]
-
+                    
                 self.installer._compile_image(image, repo, build_dir, build=True)
                 if len(names) > 0:
                     self.installer._tag_images(image, repo, names)
@@ -435,12 +439,16 @@ class CLI(object):
 
                 json_arg['_file_path'] = file_path
             json_arg['_file'] = arg
-            reply = self._create_stack(json_arg, args)
-            reply = json.loads(reply)
-            if reply['status'] == 'query':
-                return self._resubmit_create(reply, json_arg, args)
-            else:
-                return reply['text']
+            posted, reply = self._create_stack(json_arg, args)
+            if posted:
+                try:
+                    reply = json.loads(reply)
+                    if reply['status'] == 'query':
+                        return self._resubmit_create(reply, json_arg, args)
+                    else:
+                        return reply['text']
+                except ValueError as e:
+                    logging.error(reply)
         elif(cmd == 'ps'):
             if len(args) > 0 and args[0] == '-a':
                 opt = args.pop(0)
@@ -457,7 +465,7 @@ class CLI(object):
             self._check_ssh_key()
             self.installer.start_web()
             self.installer._clean_rules()
-            self.installer._clean_web()
+            self.installer.stop_web()
             self.installer._stop_docker_daemon(force=True)
             self.installer._reset_ssh_key()
             return 'cleaned ferry'

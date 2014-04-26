@@ -202,6 +202,12 @@ class Installer(object):
                 not_installed.append(i)
         return not_installed
 
+    def _check_and_build_image(self, image_name):
+        if not self._check_image_installed(image_name):
+            self._pull_image(image_name, tag='latest', print_status=False)
+
+        return self._check_image_installed(image_name)
+
     def _check_image_installed(self, image_name):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect %s 2> /dev/null' % image_name
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -210,9 +216,11 @@ class Installer(object):
         else:
             return True
 
-    def start_web(self, options=None):
+    def start_web(self, options=None, clean=False):
         start, msg = self._start_docker_daemon(options)
-        if not start:
+        if not clean and not start:
+            # We are trying to start the web services but the Docker
+            # daemon won't start. If we're cleaning, it's not a big deal. 
             logging.error(msg) 
             sys.exit(1)
 
@@ -489,14 +497,15 @@ class Installer(object):
                 sys.stdout.write(out)
                 sys.stdout.flush()
 
-    def _pull_image(self, image, tag=None):
+    def _pull_image(self, image, tag=None, print_status=True):
         if not tag:
             tag = ferry.__version__
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s:%s' % (image, tag)
         logging.warning(cmd)
 
         child = Popen(cmd, stdout=PIPE, shell=True)
-        self._continuous_print(child)
+        if print_status:
+            self._continuous_print(child)
 
         # Now tag the image with the 'latest' tag. 
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s:%s %s:%s' % (image, tag, image, 'latest')
