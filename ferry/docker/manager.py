@@ -657,6 +657,21 @@ class DockerManager(object):
     def _restart_containers(self, container_info):
         return self.docker.restart(container_info)
 
+    def cancel_stack(self, backends, connectors):
+        """
+        The stack could not be instantiated correctly. Just get rid
+        of these containers. 
+        """
+        for b in backends['uuids']:
+            s = self._get_service_configuration(b, detailed=True)
+            for c in s['containers']:
+                self.docker.stop(c)
+
+        for b in connectors['uuids']:
+            s = self._get_service_configuration(b, detailed=True)
+            for c in s['containers']:
+                self.docker.stop(c)
+
     """
     Register the set of services under a single cluster identifier. 
     """

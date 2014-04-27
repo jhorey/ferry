@@ -266,7 +266,10 @@ def _allocate_connectors(payload, backend_info):
             
             # Check if this connector type has already been pulled
             # into the local index. If not, manually pull it. 
-            installer._check_and_build_image(connector_type)
+            if not installer._check_and_pull_image(connector_type):
+                # We could not fetch this connetor. Instead of 
+                # finishing, just return an error.
+                return False, connector_info
 
             # Connector names are created by the user 
             # to help identify particular instances. 
@@ -287,7 +290,7 @@ def _allocate_connectors(payload, backend_info):
                                                             name = connector_name, 
                                                             args = args,
                                                             ports = ports))
-    return connector_info
+    return True, connector_info
 
 """
 Allocate the connectors from a snapshot. 
@@ -321,13 +324,18 @@ def _allocate_new(payload):
     """
     reply = {}
     backend_info = _allocate_backend(payload, replace=True)
+    reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
-        connector_info = _allocate_connectors(payload, backend_info['uuids'])
-        uuid = docker.register_stack(backend_info, connector_info, payload['_file'])
-        reply['text'] = str(uuid)
+        success, connector_info = _allocate_connectors(payload, backend_info['uuids'])
+        if success:
+            uuid = docker.register_stack(backend_info, connector_info, payload['_file'])
+            reply['text'] = str(uuid)
+        else:
+            # One or more connectors was not instantiated properly. 
+            docker.cancel_stack(backend_info, connector_info)
+            reply['status'] = 'failed'
     else:
         reply['questions'] = backend_info['query']
-    reply['status'] = backend_info['status']
     return json.dumps(reply)
 
 def _allocate_stopped(payload):

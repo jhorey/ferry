@@ -202,9 +202,9 @@ class Installer(object):
                 not_installed.append(i)
         return not_installed
 
-    def _check_and_build_image(self, image_name):
+    def _check_and_pull_image(self, image_name):
         if not self._check_image_installed(image_name):
-            self._pull_image(image_name, print_status=False)
+            self._pull_image(image_name)
 
         return self._check_image_installed(image_name)
 
@@ -489,21 +489,23 @@ class Installer(object):
 
     def _continuous_print(self, process):
         while True:
-            out = process.stdout.read(15)
-            if out == '':
-                break
-            else:
-                sys.stdout.write(out)
-                sys.stdout.flush()
+            try:
+                out = process.stdout.read(15)
+                if out == '':
+                    break
+                else:
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
+            except IOError as e:
+                logging.warning(e)
 
     def _pull_image(self, image, tag=None, print_status=True):
         if not tag:
-            tag_string = ""
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
         else:
-            tag_string = ":" + tag
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s%s' % (image, tag_string)
-        logging.warning(cmd)
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s:%s' % (image, tag)
 
+        logging.warning(cmd)
         child = Popen(cmd, stdout=PIPE, shell=True)
         if print_status:
             self._continuous_print(child)

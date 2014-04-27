@@ -169,7 +169,7 @@ class DockerFabric(object):
     """
     def stop(self, containers):
         for c in containers:
-            self.cli.stop(c.container)
+            self.cli.stop(c['container'])
 
     """
     Remove the running instances
