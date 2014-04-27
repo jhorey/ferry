@@ -487,15 +487,18 @@ class Installer(object):
                     return base[-1]
         return base
 
-    def _continuous_print(self, process):
+    def _continuous_print(self, process, print_out=True):
         while True:
             try:
                 out = process.stdout.read(15)
                 if out == '':
                     break
                 else:
-                    sys.stdout.write(out)
-                    sys.stdout.flush()
+                    if print_out:
+                        sys.stdout.write(out)
+                        sys.stdout.flush()
+                    else:
+                        logging.warning(out)
             except IOError as e:
                 logging.warning(e)
 
@@ -508,7 +511,7 @@ class Installer(object):
         logging.warning(cmd)
         child = Popen(cmd, stdout=PIPE, shell=True)
         if print_status:
-            self._continuous_print(child)
+            self._continuous_print(child, print_out=False)
 
         # Now tag the image with the 'latest' tag. 
         if tag and tag != 'latest':
