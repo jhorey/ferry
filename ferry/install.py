@@ -204,7 +204,7 @@ class Installer(object):
 
     def _check_and_build_image(self, image_name):
         if not self._check_image_installed(image_name):
-            self._pull_image(image_name, tag='latest', print_status=False)
+            self._pull_image(image_name, print_status=False)
 
         return self._check_image_installed(image_name)
 
@@ -460,7 +460,6 @@ class Installer(object):
             dockerfile = image_dir + '/' + base + '/Dockerfile'
             self._build_image(base, dockerfile, repo, built_images, recurse, build)
 
-        # image = os.path.dirname(f).split("/")[-1]
         if not image in built_images:
             if base == "base":
                 self._pull_image(base, tag='latest')
@@ -499,8 +498,10 @@ class Installer(object):
 
     def _pull_image(self, image, tag=None, print_status=True):
         if not tag:
-            tag = ferry.__version__
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s:%s' % (image, tag)
+            tag_string = ""
+        else:
+            tag_string = ":" + tag
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s%s' % (image, tag_string)
         logging.warning(cmd)
 
         child = Popen(cmd, stdout=PIPE, shell=True)
@@ -508,9 +509,10 @@ class Installer(object):
             self._continuous_print(child)
 
         # Now tag the image with the 'latest' tag. 
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s:%s %s:%s' % (image, tag, image, 'latest')
-        logging.warning(cmd)
-        Popen(cmd, stdout=PIPE, shell=True)
+        if tag and tag != 'latest':
+            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' tag' + ' %s:%s %s:%s' % (image, tag, image, 'latest')
+            logging.warning(cmd)
+            Popen(cmd, stdout=PIPE, shell=True)
         
     def _compile_image(self, image, repo, image_dir, build=False):
         # Now build the image. 
@@ -527,7 +529,7 @@ class Installer(object):
         else:
             # Just pull the image from the public repo. 
             image_name = "%s/%s" % (repo, image)
-            self._pull_image(image_name)
+            self._pull_image(image_name, tag=ferry.__version__)
 
     def _tag_images(self, image, repo, alternatives):
         for a in alternatives:
