@@ -204,7 +204,7 @@ class Installer(object):
 
     def _check_and_pull_image(self, image_name):
         if not self._check_image_installed(image_name):
-            self._pull_image(image_name)
+            self._pull_image(image_name, on_client=False)
 
         return self._check_image_installed(image_name)
 
@@ -487,31 +487,39 @@ class Installer(object):
                     return base[-1]
         return base
 
-    def _continuous_print(self, process, print_out=True):
+    def _continuous_print(self, process, on_client=True):
         while True:
             try:
                 out = process.stdout.read(15)
                 if out == '':
                     break
                 else:
-                    if print_out:
+                    if on_client:
                         sys.stdout.write(out)
                         sys.stdout.flush()
                     else:
-                        logging.warning(out)
+                        logging.warning("downloading image...")
             except IOError as e:
                 logging.warning(e)
 
-    def _pull_image(self, image, tag=None, print_status=True):
+        try:
+            errmsg = process.stderr.readline()
+            if errmsg and errmsg != '':
+                logging.warning(errmsg)
+            else:
+                logging.warning("downloaded image!")
+        except IOError:
+            pass
+
+    def _pull_image(self, image, tag=None, on_client=True):
         if not tag:
             cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s' % image
         else:
             cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' pull %s:%s' % (image, tag)
 
         logging.warning(cmd)
-        child = Popen(cmd, stdout=PIPE, shell=True)
-        if print_status:
-            self._continuous_print(child, print_out=False)
+        child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        self._continuous_print(child, on_client=on_client)
 
         # Now tag the image with the 'latest' tag. 
         if tag and tag != 'latest':
@@ -524,7 +532,7 @@ class Installer(object):
         if build:
             cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' build --rm=true -t' + ' %s/%s %s' % (repo, image, image_dir)
             logging.warning(cmd)
-            child = Popen(cmd, stdout=PIPE, shell=True)
+            child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
             self._continuous_print(child)
 
             # Now tag the image. 

@@ -445,6 +445,8 @@ class CLI(object):
                     reply = json.loads(reply)
                     if reply['status'] == 'query':
                         return self._resubmit_create(reply, json_arg, args)
+                    elif reply['status'] == 'failed':
+                        return 'could not create application'
                     else:
                         return reply['text']
                 except ValueError as e:

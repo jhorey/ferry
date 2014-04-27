@@ -663,14 +663,21 @@ class DockerManager(object):
         of these containers. 
         """
         for b in backends['uuids']:
-            s = self._get_service_configuration(b, detailed=True)
-            for c in s['containers']:
-                self.docker.stop(c)
+            conf = self._get_service_configuration(b['storage'], detailed=True)
+            if conf and 'containers' in conf:
+                for c in conf['containers']:
+                    self.docker.stop([c])
+            for compute in b['compute']:
+                conf = self._get_service_configuration(compute, detailed=True)
+                if conf and 'containers' in conf:
+                    for c in conf['containers']:
+                        self.docker.stop([c])
 
-        for b in connectors['uuids']:
+        for b in connectors:
             s = self._get_service_configuration(b, detailed=True)
-            for c in s['containers']:
-                self.docker.stop(c)
+            if s and 'containers' in s:
+                for c in s['containers']:
+                    self.docker.stop([c])
 
     """
     Register the set of services under a single cluster identifier. 
