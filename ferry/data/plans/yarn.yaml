@@ -8,4 +8,4 @@ backend:
           layers: 
              - "hive"
 connectors:
-   - personality: "hadoop-client"
+   - personality: "ferry/hadoop-client"

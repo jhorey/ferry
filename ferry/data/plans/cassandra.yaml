@@ -7,6 +7,6 @@ backend:
         args: 
            db: "users"
 connectors:
-   - personality: "cassandra-client"
+   - personality: "ferry/cassandra-client"
      args: 
         db: "users"

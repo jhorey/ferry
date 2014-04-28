@@ -5,5 +5,5 @@ backend:
         layers:
            - "hive"
 connectors:
-   - personality: "hadoop-client"
+   - personality: "ferry/hadoop-client"
      ports: [8080]

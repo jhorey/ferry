@@ -8,5 +8,5 @@ backend:
           layers: 
              - "hive"
 connectors:
-   - personality: "openmpi-client"
+   - personality: "ferry/openmpi-client"
      name: "control-0"

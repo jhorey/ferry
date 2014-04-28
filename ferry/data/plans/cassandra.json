@@ -13,7 +13,7 @@
    }], 
   "connectors":[
 	{
-	   "personality":"cassandra-client",
+	   "personality":"ferry/cassandra-client",
   	   "args":{
 	      "db":"users"
   	   }

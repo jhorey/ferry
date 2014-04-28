@@ -9,6 +9,6 @@
 	}
    }], 
   "connectors":[
-	{"personality":"hadoop-client"}
+	{"personality":"ferry/hadoop-client"}
   ]
 }
