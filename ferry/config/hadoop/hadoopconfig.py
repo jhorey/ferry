@@ -119,6 +119,8 @@ class HadoopInitializer(object):
         ports.append(HadoopConfig.YARN_JOB_HISTORY)
         ports.append(HadoopConfig.HDFS_MASTER)
         ports.append(HadoopConfig.YARN_RPC_PORTS)
+        ports.append(HadoopConfig.HIVE_META)
+        ports.append(HadoopConfig.HIVE_SERVER)
         return ports
 
     """
@@ -492,6 +494,8 @@ class HadoopConfig(object):
     YARN_JOB_HISTORY = 10020
     HDFS_MASTER = 9000
     YARN_RPC_PORTS = '50100-50200'
+    HIVE_META = 9083
+    HIVE_SERVER = 10000
 
     def __init__(self, num):
         self.num = num
