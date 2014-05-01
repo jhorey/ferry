@@ -10,6 +10,9 @@ RUN mkdir -p /service/data/main /service/logs /service/data/cache /service/data/
 # Download the latest package
 RUN wget https://www.dropbox.com/s/mbn3vr0ytxhcse3/apache-cassandra-2.0.6-bin.tar.gz -P /service/package/;cd /service/package;tar -xzf apache-cassandra-2.0.6-bin.tar.gz
 
+# Get rid of the tarballs
+RUN rm /service/package/*tar.gz
+
 # Make soft links to the bin and configuration for easy access
 RUN ln -s /service/package/apache-cassandra-2.0.6/bin /service;ln -s /service/package/apache-cassandra-2.0.6/conf /service
 

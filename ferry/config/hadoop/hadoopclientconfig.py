@@ -187,7 +187,7 @@ class HadoopClientInitializer(object):
         if 'compute' in containers[0] and len(containers[0]['compute']) > 0:
             compute = containers[0]['compute'][0]
 
-        if compute:
+        if compute and 'yarn' in compute:
             config.yarn_master = compute['yarn']
             if 'db' in compute:
                 config.hive_meta = compute['db']                

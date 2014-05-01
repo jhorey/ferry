@@ -132,12 +132,13 @@ def _allocate_compute(computes, storage_uuid, options=None):
         if 'layers' in c:
             layers = c['layers']
 
-        compute_uuid = docker.allocate_compute(compute_type = compute_type,
-                                               storage_uuid = storage_uuid, 
-                                               args = args, 
-                                               num_instances = num_instances,
-                                               layers = layers)
-        uuids.append(compute_uuid)
+        compute_uuid, compute_containers = docker.allocate_compute(compute_type = compute_type,
+                                                                   storage_uuid = storage_uuid, 
+                                                                   args = args, 
+                                                                   num_instances = num_instances,
+                                                                   layers = layers)
+        docker.start_service(compute_uuid, compute_containers)
+        uuids.append( compute_uuid )
     return uuids
 
 def _query_backend_params(backends, options=None):
@@ -231,17 +232,18 @@ def _allocate_backend(payload,
             layers = []
             if 'layers' in storage:
                 layers = storage['layers']
-            storage_uuid = docker.allocate_storage(storage_type = storage_type, 
-                                                   num_instances = num_instances,
-                                                   layers = layers,
-                                                   args = args,
-                                                   replace = replace)
+            storage_uuid, storage_containers = docker.allocate_storage(storage_type = storage_type, 
+                                                                       num_instances = num_instances,
+                                                                       layers = layers,
+                                                                       args = args,
+                                                                       replace = replace)
+            docker.start_service(storage_uuid, storage_containers)
         else:
             service_uuid = storage['uuid']
-            containers = storage['containers']
+            storage_containers = storage['containers']
             storage_type = storage['type']
             storage_uuid = docker.restart_storage(service_uuid,
-                                                  container_info = containers,
+                                                  container_info = storage_containers,
                                                   storage_type = storage_type)
                                                   
         # Now allocate the compute backend. The compute is optional so
@@ -252,7 +254,7 @@ def _allocate_backend(payload,
                 compute_uuids = _allocate_compute(b['compute'], storage_uuid, iparams)
             else:
                 compute_uuids = _restart_compute(b['compute'])
-
+        
         backend_info['uuids'].append( {'storage':storage_uuid,
                                        'compute':compute_uuids} )
     return backend_info
@@ -285,11 +287,14 @@ def _allocate_connectors(payload, backend_info):
             if 'ports' in c:
                 ports = c['ports']
 
-            connector_info.append(docker.allocate_connector(connector_type = connector_type,
-                                                            backend = backend_info, 
-                                                            name = connector_name, 
-                                                            args = args,
-                                                            ports = ports))
+            uuid, containers = docker.allocate_connector(connector_type = connector_type,
+                                                         backend = backend_info, 
+                                                         name = connector_name, 
+                                                         args = args,
+                                                         ports = ports)
+            docker.start_service(uuid, containers)
+            connector_info.append(uuid)
+
     return True, connector_info
 
 """

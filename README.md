@@ -16,8 +16,10 @@ Getting started
 ===============
 
 Ferry is a Python application and runs on your local machine. All you have to do to get started is have
-`docker` installed and type the following `pip install -U ferry`. Afterwards you can start creating
-your big data application. Here's an example stack:
+`docker` installed and type the following `pip install -U ferry`. More detailed installation instructions and examples can be found [here](http://ferry.opencore.io). 
+
+
+Once installed, you can create your big data application using YAML files. 
 
 ```yaml
    backend:
@@ -25,28 +27,37 @@ your big data application. Here's an example stack:
            personality: "gluster"
            instances: 2
         compute:
-           - personality: "mpi"
+           - personality: "yarn"
              instances: 2
    connectors:
-      - personality: "mpi-client"
+      - personality: "hadoop-client"
         name: "control-0"
 ```
 
-This stack consists of two GlusterFS data nodes, and two Open MPI compute nodes. There's also an MPI
+This stack consists of two GlusterFS data nodes, and two Hadoop/YARN compute nodes. There's also an Ubuntu-based
 client that automatically connects to those backend components. Of course you can substitute your own
-customized client. To create this stack, just type `ferry start openmpi`. Once you create the stack, 
+customized client. To create this stack, just type `ferry start yarn`. Once you create the stack, 
 you can log in by typing `ferry ssh control-0`. 
-
-More detailed installation instructions and examples can be found [here](http://ferry.opencore.io). 
 
 Use cases
 =========
 
-Ferry can be used to:
+Ferry is made for developers and data scientists that need something simple and powerful. It will help you: 
 
 * Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
 * Share and evaluate other people's big data application quickly and safely via Dockerfiles
 * Develop and test applications locally before being deployed onto an operational cluster
+
+Contributing
+============
+
+Contributions are totally welcome. Here are some suggestions on how to get started:
+
+* Use Ferry, report bugs, and file new features! By filing issues and sharing your experience, you will help improve the software for others.
+* Create Dockerfiles for your favorite backend, especially if you think the installation process is harder than it should be. The Dockerfile can be basic and we'll work together to get it ready for other users. 
+* Create a new configuration module for your backend. This one is more complicated since it will involve actually hacking Ferry, but it's not so hard if we work together. 
+
+I strongly recommend using GitHub issues + pull requests for contributions. Tweets sent to @open_core_io are also welcome. Happy hacking!
 
 Under the hood
 ==============

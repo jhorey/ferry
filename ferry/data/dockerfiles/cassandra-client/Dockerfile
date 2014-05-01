@@ -25,6 +25,5 @@ RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmo
 # Download the latest package
 RUN wget https://www.dropbox.com/s/fwr26lj0s7nu0aw/rexster-console-2.3.0.zip -P /service/packages;cd /service/packages/;unzip rexster-console-2.3.0.zip
 
-# Run the ssh daemon in the foreground (Docker does
-# like daemons running in background)
-CMD ["/service/sbin/startnode", "listen"]
+# Get rid of the tarballs.
+RUN rm /service/packages/*zip

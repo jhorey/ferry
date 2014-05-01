@@ -10,6 +10,9 @@ RUN mkdir -p /service/packages /service/conf /service/keys /service/sbin /servic
 # Download the latest package
 RUN wget https://www.dropbox.com/s/q5g3x6yr2dftpxl/titan-all-0.3.1.zip -P /service/packages;wget https://www.dropbox.com/s/yzaynzpoooui1f1/rexster-server-2.3.0.zip -P /service/packages;cd /service/packages/;unzip titan-all-0.3.1.zip;cd /service/packages/;unzip rexster-server-2.3.0.zip
 
+# Get rid of the tarballs. 
+RUN rm /service/packages/*zip
+
 # Make soft links
 RUN ln -s /service/packages/titan-all-0.3.1 /service/packages/titan;ln -s /service/packages/rexster-server-2.3.0 /service/packages/rexster-server;ln -s /service/packages/titan-all-0.3.1/lib /service/packages/rexster-server-2.3.0/ext/titan
 

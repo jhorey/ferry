@@ -9,7 +9,10 @@ RUN apt-get --yes install openjdk-7-jdk zlib1g lib32z1 libpostgresql-jdbc-java s
 RUN wget https://www.dropbox.com/s/bjwo9bania20cfm/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
 RUN wget https://www.dropbox.com/s/nzp0a5zucvto1sf/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
 
-# untar tarball and  move the untarred files to /hadoop
+# Get rid of the tarballs. 
+RUN rm /service/packages/*.tar.gz
+
+# Make symlinks
 RUN ln -s /service/packages/hadoop-2.3.0/etc/hadoop /service/conf;ln -s /service/packages/hadoop-2.3.0 /service/packages/hadoop;ln -s /service/packages/hive-0.12.0 /service/packages/hive;ln -s /usr/share/java/postgresql-jdbc4.jar /service/packages/hive/lib/postgresql-jdbc4.jar
 
 # Soft links to make life easier

@@ -10,7 +10,3 @@ RUN chmod a+x /service/sbin/startnode
 
 # Download some dependencies
 RUN apt-get --yes install language-pack-en-base postgresql
-
-# Run the ssh daemon in the foreground (Docker does
-# like daemons running in background)
-CMD ["/service/sbin/startnode", "listen"]

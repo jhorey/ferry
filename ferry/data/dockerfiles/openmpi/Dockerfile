@@ -11,6 +11,9 @@ RUN wget https://www.dropbox.com/s/ukfhimqxvfkic00/openmpi-1.7.3-bin.tar.gz -P /
 RUN cd /service/packages/openmpi-1.7.3;make install
 RUN ldconfig
 
+# Get rid of the tarballs.
+RUN rm /service/packages/*.tar.gz
+
 # Make symlinks
 RUN ln -s /service/packages/openmpi-1.7.3 /service/packages/openmpi
 

@@ -23,6 +23,8 @@ from ferry.config.gluster.glusterconfig     import *
 from ferry.config.hadoop.hadoopconfig       import *
 from ferry.config.hadoop.hadoopclientconfig import *
 from ferry.config.hadoop.metastore          import *
+from ferry.config.spark.sparkconfig         import *
+from ferry.config.spark.sparkclientconfig   import *
 from ferry.config.openmpi.mpiconfig         import *
 from ferry.config.openmpi.mpiclientconfig   import *
 from ferry.config.titan.titanconfig         import *
@@ -36,17 +38,21 @@ class ConfigFactory(object):
         self.hadoop = HadoopInitializer()
         self.yarn = HadoopInitializer()
         self.hive = MetaStoreInitializer()
+        self.spark = SparkInitializer()
         self.cassandra = CassandraInitializer()
         self.titan = TitanInitializer()
         self.mpi = OpenMPIInitializer()
         self.cassandra_client = CassandraClientInitializer()
         self.mpi_client = OpenMPIClientInitializer()
         self.hadoop_client = HadoopClientInitializer()
+        self.spark_client = SparkClientInitializer()
 
         # Get the Ferry home to find the templates.
         template_dir = FERRY_HOME + '/data/templates'
         self.hadoop.template_dir =        template_dir + '/hadoop/'
         self.yarn.template_dir =          template_dir + '/hadoop/'
+        self.spark.template_dir =         template_dir + '/spark/'
+        self.spark_client.template_dir =  template_dir + '/spark/'
         self.hadoop_client.template_dir = template_dir + '/hadoop/'
         self.hive.template_dir =          template_dir + '/hive-metastore/'
         self.gluster.template_dir =       template_dir + '/gluster/'

@@ -48,6 +48,9 @@ class DockerManager(object):
             'yarn': { 
                 'server' : self.config.yarn,
                 'client' : self.config.hadoop_client },
+            'spark': { 
+                'server' : self.config.spark,
+                'client' : self.config.spark_client },
             'gluster': { 
                 'server' : self.config.gluster },
             'cassandra': { 
@@ -837,6 +840,13 @@ class DockerManager(object):
         self._restart_service(service_uuid, containers, compute_type)
         return service_uuid        
 
+    def start_service(self, uuid, containers):
+        """
+        Start the service.
+        """
+        service_info = self._get_service_configuration(uuid, detailed=True)
+        self._start_service(uuid, containers, service_info)
+
     """
     Allocate a new compute cluster.
     """
@@ -885,18 +895,22 @@ class DockerManager(object):
 
         # After the docker instance start, we need to start the
         # actual storage service (gluster, etc.). 
-        self._start_service(service_uuid, containers, compute_type, entry_point)
-        return service_uuid
+        # self._start_service(service_uuid, containers, compute_type, entry_point)
+        return service_uuid, containers
         
     def _start_service(self,
                        uuid,
                        containers,
-                       service_type,
-                       entry_point, 
-                       service=None):
-        if not service:
-            service = self._get_service(service_type)
-        service.start_service(containers, entry_point, self.docker)
+                       service_info): 
+        if service_info['class'] != 'connector':
+            service = self._get_service(service_info['type'])
+            service.start_service(containers, service_info['entry'], self.docker)
+        else:
+            storage_entry = service_info['storage']
+            compute_entry = service_info['compute']
+            services, backend_names = self._get_client_services(storage_entry, compute_entry)
+            for service in services:
+                service.start_service(containers, service_info['entry'], self.docker)
 
     def _restart_service(self,
                          uuid,
@@ -983,8 +997,8 @@ class DockerManager(object):
 
         # After the docker instance start, we need to start the
         # actual storage service (gluster, etc.). 
-        self._start_service(service_uuid, containers, storage_type, entry_point)
-        return service_uuid
+        # self._start_service(service_uuid, containers, storage_type, entry_point)
+        return service_uuid, containers
 
     """
     Get the default deployment conf file. 
@@ -1259,7 +1273,6 @@ class DockerManager(object):
         entry_points = {}
         services, backend_names = self._get_client_services(storage_entry, compute_entry)
         for service in services:
-            logging.warning("USING CONNECTOR SERVICE: " + str(service))
             config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
                                                                                     containers, 
                                                                                     service,
@@ -1274,20 +1287,22 @@ class DockerManager(object):
             self._transfer_env_vars(containers, env_vars)
 
             # Start the connector personality. 
-            self._start_service(service_uuid, containers, connector_type, entry_point, service)
+            # self._start_service(service_uuid, containers, connector_type, entry_point, service)
 
         # Update the connector state. 
         container_info = self._serialize_containers(containers)
         service_info = {'uuid':service_uuid, 
                         'containers':container_info, 
                         'backends':backend_names, 
+                        'storage': storage_entry, 
+                        'compute': compute_entry, 
                         'class':'connector',
                         'type':connector_type,
                         'entry':entry_points,
                         'uniq': name, 
                         'status':'running'}
         self._update_service_configuration(service_uuid, service_info)
-        return service_uuid
+        return service_uuid, containers
 
     """
     Fetch the current docker version.
