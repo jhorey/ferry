@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source /etc/profile
+
 # Prerequisites
 apt-get --yes install unzip
 su ferry -c 'mkdir /tmp/build'

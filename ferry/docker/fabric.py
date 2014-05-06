@@ -164,27 +164,27 @@ class DockerFabric(object):
 
         return containers
 
-    """
-    Stop the running instances
-    """
     def stop(self, containers):
+        """
+        Forceably stop the running containers
+        """
         for c in containers:
             self.cli.stop(c['container'])
 
-    """
-    Remove the running instances
-    """
     def remove(self, containers):
+        """
+        Remove the running instances
+        """
         for c in containers:
             for p in c.ports.keys():
                 self.network.delete_rule(c.internal_ip, p)
             self.network.free_ip(c.internal_ip)
             self.cli.remove(c.container)
 
-    """
-    Save/commit the running instances
-    """
     def snapshot(self, containers, cluster_uuid, num_snapshots):
+        """
+        Save/commit the running instances
+        """
         snapshots = []
         for c in containers:
             snapshot_name = '%s-%s-%s:SNAPSHOT-%s' % (c.image, 
@@ -200,10 +200,10 @@ class DockerFabric(object):
             self.cli.commit(c, snapshot_name)
         return snapshots
 
-    """
-    Upload these containers to the specified registry.
-    """
     def deploy(self, containers, registry=None):
+        """
+        Upload these containers to the specified registry.
+        """
         deployed = []
         for c in containers:
             image_name = '%s-%s:DEPLOYED' % (c.image, 
@@ -220,29 +220,44 @@ class DockerFabric(object):
                 self.cli.push(c, registry)
         return deployed
 
-    """
-    Copy over the contents to each container
-    """
-    def copy(self, containers, from_dir, to_dir):
+    def halt(self, containers):
+        """
+        Safe stop the containers. 
+        """
+        cmd = '/service/sbin/startnode halt'
         for c in containers:
-            keydir, _ = self._read_key_dir()
-            opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-            key = '-i ' + keydir + '/id_rsa'
-            scp_cmd = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + c.internal_ip + ':' + to_dir
-            output = Popen(scp_cmd, stdout=PIPE, shell=True).stdout.read()
+            self.cmd_raw(c.internal_ip, cmd)
 
-    """
-    Run a command on all the containers and collect the output. 
-    """
+    def copy(self, containers, from_dir, to_dir):
+        """
+        Copy over the contents to each container
+        """
+        for c in containers:
+            self.copy_raw(c.internal_ip, from_dir, to_dir)
+
+    def copy_raw(self, ip, from_dir, to_dir):
+        keydir, _ = self._read_key_dir()
+        opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        key = '-i ' + keydir + '/id_rsa'
+        scp = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + ip + ':' + to_dir
+        logging.warning(scp)
+        output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
+
     def cmd(self, containers, cmd):
+        """
+        Run a command on all the containers and collect the output. 
+        """
         all_output = {}
+        for c in containers:
+            output = self.cmd_raw(c.internal_ip, cmd)
+            all_output[c] = output.strip()
+        return all_output
+
+    def cmd_raw(self, ip, cmd):
         keydir, _ = self._read_key_dir()
         key = keydir + '/id_rsa'
-        for c in containers:
-            ip = self.docker_user + '@' + c.internal_ip
-            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
-            logging.warning(ssh)
-            output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
-            all_output[c] = output.strip()
-
-        return all_output
+        ip = self.docker_user + '@' + ip
+        ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+        logging.warning(ssh)
+        output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
+        return output

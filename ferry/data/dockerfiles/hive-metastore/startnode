@@ -4,9 +4,11 @@ source /etc/profile
 source /service/sbin/setup
 
 if [ $1 == "init" ]; then 
-    # Keep ssh open so that we can interact with the container
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/sshd -D
+    /service/sbin/init01.sh
+elif [ $1 == "halt" ]; then 
+    /service/sbin/halt01.sh    
+elif [ $1 == "hosts" ]; then 
+    pophosts
 elif [ $1 == "start" ]; then 
     if [ $2 == "metastore" ]; then
         # Start the PostGres service
@@ -34,7 +36,4 @@ elif [ $1 == "stop" ]; then
     # Stop Hive and PostGres
     pkill -f hive 
     service postgresql stop
-
-    # Now stop ssh (which should stop the container)
-    pkill -f sshd
 fi

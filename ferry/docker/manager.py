@@ -491,10 +491,9 @@ class DockerManager(object):
     Read the directory containing the key we should use. 
     """
     def _read_key_dir(self):
-        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
-        k = f.read().strip().split("://")
-        # return { k[1] : '/service/keys' }
-        return { '/service/keys' : k[1]  }
+        with open(ferry.install.DEFAULT_DOCKER_KEY, 'r') as f:
+            k = f.read().strip().split("://")
+            return { '/service/keys' : k[1]  }
 
     """
     Prepare the environment for storage containers.
@@ -628,10 +627,10 @@ class DockerManager(object):
         plan['localhost']['containers'].append(container_info)
         return plan
 
-    """
-    Transfer the configuration to the containers. 
-    """
     def _transfer_config(self, config_dirs):
+        """
+        Transfer the configuration to the containers. 
+        """
         for c in config_dirs:
             container = c[0]
             from_dir = c[1]
@@ -639,6 +638,17 @@ class DockerManager(object):
             logging.warning("transfer config %s -> %s" % (from_dir, to_dir))
             self.docker.copy([container], from_dir, to_dir)
 
+    def _transfer_ip(self, ips):
+        """
+        Transfer the hostname/IP addresses to all the containers. 
+        """
+        with open('/tmp/instances', 'w+') as hosts_file:
+            for ip in ips:
+                hosts_file.write("%s %s\n" % (ip[0], ip[1]))
+        for ip in ips:
+            self.docker.copy_raw(ip[0], '/tmp/instances', '/service/sconf/instances')
+            self.docker.cmd_raw(ip[0], '/service/sbin/startnode hosts')
+        
     """
     Transfer these environment variables to the containers.
     Since the user normally interacts with these containers by 
@@ -766,13 +776,22 @@ class DockerManager(object):
     Stop a running cluster.
     """
     def _stop_stack(self, cluster_uuid):
+        # First stop all the running services. 
         connectors, compute, storage = self._get_cluster_instances(cluster_uuid)
         for c in connectors:
             self._stop_service(c['uuid'], c['instances'], c['type'])
         for c in compute:
             self._stop_service(c['uuid'], c['instances'], c['type'])
-        for s in storage:
-            self._stop_service(s['uuid'], s['instances'], s['type'])
+        for c in storage:
+            self._stop_service(c['uuid'], c['instances'], c['type'])
+
+        # Then actually stop the containers. 
+        for c in connectors:
+            self.docker.halt(c['instances'])
+        for c in compute:
+            self.docker.halt(c['instances'])
+        for c in storage:
+            self.docker.halt(c['instances'])
 
     def _purge_stack(self, cluster_uuid):
         volumes = []
@@ -824,21 +843,6 @@ class DockerManager(object):
                               'snapshot_uuid' : snapshot_uuid }
             self.cluster_collection.update( {'uuid':cluster_uuid}, 
                                              {"$set": cluster_state } )
-
-    """
-    Restart an stopped compute cluster.
-    """
-    def restart_compute(self, service_uuid, container_info, compute_type):
-        containers = self._restart_containers(container_info)
-        container_info = self._serialize_containers(containers)
-
-        service = {'uuid':service_uuid, 
-                   'containers':container_info, 
-                   'status':'running'}
-        self._update_service_configuration(service_uuid, service)
-
-        self._restart_service(service_uuid, containers, compute_type)
-        return service_uuid        
 
     def start_service(self, uuid, containers):
         """
@@ -941,10 +945,11 @@ class DockerManager(object):
                 if 'client' in self.service[backend]:
                     service = self.service[backend]['client']
                     service.stop_service(containers, entry_point, self.docker)
+        
     """
     Restart an stopped storage cluster.
     """
-    def restart_storage(self, service_uuid, container_info, storage_type):
+    def restart_service(self, service_uuid, container_info, storage_type):
         containers = self._restart_containers(container_info)
         container_info = self._serialize_containers(containers)
 
@@ -954,7 +959,6 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service)
 
         self._restart_service(service_uuid, containers, storage_type)
-        return service_uuid        
                         
     """
     Create a storage cluster and start a particular
@@ -994,10 +998,6 @@ class DockerManager(object):
                    'entry':entry_point,
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
-
-        # After the docker instance start, we need to start the
-        # actual storage service (gluster, etc.). 
-        # self._start_service(service_uuid, containers, storage_type, entry_point)
         return service_uuid, containers
 
     """
@@ -1016,14 +1016,13 @@ class DockerManager(object):
 
         # Read the configuration file.
         if os.path.exists(conf):
-            f = open(conf, 'r').read()
-            j = json.loads(f)
+            with open(conf, 'r').read() as f: 
+                j = json.loads(f)
 
-            # Now find the right configuration.
-            if mode in j:
-                j[mode]['_mode'] = mode
-                return j[mode]
-
+                # Now find the right configuration.
+                if mode in j:
+                    j[mode]['_mode'] = mode
+                    return j[mode]
         return None
 
     """
@@ -1129,6 +1128,7 @@ class DockerManager(object):
                                      backend_info,
                                      conf = None):
         connector_info = []
+        connector_plan = []
         cluster = self.cluster_collection.find_one( {'uuid':app_uuid} )
         if cluster:
             for cuid in cluster['connectors']:
@@ -1136,8 +1136,13 @@ class DockerManager(object):
                 # contain the container ID. 
                 s = self._get_service_configuration(cuid, detailed=True)
                 if s and 'containers' in s:
-                    connector_info.append(self._restart_connectors(cuid, s['containers'], backend_info))
-        return connector_info
+                    connector_plan.append( { 'uuid' : cuid,
+                                             'containers' : s['containers'],
+                                             'type' : s['type'], 
+                                             'backend' : backend_info, 
+                                             'start' : 'restart' } )
+                    connector_info.append(cuid)
+        return connector_info, connector_plan
 
     """
     Lookup the deployed application connector info and instantiate. 
@@ -1147,18 +1152,24 @@ class DockerManager(object):
                                      backend_info,
                                      conf = None):
         connector_info = []
+        connector_plan = []
         app = self.deploy.find( one = True,
                                 spec = { 'uuid' : app_uuid },
                                 conf = conf)
         if app:
             for c in app['connectors']:
-                connector_info.append(self.allocate_connector(connector_type = c['type'],
-                                                              backend = backend_info,
-                                                              name = c['name'], 
-                                                              args = c['args'],
-                                                              ports = s['ports'].keys(),
-                                                              image = c['image']))
-        return connector_info
+                uuid, containers = self.allocate_connector(connector_type = c['type'],
+                                                           backend = backend_info,
+                                                           name = c['name'], 
+                                                           args = c['args'],
+                                                           ports = s['ports'].keys(),
+                                                           image = c['image'])
+                connector_info.append(uuid)
+                connector_plan.append( { 'uuid' : uuid,
+                                         'containers' : containers,
+                                         'type' : c['type'], 
+                                         'start' : 'start' } )
+        return connector_info, connector_plan
                 
     """
     Lookup the snapshot connector info and instantiate. 
@@ -1167,16 +1178,22 @@ class DockerManager(object):
                                      snapshot_uuid, 
                                      backend_info):
         connector_info = []
+        connector_plan = []
         snapshot = self.snapshot_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if snapshot:
             for s in snapshot['snapshot_cs']:
-                connector_info.append(self.allocate_connector(connector_type = s['type'],
-                                                              backend = backend_info,
-                                                              name = s['name'], 
-                                                              args = s['args'],
-                                                              ports = s['ports'].keys(),
-                                                              image = s['image']))
-        return connector_info
+                uuid, containers = self.allocate_connector(connector_type = s['type'],
+                                                           backend = backend_info,
+                                                           name = s['name'], 
+                                                           args = s['args'],
+                                                           ports = s['ports'].keys(),
+                                                           image = s['image'])
+                connector_info.append(uuid)
+                connector_plan.append( { 'uuid' : uuid,
+                                         'containers' : containers,
+                                         'type' : c['type'], 
+                                         'start' : 'start' } )
+        return connector_info, connector_plan
                 
 
     """
@@ -1230,7 +1247,6 @@ class DockerManager(object):
                    'entry':entry_points,
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
-        return service_uuid
                 
     """
     Allocate a new connector and associate with an existing storage service. 
@@ -1285,9 +1301,6 @@ class DockerManager(object):
             # Now copy over the configuration.
             self._transfer_config(config_dirs)
             self._transfer_env_vars(containers, env_vars)
-
-            # Start the connector personality. 
-            # self._start_service(service_uuid, containers, connector_type, entry_point, service)
 
         # Update the connector state. 
         container_info = self._serialize_containers(containers)

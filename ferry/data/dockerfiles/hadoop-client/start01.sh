@@ -2,9 +2,7 @@
 
 # Make sure we get the env variables in place. 
 source /etc/profile
-source /service/sbin/pophosts
 
-pophosts
 if [ $1 == "hadoop" ]; then
 	su ferry -c '/service/packages/hadoop/bin/hdfs dfs -mkdir /tmp'
 	su ferry -c '/service/packages/hadoop/bin/hdfs dfs -chmod g+w /tmp'

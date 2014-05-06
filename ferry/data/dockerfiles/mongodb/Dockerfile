@@ -31,4 +31,4 @@ ADD mongodb /service/bin/
 RUN chmod a+x /service/bin/mongodb
 
 # Default command
-CMD ["/service/bin/mongodb", "start"]
+CMD ["/service/bin/mongodb", "init"]

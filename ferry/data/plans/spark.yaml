@@ -1,0 +1,10 @@
+backend:
+   - storage:
+        personality: "hadoop"
+        instances: 1
+     compute:
+        - personality: "spark"
+          instances: 1
+connectors:
+   - personality: "ferry/spark-client"
+     ports: [8080]

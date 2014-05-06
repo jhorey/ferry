@@ -24,7 +24,7 @@ RUN dpkg-divert --rename --remove /bin/mknod
 RUN chmod 1777 /tmp
 
 # Make the various directories needed
-RUN mkdir -p /service/keys /service/sbin /var/run/sshd
+RUN mkdir -p /service/keys /service/sbin /service/sconf /var/run/sshd
 
 # Download some dependencies
 RUN apt-get update;apt-get --yes install openssh-server
@@ -37,3 +37,6 @@ RUN ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null
 RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
 
 ADD ./setup /service/sbin/
+ADD ./halt01.sh /service/sbin/
+ADD ./init01.sh /service/sbin/
+RUN chmod a+x /service/sbin/*

@@ -3,14 +3,16 @@
 source /service/sbin/setup
 
 if [ $1 == "init" ]; then 
-    create_fuse_dev
-
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/glusterd &
-    /usr/sbin/sshd -D
+    /service/sbin/init01.sh
+elif [ $1 == "halt" ]; then 
+    /service/sbin/halt01.sh    
+elif [ $1 == "hosts" ]; then 
+    pophosts
 elif [ $1 == "start" ]; then 
+    /usr/sbin/glusterd &
     /service/configuration/configure start
 elif [ $1 == "restart" ]; then 
+    /usr/sbin/glusterd &
     /service/configuration/configure restart
 elif [ $1 == "stop" ]; then 
     # Stop the gluster volume
@@ -18,9 +20,6 @@ elif [ $1 == "stop" ]; then
 
     # Stop the gluster daemon
     pkill -f glusterd
-
-    # Now stop the ssh daemon. 
-    pkill -f sshd
 elif [ $1 == "clean" ]; then 
     /service/configuration/configure clean    
 fi

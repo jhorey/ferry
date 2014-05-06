@@ -2,9 +2,7 @@
 
 # Make sure we get the env variables in place. 
 source /etc/profile
-source /service/sbin/pophosts
 
-pophosts
 if [ $1 == "gluster" ]; then 
     sleep 3
 	python /service/scripts/mounthelper.py mount $2  >> /tmp/gluster.log

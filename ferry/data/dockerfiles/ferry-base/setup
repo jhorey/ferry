@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# 
+# Helper functions needed by all the Ferry images. 
+# This script should not be modified by the container. 
+#
+
 function create_fuse_dev {
     # We'll need to create /dev/fuse since we removed 
     # it during the installation (since build doesn't support
@@ -9,8 +14,14 @@ function create_fuse_dev {
     fi
 }
 
-# function set_ip_address {
-#     gateway=$(ip route show dev eth0 | grep default | awk '{print $3}')
-#     ifconfig eth0 $1 broadcast 0.0.0.0 netmask 255.255.0.0
-#     route add default gw $gateway eth0
-# }
+function pophosts {
+    # Populate the /etc/hosts file with the contents of
+    # 'instances' file. 
+    input=/service/sconf/instances
+    while read line
+    do
+	split=( $line )
+	name=${split[1]}
+	echo $line >> /etc/hosts
+    done < "$input"
+}

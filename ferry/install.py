@@ -196,7 +196,7 @@ class Installer(object):
         not_installed = []
         images = ['mongodb', 'ferry-base', 'hadoop-base', 'hadoop', 'hadoop-client',
                   'hive-metastore', 'gluster', 'openmpi', 'cassandra', 'cassandra-client', 
-                  'titan']
+                  'titan', 'spark']
         for i in images:
             if not self._check_image_installed("%s/%s" % (DEFAULT_DOCKER_REPO, i)):
                 not_installed.append(i)
@@ -382,6 +382,7 @@ class Installer(object):
         if self._docker_running():
             built_images = {}
             for f in os.listdir(image_dir):
+                logging.warning("transforming dockerfile")
                 self._transform_dockerfile(image_dir, f, repo)
 
             for f in os.listdir("/tmp/dockerfiles/"):

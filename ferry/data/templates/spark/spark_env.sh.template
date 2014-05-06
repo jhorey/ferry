@@ -1,0 +1,1 @@
+export SPARK_MASTER_IP=$MASTER

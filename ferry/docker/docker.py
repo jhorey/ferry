@@ -287,7 +287,8 @@ class DockerCLI(object):
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
             if l['Key'] == 'lxc.network.ipv4':
-                return l['Value']
+                ip = l['Value'].split('/')[0]
+                return ip
         return None
 
     """

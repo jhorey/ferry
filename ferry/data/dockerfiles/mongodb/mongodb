@@ -1,9 +1,8 @@
 #! /bin/bash
 
-if [ $1 == "start" ]; then 
-    # Add ssh key just in case we need to log into Mongo. 
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
+source /service/sbin/setup
 
+if [ $1 == "start" ]; then 
     # Change the file ownership back to ferry user. This is 
     # necessary since the host may not have the ferry user. 
     chown -R ferry:ferry $MONGO_DATA
@@ -12,13 +11,10 @@ if [ $1 == "start" ]; then
     # Start the mongo server
     su ferry -c '/usr/bin/mongod --unixSocketPrefix /service/com --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'
 
-    # Start the ssh server in the foreground
-    /usr/sbin/sshd -D
+    # Finish init
+    /service/sbin/init01.sh
 elif [ $1 == "stop" ]; then 
     # Shutdown MongoDB. 
     su ferry -c '/usr/bin/mongod --shutdown'
-
-    # Killing the ssh daemon should automatically exit the container,
-    # since the sshd is the only thing running in the foreground. 
-    pkill -f sshd
+    /service/sbin/halt01.sh    
 fi

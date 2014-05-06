@@ -3,11 +3,11 @@
 source /service/sbin/setup
 
 if [ $1 == "init" ]; then 
-    echo 127.0.0.1 $(hostname) >> /etc/hosts
-
-    # Keep ssh open so that we can interact with the container
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/sshd -D
+    /service/sbin/init01.sh
+elif [ $1 == "halt" ]; then 
+    /service/sbin/halt01.sh    
+elif [ $1 == "hosts" ]; then 
+    pophosts
 elif [ $1 == "start" ]; then 
     su ferry -c 'nohup /service/bin/cassandra &'
     sleep 2
@@ -20,5 +20,4 @@ elif [ $1 == "stop" ]; then
 
     # Killing the ssh daemon should automatically exit the container,
     # since the sshd is the only thing running in the foreground. 
-    pkill -f sshd
 fi

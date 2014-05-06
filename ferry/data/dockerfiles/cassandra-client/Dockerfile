@@ -27,3 +27,5 @@ RUN wget https://www.dropbox.com/s/fwr26lj0s7nu0aw/rexster-console-2.3.0.zip -P 
 
 # Get rid of the tarballs.
 RUN rm /service/packages/*zip
+RUN rm -rf /var/cache/apt/archives/*
+RUN rm -rf /var/lib/apt/lists/*

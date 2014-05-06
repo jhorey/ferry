@@ -14,3 +14,7 @@ ADD ./stop10.sh /service/runscripts/stop/
 ADD ./test01.sh /service/runscripts/test/
 ADD ./test02.sh /service/runscripts/test/
 RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/test/*;chmod a+x /service/runscripts/restart/*
+
+# Get rid of the apt-cache 
+RUN rm -rf /var/cache/apt/archives/*
+RUN rm -rf /var/lib/apt/lists/*

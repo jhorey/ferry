@@ -2,16 +2,14 @@
 
 source /etc/profile
 source /service/sbin/setup
-source /service/sbin/pophosts
 
 if [ $1 == "init" ]; then 
-    create_fuse_dev
-
-    cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
-    /usr/sbin/sshd -D
-elif [ $1 == "start" ]; then 
+    /service/sbin/init01.sh
+elif [ $1 == "halt" ]; then 
+    /service/sbin/halt01.sh
+elif [ $1 == "hosts" ]; then 
     pophosts
-
+elif [ $1 == "start" ]; then 
     # Record the services running on this node.
     echo $2 >> /tmp/hadoop_services.log
 
@@ -58,8 +56,4 @@ elif [ $1 == "stop" ]; then
 	    python /service/scripts/mounthelper.py umount
 	fi
     done < "$input"
-
-
-    # Stop the ssh daemon. This should automatically stop this container. 
-    pkill -f sshd
 fi

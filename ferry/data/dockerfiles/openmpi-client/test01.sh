@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source /etc/profile
+
 # Bash colors
 GREEN='\e[0;32m'
 NC='\e[0m'
