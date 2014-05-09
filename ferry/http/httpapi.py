@@ -18,6 +18,7 @@ import logging
 from flask import Flask, request
 from ferry.install import Installer
 from ferry.docker.manager import DockerManager
+from ferry.docker.docker import DockerInstance
 
 # Initialize Flask
 app = Flask(__name__)
@@ -125,7 +126,6 @@ def _allocate_compute(computes, storage_uuid, options=None):
         compute_type = c['personality']
         reply = _fetch_num_instances(c['instances'], compute_type, options)
         num_instances = reply['num']
-        logging.warning("using %d instances (%s)" % (num_instances, compute_type))
 
         args = {}
         if 'args' in c:
@@ -144,8 +144,6 @@ def _allocate_compute(computes, storage_uuid, options=None):
                                'containers' : compute_containers,
                                'type' : compute_type, 
                                'start' : 'start' } )
-
-        # docker.start_service(compute_uuid, compute_containers)
         uuids.append( compute_uuid )
     return uuids, compute_plan
 
@@ -169,17 +167,18 @@ def _restart_compute(computes):
     compute_plan = []
     for c in computes:
         service_uuid = c['uuid']
-        containers = c['containers']
         compute_type = c['type']
+
+        # Transform the containers into proper container objects.
+        compute_containers = c['containers']
+        containers = [DockerInstance(j) for j in compute_containers] 
+
         uuids.append(service_uuid)
         compute_plan.append( { 'uuid' : service_uuid,
                                'containers' : containers,
                                'type' : compute_type, 
                                'start' : 'restart' } )
-
-        # uuids.append(docker.restart_compute(service_uuid,
-        #                                     containers, 
-        #                                     compute_type))
+        docker.restart_containers(service_uuid, containers)
     return uuids, compute_plan
 
 """
@@ -244,7 +243,6 @@ def _allocate_backend(payload,
             storage_type = storage['personality']
             reply = _fetch_num_instances(storage['instances'], storage_type, iparams)
             num_instances = reply['num']
-            logging.warning("using %d instances (%s)" % (num_instances, storage_type))
             layers = []
             if 'layers' in storage:
                 layers = storage['layers']
@@ -259,12 +257,16 @@ def _allocate_backend(payload,
                                    'start' : 'start' } )
         else:
             storage_uuid = storage['uuid']
-            storage_containers = storage['containers']
             storage_type = storage['type']
+            storage_containers = storage['containers']
+
+            # Transform the containers into proper container objects.
+            containers = [DockerInstance(j) for j in storage_containers]
             storage_plan.append( { 'uuid' : storage_uuid,
-                                   'containers' : storage_containers,
+                                   'containers' : containers,
                                    'type' : storage_type, 
                                    'start' : 'restart' } )
+            docker.restart_containers(storage_uuid, containers)
                                                   
         # Now allocate the compute backend. The compute is optional so
         # we should check if it even exists first. 
@@ -356,10 +358,16 @@ def _register_ip_addresses(backend_plan, connector_plan):
     ips = []
     for s in backend_plan['storage']:
         for c in s['containers']:
-            ips.append( [c.internal_ip, c.host_name] )
+            if isinstance(c, dict):
+                ips.append( [c['internal_ip'], c['hostname']] )
+            else:
+                ips.append( [c.internal_ip, c.host_name] )
     for s in backend_plan['compute']:
         for c in s['containers']:
-            ips.append( [c.internal_ip, c.host_name] )
+            if isinstance(c, dict):
+                ips.append( [c['internal_ip'], c['hostname']] )
+            else:
+                ips.append( [c.internal_ip, c.host_name] )
     for s in connector_plan:
         for c in s['containers']:
             # This is slightly awkward. It is because when starting
@@ -367,9 +375,9 @@ def _register_ip_addresses(backend_plan, connector_plan):
             # when restarting we get dictionary descriptions. Should just
             # fix at the restart level! 
             if isinstance(c, dict):
-                ips.append( [c['data_ip'], c['host_name']] )
+                logging.warning("CONTAINER: " + str(c))
+                ips.append( [c['internal_ip'], c['hostname']] )
             else:
-                logging.warning("CONNECTOR IP" + c.internal_ip)
                 ips.append( [c.internal_ip, c.host_name] )
     docker._transfer_ip(ips)
 
@@ -390,13 +398,13 @@ def _start_all_services(backend_plan, connector_plan):
             docker.start_service(s['uuid'], 
                                  s['containers'])
         else:
-            docker.restart_service(s['uuid'], s['containers'], s['type'])
+            docker._restart_service(s['uuid'], s['containers'], s['type'])
 
     for c in backend_plan['compute']:
         if c['start'] == 'start':
             docker.start_service(c['uuid'], c['containers'])
         else:
-            docker.restart_service(c['uuid'], c['containers'], c['type'])
+            docker._restart_service(c['uuid'], c['containers'], c['type'])
 
     for c in connector_plan:
         if c['start'] == 'start':
@@ -408,7 +416,6 @@ def _allocate_new(payload):
     """
     Helper function to allocate and start a new stack. 
     """
-    logging.warning("ALLOCATING NEW STACK")
     reply = {}
     backend_info, backend_plan = _allocate_backend(payload, replace=True)
     reply['status'] = backend_info['status']

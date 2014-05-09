@@ -74,21 +74,21 @@ class DockerFabric(object):
     """
     Restart the stopped containers.
     """
-    def restart(self, container_info):
-        containers = []
-        for c in container_info:
-            container = self.cli.start(c['container'],
-                                       c['type'],
-                                       c['keys'],
-                                       c['volumes'],
-                                       c['args'])
+    def restart(self, containers):
+        new_containers = []
+        for c in containers:
+            container = self.cli.start(c.container,
+                                       c.service_type,
+                                       c.keys,
+                                       c.volumes,
+                                       c.args)
             container.default_user = self.docker_user
-            containers.append(container)
+            new_containers.append(container)
 
         # We should wait for a second to let the ssh server start
         # on the containers (otherwise sometimes we get a connection refused)
         time.sleep(2)
-        return containers
+        return new_containers
 
     """
     Allocate several instances.

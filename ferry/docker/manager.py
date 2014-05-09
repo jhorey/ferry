@@ -667,8 +667,8 @@ class DockerManager(object):
     """
     Restart the stopped containers. 
     """
-    def _restart_containers(self, container_info):
-        return self.docker.restart(container_info)
+    def _restart_containers(self, containers):
+        return self.docker.restart(containers)
 
     def cancel_stack(self, backends, connectors):
         """
@@ -946,19 +946,19 @@ class DockerManager(object):
                     service = self.service[backend]['client']
                     service.stop_service(containers, entry_point, self.docker)
         
-    """
-    Restart an stopped storage cluster.
-    """
-    def restart_service(self, service_uuid, container_info, storage_type):
-        containers = self._restart_containers(container_info)
+    def restart_containers(self, service_uuid, containers):
+        """
+        Restart an stopped storage cluster. This does not
+        re-initialize the container. It just starts an empty
+        container. 
+        """
+        self._restart_containers(containers)
         container_info = self._serialize_containers(containers)
 
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
-
-        self._restart_service(service_uuid, containers, storage_type)
                         
     """
     Create a storage cluster and start a particular
@@ -1136,12 +1136,14 @@ class DockerManager(object):
                 # contain the container ID. 
                 s = self._get_service_configuration(cuid, detailed=True)
                 if s and 'containers' in s:
+                    containers = [DockerInstance(j) for j in s['containers']]
                     connector_plan.append( { 'uuid' : cuid,
-                                             'containers' : s['containers'],
+                                             'containers' : containers,
                                              'type' : s['type'], 
                                              'backend' : backend_info, 
                                              'start' : 'restart' } )
                     connector_info.append(cuid)
+                    self.restart_containers(cuid, containers)
         return connector_info, connector_plan
 
     """
@@ -1201,7 +1203,7 @@ class DockerManager(object):
     """
     def _restart_connectors(self,
                             service_uuid, 
-                            container_info, 
+                            connectors, 
                             backend=None):
         # Initialize the connector and connect to the storage. 
         storage_entry = []
@@ -1212,11 +1214,6 @@ class DockerManager(object):
             if b['compute']:
                 for c in b['compute']:
                     compute_entry.append(self._get_service_configuration(c))
-
-        # Start the connectors.
-        connector_type = container_info[0]['type']
-        args = container_info[0]['args']
-        connectors = self._restart_containers(container_info)
 
         # Generate the environment variables that will be 
         # injected into the containers. 
@@ -1230,7 +1227,7 @@ class DockerManager(object):
                                                                                     service,
                                                                                     storage_entry,
                                                                                     compute_entry,
-                                                                                    args)
+                                                                                    connectors[0].args)
             # Merge all the entry points. 
             entry_points = dict(entry_point.items() + entry_points.items())
 
@@ -1239,7 +1236,7 @@ class DockerManager(object):
             self._transfer_env_vars(connectors, env_vars)
 
         # Start the containers and update the state. 
-        self._restart_service(service_uuid, connectors, connector_type)
+        self._restart_service(service_uuid, connectors, connectors[0].service_type)
         container_info = self._serialize_containers(connectors)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 

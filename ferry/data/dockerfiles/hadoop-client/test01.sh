@@ -42,6 +42,16 @@ elif [ $1 == "hive" ]; then
     run_as_ferry "$MKDIR" "Making movielens directory"
     run_as_ferry "$COPY" "Copy data to HDFS"
     run_as_ferry "$HIVE" "Running Hive"
+elif [ $1 == "pig" ]; then
+    WGET='wget http://files.grouplens.org/datasets/movielens/ml-100k/u.data -P /tmp/movielens/'
+    MKDIR='hdfs dfs -mkdir -p /service/data/movielens'
+    COPY='hdfs dfs -copyFromLocal /tmp/movielens/u.data /service/data/movielens'
+    PIG='pig -f /service/scripts/count.pig'
+
+    run_as_ferry "$WGET" "Downloading movielens dataset"
+    run_as_ferry "$MKDIR" "Making movielens directory"
+    run_as_ferry "$COPY" "Copy data to HDFS"
+    run_as_ferry "$PIG" "Running Pig command"
 elif [ $1 == "gluster" ]; then
     WGET='wget http://files.grouplens.org/datasets/movielens/ml-100k/u.data -P /service/data/movielens/'
     HIVE='hive -f /service/scripts/createtable.sql'
