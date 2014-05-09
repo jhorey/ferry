@@ -6,8 +6,7 @@ from pyspark.mllib.recommendation import ALS
 from numpy import array
 
 if __name__ == "__main__":
-    spark_home = os.environ['SPARK_HOME']
-    data_file = os.path.join(spark_home, 'mllib/data/als/test.data')
+    data_file = '/spark/data/als.data'
 
     if len(sys.argv) == 1:
         print >> sys.stderr, "Usage: filtering.py <master>"

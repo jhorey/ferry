@@ -6,9 +6,7 @@ from pyspark.mllib.regression import LinearRegressionWithSGD
 from numpy import array
 
 if __name__ == "__main__":
-    # Find the test data
-    spark_home = os.environ['SPARK_HOME']
-    data_file = os.path.join(spark_home, 'mllib/data/ridge-data/lpsa.data')
+    data_file = '/spark/data/lpsa.data'
 
     if len(sys.argv) == 1:
         print >> sys.stderr, "Usage: regression.py <master>"

@@ -6,9 +6,7 @@ from pyspark.mllib.classification import LogisticRegressionWithSGD
 from numpy import array
 
 if __name__ == "__main__":
-    # Find the test data
-    spark_home = os.environ['SPARK_HOME']
-    data_file = os.path.join(spark_home, 'mllib/data/sample_svm_data.txt')
+    data_file = '/spark/data/svm.txt'
 
     if len(sys.argv) == 1:
         print >> sys.stderr, "Usage: classification.py <master>"

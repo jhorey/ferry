@@ -12,8 +12,7 @@ def error(point):
     return sqrt(sum([x**2 for x in (point - center)]))
 
 if __name__ == "__main__":
-    spark_home = os.environ['SPARK_HOME']
-    data_file = os.path.join(spark_home, 'data/kmeans_data.txt')
+    data_file = '/spark/data/kmeans.txt'
 
     if len(sys.argv) == 1:
         print >> sys.stderr, "Usage: filtering.py <master>"
