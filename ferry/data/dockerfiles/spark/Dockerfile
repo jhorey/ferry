@@ -5,9 +5,11 @@ NAME spark-client
 # Make the various directories needed
 RUN mkdir -p /service/runscripts/start /service/runscripts/restart /service/runscripts/test /service/runscripts/stop
 
-# Install everything
+# Install everything. Spark needs a newer version of Numpy, so we'll need to
+# use `pip` to install it. 
 RUN apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install build-essential git scala libgfortran3 jblas python-pip python-numpy
+RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install build-essential git scala libgfortran3 jblas python-pip python-dev
+RUN pip install numpy
 
 # Add the binaries
 RUN wget https://s3.amazonaws.com/opencore/spark-0.9.1-bin-hadoop2.tgz -P /service/packages/; cd /service/packages; tar -xzf spark-0.9.1-bin-hadoop2.tgz

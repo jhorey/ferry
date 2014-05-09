@@ -1,5 +1,12 @@
 #!/bin/bash
 
+#
+# Run some simple Spark examples.
+# Examples can be found in the following directories:
+# - /service/examples/python
+# - $SPARK_HOME/examples
+# 
+
 # Bash colors
 GREEN='\e[0;32m'
 NC='\e[0m'
