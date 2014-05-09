@@ -1,4 +1,4 @@
-FROM ferry/hadoop-base
+FROM $USER/hadoop-base
 NAME spark
 NAME spark-client
 
@@ -6,7 +6,8 @@ NAME spark-client
 RUN mkdir -p /service/runscripts/start /service/runscripts/restart /service/runscripts/test /service/runscripts/stop
 
 # Install everything
-RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install g++ build-essential git scala libgfortran3 jblas python-dev python-pip python-scientific python-pandas numpy
+RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install build-essential git scala libgfortran3 jblas python-pip python-numpy
 
 # Add the binaries
 RUN wget https://s3.amazonaws.com/opencore/spark-0.9.1-bin-hadoop2.tgz -P /service/packages/; cd /service/packages; tar -xzf spark-0.9.1-bin-hadoop2.tgz
@@ -22,6 +23,13 @@ ADD ./stop10.sh /service/runscripts/stop/
 ADD ./restart01.sh /service/runscripts/restart/
 ADD ./test01.sh /service/runscripts/test/
 RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/restart/*;chmod a+x /service/runscripts/test/*
+
+# Example scripts
+RUN mkdir -p /service/examples/python
+ADD ./classification.py /service/examples/python/
+ADD ./clustering.py /service/examples/python/
+ADD ./filtering.py /service/examples/python/
+ADD ./regression.py /service/examples/python/
 
 # Environment variables
 ENV SPARK_HOME /service/packages/spark

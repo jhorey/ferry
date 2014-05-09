@@ -114,7 +114,7 @@ class Installer(object):
 
         # Only reset temporary keys. User-defined key directories
         # shouldn't be touched. 
-        if tmp == "tmp":
+        if keydir != DEFAULT_KEY_DIR and tmp == "tmp":
             shutil.rmtree(keydir)
 
         # Mark that we are using the default package keys

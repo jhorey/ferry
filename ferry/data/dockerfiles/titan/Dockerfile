@@ -8,7 +8,9 @@ RUN apt-get --yes install unzip
 RUN mkdir -p /service/packages /service/conf /service/keys /service/sbin /service/bin /service/scripts /service/ext
 
 # Download the latest package
-RUN wget https://www.dropbox.com/s/q5g3x6yr2dftpxl/titan-all-0.3.1.zip -P /service/packages;wget https://www.dropbox.com/s/yzaynzpoooui1f1/rexster-server-2.3.0.zip -P /service/packages;cd /service/packages/;unzip titan-all-0.3.1.zip;cd /service/packages/;unzip rexster-server-2.3.0.zip
+RUN wget https://s3.amazonaws.com/opencore/titan-all-0.3.1.zip -P /service/packages
+RUN wget https://s3.amazonaws.com/opencore/rexster-server-2.3.0.zip -P /service/packages
+RUN cd /service/packages/;unzip titan-all-0.3.1.zip;unzip rexster-server-2.3.0.zip
 
 # Get rid of the tarballs. 
 RUN rm /service/packages/*zip

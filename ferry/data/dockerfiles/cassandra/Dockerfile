@@ -8,7 +8,7 @@ RUN apt-get --yes install openjdk-7-jdk
 RUN mkdir -p /service/data/main /service/logs /service/data/cache /service/data/commits /service/sbin /service/package;chown -R ferry:docker /service/data;chown -R ferry:docker /service/logs
 
 # Download the latest package
-RUN wget https://www.dropbox.com/s/mbn3vr0ytxhcse3/apache-cassandra-2.0.6-bin.tar.gz -P /service/package/;cd /service/package;tar -xzf apache-cassandra-2.0.6-bin.tar.gz
+RUN wget https://s3.amazonaws.com/opencore/apache-cassandra-2.0.6-bin.tar.gz -P /service/package/;cd /service/package;tar -xzf apache-cassandra-2.0.6-bin.tar.gz
 
 # Get rid of the tarballs
 RUN rm /service/package/*tar.gz

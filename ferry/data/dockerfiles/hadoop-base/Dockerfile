@@ -9,8 +9,6 @@ RUN apt-get --yes install openjdk-7-jdk zlib1g lib32z1 libpostgresql-jdbc-java s
 RUN wget https://s3.amazonaws.com/opencore/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
 RUN wget https://s3.amazonaws.com/opencore/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
 RUN wget https://s3.amazonaws.com/opencore/pig-0.12.1.tar.gz -P /service/packages;cd /service/packages;tar -xzf pig-0.12.1.tar.gz
-# RUN wget https://www.dropbox.com/s/bjwo9bania20cfm/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
-# RUN wget https://www.dropbox.com/s/nzp0a5zucvto1sf/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
 
 # Get rid of the tarballs. 
 RUN rm /service/packages/*.tar.gz
