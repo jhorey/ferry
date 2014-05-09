@@ -6,14 +6,17 @@ RUN mkdir -p /service/packages /service/data/main /service/data/hive /service/da
 
 # Download some dependencies
 RUN apt-get --yes install openjdk-7-jdk zlib1g lib32z1 libpostgresql-jdbc-java software-properties-common
-RUN wget https://www.dropbox.com/s/bjwo9bania20cfm/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
-RUN wget https://www.dropbox.com/s/nzp0a5zucvto1sf/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
+RUN wget https://s3.amazonaws.com/opencore/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
+RUN wget https://s3.amazonaws.com/opencore/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
+RUN wget https://s3.amazonaws.com/opencore/pig-0.12.1.tar.gz -P /service/packages;cd /service/packages;tar -xzf pig-0.12.1.tar.gz
+# RUN wget https://www.dropbox.com/s/bjwo9bania20cfm/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
+# RUN wget https://www.dropbox.com/s/nzp0a5zucvto1sf/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
 
 # Get rid of the tarballs. 
 RUN rm /service/packages/*.tar.gz
 
 # Make symlinks
-RUN ln -s /service/packages/hadoop-2.3.0/etc/hadoop /service/conf;ln -s /service/packages/hadoop-2.3.0 /service/packages/hadoop;ln -s /service/packages/hive-0.12.0 /service/packages/hive;ln -s /usr/share/java/postgresql-jdbc4.jar /service/packages/hive/lib/postgresql-jdbc4.jar
+RUN ln -s /service/packages/hadoop-2.3.0/etc/hadoop /service/conf;ln -s /service/packages/hadoop-2.3.0 /service/packages/hadoop;ln -s /service/packages/hive-0.12.0 /service/packages/hive;ln -s /service/packages/pig-0.12.1 /service/packages/pig;ln -s /usr/share/java/postgresql-jdbc4.jar /service/packages/hive/lib/postgresql-jdbc4.jar
 
 # Soft links to make life easier
 RUN ln -s /service/packages/hadoop/bin/* /usr/local/bin/
@@ -26,6 +29,8 @@ ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 ENV HADOOP_HOME /service/packages/hadoop
 ENV HADOOP_CONF_DIR /service/conf
 ENV HIVE_HOME /service/packages/hive
+ENV PIG_HOME /service/packages/pig
+ENV PIG_CLASSPATH /service/conf
 ENV HADOOP_LIBEXEC_DIR /service/packages/hadoop/libexec
 ENV JAVA_LIBRARY_PATH /service/packages/hadoop/lib/native/
-RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile;echo export HADOOP_HOME=/service/packages/hadoop >> /etc/profile;echo export HIVE_HOME=/service/packages/hive >> /etc/profile;echo export HADOOP_LIBEXEC_DIR=/service/packages/hadoop/libexec >> /etc/profile;echo export JAVA_LIBRARY_PATH=/service/packages/hadoop/lib/native/ >> /etc/profile;echo export HADOOP_CONF_DIR=/service/conf >> /etc/profile
+RUN echo export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64 >> /etc/profile;echo export HADOOP_HOME=/service/packages/hadoop >> /etc/profile;echo export HIVE_HOME=/service/packages/hive >> /etc/profile;echo export PIG_HOME=/service/packages/pig >> /etc/profile;echo export PIG_CLASSPATH=/service/conf >> /etc/profile;echo export HADOOP_LIBEXEC_DIR=/service/packages/hadoop/libexec >> /etc/profile;echo export JAVA_LIBRARY_PATH=/service/packages/hadoop/lib/native/ >> /etc/profile;echo export HADOOP_CONF_DIR=/service/conf >> /etc/profile

@@ -9,15 +9,22 @@ elif [ $1 == "halt" ]; then
 elif [ $1 == "hosts" ]; then 
     pophosts
 elif [ $1 == "start" ]; then 
-    /usr/sbin/glusterd &
-    /service/configuration/configure start
+    nohup /usr/sbin/glusterd &
+    sleep 2
+    if [ $2 == "master" ]; then
+	/service/configuration/configure start
+    fi
 elif [ $1 == "restart" ]; then 
-    /usr/sbin/glusterd &
-    /service/configuration/configure restart
+    nohup /usr/sbin/glusterd &
+    sleep 2
+    if [ $2 == "master" ]; then
+	/service/configuration/configure restart
+    fi
 elif [ $1 == "stop" ]; then 
     # Stop the gluster volume
-    /service/configuration/configure stop
-
+    if [ $2 == "master" ]; then
+	/service/configuration/configure stop
+    fi
     # Stop the gluster daemon
     pkill -f glusterd
 elif [ $1 == "clean" ]; then 

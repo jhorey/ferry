@@ -408,6 +408,7 @@ def _allocate_new(payload):
     """
     Helper function to allocate and start a new stack. 
     """
+    logging.warning("ALLOCATING NEW STACK")
     reply = {}
     backend_info, backend_plan = _allocate_backend(payload, replace=True)
     reply['status'] = backend_info['status']

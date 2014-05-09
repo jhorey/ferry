@@ -6,7 +6,7 @@ NAME spark-client
 RUN mkdir -p /service/runscripts/start /service/runscripts/restart /service/runscripts/test /service/runscripts/stop
 
 # Install everything
-RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install git scala
+RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install g++ build-essential git scala libgfortran3 jblas python-dev python-pip python-scientific python-pandas numpy
 
 # Add the binaries
 RUN wget https://s3.amazonaws.com/opencore/spark-0.9.1-bin-hadoop2.tgz -P /service/packages/; cd /service/packages; tar -xzf spark-0.9.1-bin-hadoop2.tgz

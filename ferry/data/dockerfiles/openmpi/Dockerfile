@@ -1,7 +1,7 @@
 FROM $USER/gluster
 NAME openmpi
 
-RUN mkdir -p /service/conf /service/examples /service/packages /service/runscripts/start /service/runscripts/restart /service/runscripts/stop /service/runscripts/test
+RUN mkdir -p /service/examples /service/packages /service/runscripts/start /service/runscripts/restart /service/runscripts/stop /service/runscripts/test
 
 # Download the various packages needed
 RUN apt-get --yes install autotools-dev autoconf automake g++ gfortran build-essential
@@ -27,6 +27,7 @@ RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmo
 
 # Make environment variables
 RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile
+RUN echo export MPI_CONF=/usr/local/etc >> /etc/profile
 
 # Generate an ssh key for this image.
 RUN mkdir /home/ferry/.ssh;ssh-keygen -f /home/ferry/.ssh/id_rsa -t rsa -N '' > /dev/null

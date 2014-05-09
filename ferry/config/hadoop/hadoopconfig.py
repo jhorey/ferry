@@ -338,10 +338,6 @@ class HadoopInitializer(object):
 
             # Only add the container to the instances list once. 
             entry_point['instances'].append([c['data_ip'], c['host_name']])
-            instances_file = open(new_config_dir + '/instances', 'w+')
-            for server in containers:
-                instances_file.write("%s %s\n" % (server['data_ip'], server['host_name']))
-            instances_file.close()
 
             # Generate some mapred-site config
             self._generate_mapred_site(config, containers, new_config_dir)
@@ -389,11 +385,8 @@ class HadoopInitializer(object):
                 sys.stderr.write('could not create config dir ' + new_config_dir)
 
             # Slaves file used to figure out who hosts the actual work/data
-            instances_file = open(new_config_dir + '/instances', 'w+')
             for server in containers:
                 entry_point['instances'].append([server['data_ip'], server['host_name']])
-                instances_file.write("%s %s\n" % (server['data_ip'], server['host_name']))
-            instances_file.close()
 
             # Generate the log4j config
             self._generate_log4j(new_config_dir)

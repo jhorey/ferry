@@ -130,23 +130,19 @@ class OpenMPIInitializer(object):
             mount_dir = storage['volume']
             entry_point['mount'] = "%s:/%s" % (mount_ip, mount_dir)
 
-            # Check if we are being called as a compute instance or client
-            # instance. If compute, the we must generate the host file. 
-            instances_file = open(new_config_dir + '/instances', 'w+')
+            # Check if we are being called as a compute instance or client.
             if not 'compute' in containers[0]:
                 entry_point['instances'] = []
                 for server in containers:
-                    instances_file.write("%s %s\n" % (server['data_ip'], server['host_name']))
                     entry_point['instances'].append([server['data_ip'], server['host_name']])
             else:
-                # This is the MPI client. The instance file only contains the IP
-                # address of the compute nodes (instead of the IP + hostname) so that
-                # MPI will remain happy. 
+                # This is the MPI client. Create a "hosts" file that contains the
+                # IP addresses of the compute nodes. 
                 entry_point['ip'] = containers[0]['data_ip']
                 compute = containers[0]['compute'][0]
-                for s in compute['instances']:
-                    instances_file.write("%s\n" % s[0])
-                instances_file.close()
+                with open(new_config_dir + '/hosts', 'w+') as hosts_file:
+                    for c in compute['instances']:
+                        hosts_file.write(c[0] + "\n")
 
             self._generate_mca_params(config, new_config_dir)
             for c in containers:
@@ -158,7 +154,7 @@ class OpenMPIInitializer(object):
 
 class MPIConfig(object):
     log_directory = '/service/logs'
-    config_directory = '/usr/local/etc/'
+    config_directory = '/usr/local/etc'
 
     BTL_PORT_MIN = 2000
     OOB_PORT_MIN = 6000

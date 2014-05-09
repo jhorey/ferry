@@ -45,27 +45,25 @@ class GlusterInitializer(object):
     def new_host_name(self, instance_id):
         return 'gluster' + str(instance_id)
 
-    """
-    Start the service on the containers. 
-    """
+    def _execute_service(self, containers, entry_point, fabric, cmd):
+        """
+        Start the gluster service on the containers. We want to start/stop the
+        slave nodes before the master, since the master assumes everything is
+        waiting for it to start. 
+        """
+        master_ip = entry_point['ip']
+        for c in containers:
+            if c.internal_ip != master_ip:
+                output = fabric.cmd([c], '/service/sbin/startnode %s slave' % cmd)
+        for c in containers:
+            if c.internal_ip == master_ip:
+                output = fabric.cmd([c], '/service/sbin/startnode %s master' % cmd)
     def start_service(self, containers, entry_point, fabric):
-        master_ip = entry_point['ip']
-        for c in containers:
-            if c.internal_ip == master_ip:
-                output = fabric.cmd([c], '/service/sbin/startnode start')
-
+        self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
-        master_ip = entry_point['ip']
-        for c in containers:
-            if c.internal_ip == master_ip:
-                output = fabric.cmd([c], '/service/sbin/startnode restart')
-
-    """
-    Stop the service on the containers. 
-    """
+        self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):
-        for c in containers:
-            output = fabric.cmd([c], '/service/sbin/startnode stop')
+        self._execute_service(containers, entry_point, fabric, "stop")
 
     """
     Generate a new Gluster configuration repo for a new
@@ -178,7 +176,7 @@ class GlusterInitializer(object):
                      stat.S_IXGRP |
                      stat.S_IROTH)
         except IOError as e:
-            logging.error(e.explanation)
+            logging.error(e.strerror)
 
         # We need to assign a configuration to each container. 
         config_dirs = []

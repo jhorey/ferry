@@ -9,7 +9,7 @@ NC='\e[0m'
 # Commands
 MKDIRS='mkdir /service/data/binaries'
 COMPILE='mpic++ -W -Wall /service/examples/helloworld.cpp -o /service/data/binaries/helloworld.o'
-RUN='mpirun -np 4 --hostfile /usr/local/etc/instances /service/data/binaries/helloworld.o'
+RUN='mpirun -np 4 --hostfile $MPI_CONF/hosts /service/data/binaries/helloworld.o'
 
 function run_as_ferry {
     echo -e "${GREEN} ${2} ${NC}"

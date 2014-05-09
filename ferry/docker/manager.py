@@ -1016,8 +1016,8 @@ class DockerManager(object):
 
         # Read the configuration file.
         if os.path.exists(conf):
-            with open(conf, 'r').read() as f: 
-                j = json.loads(f)
+            with open(conf, 'r') as f: 
+                j = json.loads(f.read())
 
                 # Now find the right configuration.
                 if mode in j:

@@ -214,22 +214,6 @@ class HadoopClientInitializer(object):
             self._generate_mapred_site(config, containers, new_config_dir)
             self._generate_yarn_site(config.yarn_master, new_config_dir)
 
-
-        # Record our own hostname. 
-        instances_file = open(new_config_dir + '/instances', 'w+')
-        instances_file.write("%s %s\n" % (containers[0]['data_ip'], 
-                                          containers[0]['host_name']))
-
-        # Record the names of all the storage nodes.
-        for c in storage['instances']:
-            instances_file.write("%s %s\n" % (c[0], c[1]))
-
-        # Check if we need to record the compute instances. 
-        if compute:
-            for c in compute['instances']:
-                instances_file.write("%s %s\n" % (c[0], c[1]))
-        instances_file.close()
-
         # Each container needs to point to a new config dir. 
         config_dirs = []
         for c in containers:

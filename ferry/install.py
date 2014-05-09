@@ -55,8 +55,14 @@ def _supported_arch():
 
 def _supported_lxc():
     output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
-    ver = tuple(map(int, (output.strip().split("."))))
-    return ver > (0, 7, 5)
+    ver = []
+    for v in output.strip().split("."):
+        try:
+            i = int(v)
+            ver.append(i)
+        except ValueError:
+            pass
+    return tuple(ver) > (0, 7, 5)
 
 def _supported_python():
     return sys.version_info[0] == 2
@@ -147,7 +153,7 @@ class Installer(object):
                 self._change_permission(DOCKER_DIR)
         except OSError as e:
             logging.error("Could not install Ferry.\n") 
-            logging.error(e.explanation)
+            logging.error(e.strerror)
             sys.exit(1)
 
         # Start the Ferry docker daemon. If it does not successfully
@@ -238,7 +244,7 @@ class Installer(object):
                 self._change_permission(DEFAULT_MONGO_LOG)
         except OSError as e:
             logging.error("Could not start ferry servers.\n") 
-            logging.error(e.explanation)
+            logging.error(e.strerror)
             sys.exit(1)
 
         # Check if the Mongo image is built.
@@ -596,7 +602,7 @@ class Installer(object):
                 return False, "Ferry appears to be already running. If this is an error, please type \'ferry clean\' and try again."
         except OSError as e:
             logging.error("could not start docker daemon.\n") 
-            logging.error(e.explanation)
+            logging.error(e.strerror)
             sys.exit(1)
 
     def _stop_docker_daemon(self, force=False):
@@ -610,10 +616,10 @@ class Installer(object):
                 pass
 
     def _get_gateway(self):
-        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
+        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
 
-        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
+        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
         netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
         mask = map(int, netmask.split("."))
         cidr = 1
