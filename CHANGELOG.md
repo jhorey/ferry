@@ -34,3 +34,9 @@
 
 - Vagrant support
 - Check LXC version during install
+
+### 0.2.0 (2014-05-15)
+
+- Spark support 
+- Pig support in Hadoop client
+- Various bug fixes
