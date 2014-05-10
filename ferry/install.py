@@ -55,14 +55,8 @@ def _supported_arch():
 
 def _supported_lxc():
     output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
-    ver = []
-    for v in output.strip().split("."):
-        try:
-            i = int(v)
-            ver.append(i)
-        except ValueError:
-            pass
-    return tuple(ver) > (0, 7, 5)
+    ver = tuple(map(int, (output.strip().split(".")[:3])))
+    return ver > (0, 7, 5)
 
 def _supported_python():
     return sys.version_info[0] == 2
