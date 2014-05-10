@@ -14,3 +14,4 @@ Getting Started
    cassandra
    hadoop
    openmpi
+   spark
