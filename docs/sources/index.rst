@@ -7,8 +7,10 @@
 Big Data Development Environment using Docker
 =============================================
 
-Ferry lets you share and deploy big data applications on your local machine. Define your big data stack using YAML and
-share your application with :ref:`Dockerfiles <advanced>`. Here's an example Hadoop cluster:
+Ferry helps you create big data clusters on your local machine. Define your big data stack using YAML and
+share your application with :ref:`Dockerfiles <advanced>`. Ferry supports Hadoop, Cassandra, Spark, GlusterFS, and Open MPI. 
+
+Here's an example Hadoop cluster:
 
 .. code-block:: yaml
 
@@ -22,7 +24,7 @@ share your application with :ref:`Dockerfiles <advanced>`. Here's an example Had
       - personality: "hadoop-client"
 
 Then get started by typing ``ferry start hadoop``. This will automatically create a two node
-Hadoop cluster and a single Linux client. You can customize the Linux client during runtime or define your own using a Dockerfile. In addition to Hadoop, Ferry also supports Cassandra, GlusterFS, and Open MPI. 
+Hadoop cluster and a single Linux client. You can customize the Linux client during runtime or define your own using a Dockerfile. In addition to Hadoop, Ferry also supports Spark, Cassandra, GlusterFS, and Open MPI. 
 
 Ferry is useful for:
 
