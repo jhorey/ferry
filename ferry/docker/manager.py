@@ -1107,6 +1107,7 @@ class DockerManager(object):
     def fetch_snapshot_backend(self, snapshot_uuid):
         snapshot = self.cluster_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if snapshot:
+            logging.warning("SNAPSHOT BACKEND: " + str(snapshot['backends']))
             return snapshot['backends']['backend']
 
     """
@@ -1164,7 +1165,7 @@ class DockerManager(object):
                                                            backend = backend_info,
                                                            name = c['name'], 
                                                            args = c['args'],
-                                                           ports = s['ports'].keys(),
+                                                           ports = c['ports'].keys(),
                                                            image = c['image'])
                 connector_info.append(uuid)
                 connector_plan.append( { 'uuid' : uuid,
@@ -1193,7 +1194,7 @@ class DockerManager(object):
                 connector_info.append(uuid)
                 connector_plan.append( { 'uuid' : uuid,
                                          'containers' : containers,
-                                         'type' : c['type'], 
+                                         'type' : s['type'], 
                                          'start' : 'start' } )
         return connector_info, connector_plan
                 

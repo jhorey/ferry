@@ -126,7 +126,7 @@ def _allocate_compute(computes, storage_uuid, options=None):
         compute_type = c['personality']
         reply = _fetch_num_instances(c['instances'], compute_type, options)
         num_instances = reply['num']
-
+        c['instances'] = num_instances
         args = {}
         if 'args' in c:
             args = c['args']
@@ -188,14 +188,14 @@ def _allocate_backend(payload,
                       backends=None,
                       replace=False,
                       uuid=None):
+    iparams = None
     if not backends:
         # The 'iparams' specifies the number of instances to use
         # for the various stack components. It is optional since
         # the application stack may already specify these values. 
-        iparams = None
         if 'iparams' in payload:
             iparams = payload['iparams']
-
+            
         # We should find the backend information in the payload. 
         if 'backend' in payload:
             backends = payload['backend']
@@ -243,6 +243,7 @@ def _allocate_backend(payload,
             storage_type = storage['personality']
             reply = _fetch_num_instances(storage['instances'], storage_type, iparams)
             num_instances = reply['num']
+            storage['instances'] = num_instances
             layers = []
             if 'layers' in storage:
                 layers = storage['layers']
@@ -419,6 +420,7 @@ def _allocate_new(payload):
     reply = {}
     backend_info, backend_plan = _allocate_backend(payload, replace=True)
     reply['status'] = backend_info['status']
+    logging.warning("NEW BACKEND: " + str(backend_info))
     if backend_info['status'] == 'ok':
         success, connector_info, connector_plan = _allocate_connectors(payload, backend_info['uuids'])
 
@@ -449,11 +451,14 @@ def _allocate_stopped(payload):
                                      uuid = payload['_file'])
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid)})
+    else:
+        return json.dumps({'status' : 'failed'})
 
 def _allocate_snapshot(payload):
     """
     Helper function to allocate and start a snapshot.
     """
+    logging.warning("ALLOCATE SNAPSHOT " + str(payload['_file']))
     backend_info, backend_plan = _allocate_backend_from_snapshot(payload)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_snapshot(payload, 
@@ -462,6 +467,8 @@ def _allocate_snapshot(payload):
         uuid = docker.register_stack(backend_info, connector_info, payload['_file'])
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid)})
+    else:
+        return json.dumps({'status' : 'failed'})
 
 def _allocate_deployed(payload, params=None):
     """
