@@ -238,7 +238,7 @@ class Installer(object):
                 self._change_permission(DEFAULT_MONGO_LOG)
         except OSError as e:
             logging.error("Could not start ferry servers.\n") 
-            logging.error(e.explanation)
+            logging.error(e.strerror)
             sys.exit(1)
 
         # Check if the Mongo image is built.
