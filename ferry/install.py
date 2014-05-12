@@ -55,7 +55,7 @@ def _supported_arch():
 
 def _supported_lxc():
     output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
-    ver = tuple(map(int, (output.strip().split("."))))
+    ver = tuple(map(int, (output.strip().split(".")[:3])))
     return ver > (0, 7, 5)
 
 def _supported_python():
