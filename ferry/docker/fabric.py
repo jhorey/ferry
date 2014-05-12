@@ -32,10 +32,10 @@ class DockerFabric(object):
         self.network = DHCPClient(self._get_gateway())
 
     def _get_gateway(self):
-        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
+        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
 
-        cmd = "ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
+        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
         netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
         mask = map(int, netmask.split("."))
         cidr = 1
