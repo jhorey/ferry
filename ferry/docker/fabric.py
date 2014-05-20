@@ -270,6 +270,7 @@ class DockerFabric(object):
         """
         with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
             args = yaml.load(f)
+            args = args['docker']
             if all(k in args for k in ("user","password","email")):
                 if 'server' in args:
                     server = args['server']

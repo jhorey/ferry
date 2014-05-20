@@ -376,7 +376,6 @@ def _register_ip_addresses(backend_plan, connector_plan):
             # when restarting we get dictionary descriptions. Should just
             # fix at the restart level! 
             if isinstance(c, dict):
-                logging.warning("CONTAINER: " + str(c))
                 ips.append( [c['internal_ip'], c['hostname']] )
             else:
                 ips.append( [c.internal_ip, c.host_name] )

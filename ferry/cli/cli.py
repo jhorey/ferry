@@ -74,10 +74,10 @@ class CLI(object):
         """
         try:
             res = requests.post(self.ferry_server + '/login')
-            return True, str(res.text)
+            return str(res.text)
         except ConnectionError:
             logging.error("could not connect to ferry server")
-            return False, "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     def _create_stack(self, stack_description, args):
         """
