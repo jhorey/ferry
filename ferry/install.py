@@ -59,7 +59,7 @@ def _supported_lxc():
     # Ignore all non-numeric strings in the
     # versioning information. 
     cleaned = []
-    tuples = output.strip().split(".")[:3]))
+    tuples = output.strip().split(".")[:3]
     for t in tuples: 
         m = re.compile('(\d)*').match(t)
         if m and len(m.groups()) > 0 and m.group(1) != '':
