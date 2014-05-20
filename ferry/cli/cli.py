@@ -45,7 +45,8 @@ class CLI(object):
         self.cmds.add_option("-k", "--key", "Specify key directory")
         self.cmds.add_option("-m", "--mode", "Deployment mode")
         self.cmds.add_option("-u", "--upgrade", "Upgrade Ferry")
-        self.cmds.add_option("-b", "--build", "Build Ferry images")
+        self.cmds.add_option("-b", "--build", "Build Ferry default images")
+        self.cmds.add_cmd("build", "Build a Dockerfile")
         self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
         self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("deploy", "Deploy a service to the cloud")
@@ -56,6 +57,8 @@ class CLI(object):
         self.cmds.add_cmd("login", "Login to Ferry servers")
         self.cmds.add_cmd("logs", "Copy over the logs to the host")
         self.cmds.add_cmd("ps", "List deployed and running services")
+        self.cmds.add_cmd("pull", "Pull a remote image")
+        self.cmds.add_cmd("push", "Push an image to a remote registry")
         self.cmds.add_cmd("rm", "Remove a service or snapshot")
         self.cmds.add_cmd("snapshot", "Take a snapshot")
         self.cmds.add_cmd("snapshots", "List all snapshots")
@@ -67,6 +70,37 @@ class CLI(object):
         self.ferry_server = 'http://127.0.0.1:4000'
         self.default_user = 'root'
         self.installer = Installer()
+
+    def _pull(self, image):
+        """
+        Pull a remote image to the local registry. 
+        """
+        logging.warning("pulling "  + image)
+
+    def _push(self, image):
+        """
+        Push a local image to a remote registry. 
+        """
+        logging.warning("pushing "  + image)
+
+    def _build(self, dockerfile):
+        """
+        Build a new local image. 
+        """
+        logging.warning("building "  + dockerfile)
+        names = self.installer._get_image(dockerfile)
+        name = names.pop().split("/")
+        if len(name) == 1:
+            repo = GUEST_DOCKER_REPO
+            image = name[0]
+        else:
+            repo = name[0]
+            image = name[1]
+
+        build_dir = os.path.dirname(dockerfile)
+        self.installer._compile_image(image, repo, build_dir, build=True)
+        if len(names) > 0:
+            self.installer._tag_images(image, repo, names)
 
     def _login(self):
         """
@@ -399,21 +433,10 @@ class CLI(object):
         if(cmd == 'start'):
             self._check_ssh_key()
 
+            # Check if we need to build the image before running. 
             if '-b' in options:
                 build_dir = options['-b'][0]
-                dockerfile = build_dir + '/Dockerfile'
-                names = self.installer._get_image(dockerfile)
-                name = names.pop().split("/")
-                if len(name) == 1:
-                    repo = GUEST_DOCKER_REPO
-                    image = name[0]
-                else:
-                    repo = name[0]
-                    image = name[1]
-                    
-                self.installer._compile_image(image, repo, build_dir, build=True)
-                if len(names) > 0:
-                    self.installer._tag_images(image, repo, names)
+                self._build(build_dir + '/Dockerfile')
 
             arg = args.pop(0)
             json_arg = {}
@@ -513,6 +536,12 @@ class CLI(object):
             return self._deploy_stack(stack_id, args)
         elif(cmd == 'info'):
             return self._print_info()
+        elif(cmd == 'build'):
+            return self._build(args[0])
+        elif(cmd == 'pull'):
+            return self._pull(args[0])
+        elif(cmd == 'push'):
+            return self._push(args[0])
         elif(cmd == 'login'):
             return self._login()
         elif(cmd == 'help'):
