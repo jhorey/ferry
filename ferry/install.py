@@ -78,6 +78,7 @@ FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
+DEFAULT_DOCKER_LOGIN=os.environ['HOME'] + '/.ferry.docker'
 DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'

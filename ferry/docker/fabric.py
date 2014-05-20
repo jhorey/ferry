@@ -17,6 +17,7 @@ import ferry.install
 import json
 import logging
 import time
+import yaml
 from subprocess import Popen, PIPE
 from ferry.docker.docker import DockerCLI
 from ferry.ip.client import DHCPClient
@@ -261,3 +262,22 @@ class DockerFabric(object):
         logging.warning(ssh)
         output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
         return output
+
+    def login(self):
+        """
+        Login to a remote registry. Use the login credentials
+        found in the user's home directory. 
+        """
+        with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
+            args = yaml.load(f)
+            if all(k in args for k in ("user","password","email")):
+                if 'server' in args:
+                    server = args['server']
+                else:
+                    server = ''
+                return self.cli.login(user = args['user'], 
+                                      password = args['password'],
+                                      email = args['email'],
+                                      registry = server)
+        logging.error("Could not open login credentials " + ferry.install.DEFAULT_LOGIN_KEY)
+        return False

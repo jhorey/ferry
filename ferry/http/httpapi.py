@@ -484,11 +484,22 @@ def _allocate_deployed(payload, params=None):
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid)})
 
-"""
-Create some new storage infrastructure
-"""
+
+@app.route('/login', methods=['POST'])
+def login_registry():
+    """
+    Login to a remote registry. 
+    """
+    if docker.login_registry():
+        return "success"
+    else:
+        return "fail"
+    
 @app.route('/create', methods=['POST'])
 def allocate_stack():
+    """
+    Create some new storage infrastructure
+    """
     payload = json.loads(request.form['payload'])
     mode = request.form['mode']
     conf = request.form['conf']

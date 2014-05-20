@@ -53,6 +53,7 @@ class CLI(object):
         self.cmds.add_cmd("info", "Print version information")
         self.cmds.add_cmd("inspect", "Return low-level information on a service")
         self.cmds.add_cmd("install", "Install the Ferry images")
+        self.cmds.add_cmd("login", "Login to Ferry servers")
         self.cmds.add_cmd("logs", "Copy over the logs to the host")
         self.cmds.add_cmd("ps", "List deployed and running services")
         self.cmds.add_cmd("rm", "Remove a service or snapshot")
@@ -67,10 +68,21 @@ class CLI(object):
         self.default_user = 'root'
         self.installer = Installer()
 
-    """
-    Create a new stack. 
-    """
+    def _login(self):
+        """
+        Login to a remote registry
+        """
+        try:
+            res = requests.post(self.ferry_server + '/login')
+            return True, str(res.text)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return False, "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+
     def _create_stack(self, stack_description, args):
+        """
+        Create a new stack. 
+        """
         mode = self._parse_deploy_arg('mode', args, default='local')
         conf = self._parse_deploy_arg('conf', args, default='default')
         payload = { 'payload' : json.dumps(stack_description),
@@ -501,6 +513,8 @@ class CLI(object):
             return self._deploy_stack(stack_id, args)
         elif(cmd == 'info'):
             return self._print_info()
+        elif(cmd == 'login'):
+            return self._login()
         elif(cmd == 'help'):
             return self._print_help()
         else:

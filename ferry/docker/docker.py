@@ -88,6 +88,7 @@ class DockerCLI(object):
         self.rm_cmd = 'rm'
         self.ps_cmd = 'ps'
         self.info_cmd = 'info'
+        self.login_cmd = 'login'
         self.daemon = '-d'
         self.interactive = '-i'
         self.tty = '-t'
@@ -167,10 +168,23 @@ class DockerCLI(object):
         cmd = data[0]['Config']['Cmd']
         return json.dumps( {'Cmd' : cmd} )
 
-    """
-    Push an image to a remote registry.
-    """
+    def login(self, user, password, email, registry):
+        """
+        Login to a remote registry. 
+        """
+        cmd = self.docker + ' ' + self.login_cmd + ' -u %s -p %s -e %s %s' % (user, password, email, registry)
+        logging.warning(cmd)
+        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        if output.strip() == "Login Succeeded":
+            return True
+        else:
+            logging.error(output.strip())
+            return False
+
     def push(self, container, registry):
+        """
+        Push an image to a remote registry.
+        """
         raw_image_name = container.image.split("/")[1]
         new_image = "%s/%s" % (registry, raw_image_name)
 
@@ -182,10 +196,10 @@ class DockerCLI(object):
         Popen(tag, stdout=PIPE, shell=True).stdout.read()
         Popen(push, stdout=PIPE, shell=True).stdout.read()
 
-    """
-    Commit a container
-    """
     def commit(self, container, snapshot_name):
+        """
+        Commit a container
+        """
         default_run = self._get_default_run(container)
         run_cmd = "-run='%s'" % default_run
 

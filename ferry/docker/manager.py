@@ -692,10 +692,10 @@ class DockerManager(object):
                 for c in s['containers']:
                     self.docker.stop([c])
 
-    """
-    Register the set of services under a single cluster identifier. 
-    """
     def register_stack(self, backends, connectors, base, uuid=None):
+        """
+        Register the set of services under a single cluster identifier. 
+        """
         if not uuid:
             cluster_uuid = self._new_stack_uuid()
         else:
@@ -719,10 +719,10 @@ class DockerManager(object):
 
         return cluster_uuid
 
-    """
-    Helper method to update a cluster's status. 
-    """
     def _update_stack(self, cluster_uuid, state):
+        """
+        Helper method to update a cluster's status. 
+        """
         self.cluster_collection.update( {'uuid' : cluster_uuid},
                                         {'$set' : state} )
 
@@ -772,10 +772,10 @@ class DockerManager(object):
                             all_compute.append(compute)
             return all_connectors, all_compute, all_storage
 
-    """
-    Stop a running cluster.
-    """
     def _stop_stack(self, cluster_uuid):
+        """
+        Stop a running cluster.
+        """
         # First stop all the running services. 
         connectors, compute, storage = self._get_cluster_instances(cluster_uuid)
         for c in connectors:
@@ -810,10 +810,10 @@ class DockerManager(object):
         for v in volumes:
             shutil.rmtree(v)
     
-    """
-    Take a snapshot of an existing stack. 
-    """
     def _snapshot_stack(self, cluster_uuid):
+        """
+        Take a snapshot of an existing stack. 
+        """
         cluster = self.cluster_collection.find_one( {'uuid':cluster_uuid} )
         if cluster:
             # We need to deserialize the docker containers from the cluster/service
@@ -851,15 +851,15 @@ class DockerManager(object):
         service_info = self._get_service_configuration(uuid, detailed=True)
         self._start_service(uuid, containers, service_info)
 
-    """
-    Allocate a new compute cluster.
-    """
     def allocate_compute(self,
                          compute_type, 
                          storage_uuid,
                          args, 
                          num_instances=1,
                          layers=[]):
+        """
+        Allocate a new compute cluster.
+        """
         # Allocate a UUID.
         service_uuid = self._new_service_uuid()
         service = self._get_service(compute_type)
@@ -960,16 +960,16 @@ class DockerManager(object):
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
                         
-    """
-    Create a storage cluster and start a particular
-    personality on that cluster. 
-    """
     def allocate_storage(self, 
                          storage_type, 
                          num_instances=1,
                          layers=[], 
                          args=None,
                          replace=False):
+        """
+        Create a storage cluster and start a particular
+        personality on that cluster. 
+        """
         # Allocate a UUID.
         service_uuid = self._new_service_uuid()
         service = self._get_service(storage_type)
@@ -1000,16 +1000,16 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service)
         return service_uuid, containers
 
-    """
-    Get the default deployment conf file. 
-    """
     def _get_default_conf(self):        
+        """
+        Get the default deployment conf file. 
+        """
         return FERRY_HOME + '/data/conf/deploy_default.json'
 
-    """
-    Get the deployment configuration parameters. 
-    """
     def _get_deploy_params(self, mode, conf):
+        """
+        Get the deployment configuration parameters. 
+        """
         # First just find and read the configuration file. 
         if conf == 'default':
             conf = self._get_default_conf()
@@ -1025,10 +1025,10 @@ class DockerManager(object):
                     return j[mode]
         return None
 
-    """
-    Deploy an existing stack. 
-    """
     def deploy_stack(self, cluster_uuid, params=None):
+        """
+        Deploy an existing stack. 
+        """
         containers = []
         cluster = self.cluster_collection.find_one( {'uuid':cluster_uuid} )
         if cluster:
@@ -1045,12 +1045,13 @@ class DockerManager(object):
             if params and 'start-on-create' in params:
                 return True
         return False
-    """
-    Manage the stack.
-    """
+
     def manage_stack(self,
                      stack_uuid,
                      action):
+        """
+        Manage the stack.
+        """
         status = 'running'
         if(action == 'snapshot'):        
             # The user wants to take a snapshot of the current stack. This
@@ -1078,10 +1079,10 @@ class DockerManager(object):
                  'status' : True,
                  'msg': status }
 
-    """
-    Lookup the stopped backend info. 
-    """
     def fetch_stopped_backend(self, uuid):
+        """
+        Lookup the stopped backend info. 
+        """
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
             backends = []
@@ -1101,19 +1102,19 @@ class DockerManager(object):
             return backends
             
 
-    """
-    Lookup the snapshot backend info. 
-    """
     def fetch_snapshot_backend(self, snapshot_uuid):
+        """
+        Lookup the snapshot backend info. 
+        """
         snapshot = self.cluster_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if snapshot:
             logging.warning("SNAPSHOT BACKEND: " + str(snapshot['backends']))
             return snapshot['backends']['backend']
 
-    """
-    Lookup the deployed backend info. 
-    """
     def fetch_deployed_backend(self, app_uuid, conf=None):
+        """
+        Lookup the deployed backend info. 
+        """
         app = self.deploy.find( one = True,
                                 spec = { 'uuid' : app_uuid },
                                 conf = conf )
@@ -1121,13 +1122,13 @@ class DockerManager(object):
         if stack:
             return stack['backends']['backend']
 
-    """
-    Lookup the deployed application connector info and instantiate. 
-    """
     def allocate_stopped_connectors(self, 
                                      app_uuid, 
                                      backend_info,
                                      conf = None):
+        """
+        Lookup the deployed application connector info and instantiate. 
+        """
         connector_info = []
         connector_plan = []
         cluster = self.cluster_collection.find_one( {'uuid':app_uuid} )
@@ -1147,13 +1148,13 @@ class DockerManager(object):
                     self.restart_containers(cuid, containers)
         return connector_info, connector_plan
 
-    """
-    Lookup the deployed application connector info and instantiate. 
-    """
     def allocate_deployed_connectors(self, 
                                      app_uuid, 
                                      backend_info,
                                      conf = None):
+        """
+        Lookup the deployed application connector info and instantiate. 
+        """
         connector_info = []
         connector_plan = []
         app = self.deploy.find( one = True,
@@ -1174,12 +1175,12 @@ class DockerManager(object):
                                          'start' : 'start' } )
         return connector_info, connector_plan
                 
-    """
-    Lookup the snapshot connector info and instantiate. 
-    """
     def allocate_snapshot_connectors(self, 
                                      snapshot_uuid, 
                                      backend_info):
+        """
+        Lookup the snapshot connector info and instantiate. 
+        """
         connector_info = []
         connector_plan = []
         snapshot = self.snapshot_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
@@ -1199,13 +1200,13 @@ class DockerManager(object):
         return connector_info, connector_plan
                 
 
-    """
-    Restart a stopped connector with an existing storage service. 
-    """
     def _restart_connectors(self,
                             service_uuid, 
                             connectors, 
                             backend=None):
+        """
+        Restart a stopped connector with an existing storage service. 
+        """
         # Initialize the connector and connect to the storage. 
         storage_entry = []
         compute_entry = []
@@ -1246,9 +1247,6 @@ class DockerManager(object):
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
                 
-    """
-    Allocate a new connector and associate with an existing storage service. 
-    """
     def allocate_connector(self,
                            connector_type, 
                            backend=None,
@@ -1256,6 +1254,9 @@ class DockerManager(object):
                            args=None,
                            ports=None, 
                            image=None):
+        """
+        Allocate a new connector and associate with an existing storage service. 
+        """
         # Initialize the connector and connect to the storage. 
         storage_entry = []
         compute_entry = []
@@ -1315,8 +1316,15 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service_info)
         return service_uuid, containers
 
-    """
-    Fetch the current docker version.
-    """
+
+    def login_registry(self):
+        """
+        Login to a remote registry.
+        """
+        return self.docker.login()
+
     def version(self):
+        """
+        Fetch the current docker version.
+        """
         return self.docker.version()
