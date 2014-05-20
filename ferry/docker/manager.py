@@ -1326,7 +1326,7 @@ class DockerManager(object):
         """
         Pull a remote image to the local registry. 
         """
-        logging.warning("pull image")
+        return self.docker.pull(image)
 
     def login_registry(self):
         """

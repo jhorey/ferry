@@ -227,6 +227,12 @@ class DockerFabric(object):
         """        
         self.cli.push(image, registry)
 
+    def pull(self, image):
+        """
+        Pull a remote image to the local registry. 
+        """        
+        return self.cli.pull(image)
+
     def halt(self, containers):
         """
         Safe stop the containers. 

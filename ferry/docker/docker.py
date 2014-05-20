@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
-import os
 import json
 import logging
+import os
 import re
+import sys
 from subprocess import Popen, PIPE
 
 DOCKER_SOCK='unix:////var/run/ferry.sock'
@@ -205,8 +206,7 @@ class DockerCLI(object):
                 if out == '':
                     break
                 else:
-                    sys.stdout.write(out)
-                    sys.stdout.flush()
+                    logging.warning("downloading image...")
             except IOError as e:
                 logging.warning(e)
 
@@ -219,14 +219,15 @@ class DockerCLI(object):
         except IOError:
             pass
 
-    def pull(self image):
+    def pull(self, image):
         """
         Pull a remote image to the local registry. 
         """
         pull = self.docker + ' ' + self.pull_cmd + ' ' + image
         logging.warning(pull)
-        child = Popen(pull, stdout=PIPE, shell=True)
+        child = Popen(pull, stdout=PIPE, stderr=PIPE, shell=True)
         self._continuous_print(child)
+        return True
 
     def commit(self, container, snapshot_name):
         """
