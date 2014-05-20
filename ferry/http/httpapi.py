@@ -493,6 +493,32 @@ def login_registry():
         return "success"
     else:
         return "fail"
+
+@app.route('/image', methods=['POST'])
+def push_image():
+    """
+    Push a local image to a remote registry. 
+    """
+    image = request.form['image']
+    if 'server' in request.form:
+        registry = request.form['server']
+    else:
+        registry = None
+    if docker.push_image(image, registry):
+        return "success"
+    else:
+        return "fail"
+
+@app.route('/image', methods=['GET'])
+def pull_image():
+    """
+    Pull a remote image to the local registry. 
+    """
+    image = request.args['image']
+    if docker.pull_image(image):
+        return "success"
+    else:
+        return "fail"
     
 @app.route('/create', methods=['POST'])
 def allocate_stack():

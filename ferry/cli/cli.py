@@ -76,12 +76,27 @@ class CLI(object):
         Pull a remote image to the local registry. 
         """
         logging.warning("pulling "  + image)
+        try:
+            payload = { 'image' : image } 
+            res = requests.get(self.ferry_server + '/image', params=payload)
+            return str(res.text)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
-    def _push(self, image):
+    def _push(self, image, registry):
         """
         Push a local image to a remote registry. 
         """
         logging.warning("pushing "  + image)
+        try:
+            payload = { 'image' : image,
+                        'server' : registry } 
+            res = requests.post(self.ferry_server + '/image', data=payload)
+            return str(res.text)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
     def _build(self, dockerfile):
         """
@@ -541,7 +556,12 @@ class CLI(object):
         elif(cmd == 'pull'):
             return self._pull(args[0])
         elif(cmd == 'push'):
-            return self._push(args[0])
+            image = args.pop(0)
+            if len(args) > 0:
+                registry = args.pop(0)
+            else:
+                registry = None
+            return self._push(image, registry)
         elif(cmd == 'login'):
             return self._login()
         elif(cmd == 'help'):

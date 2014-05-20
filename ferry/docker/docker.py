@@ -83,6 +83,7 @@ class DockerCLI(object):
         self.images_cmd = 'images'
         self.commit_cmd = 'commit'
         self.push_cmd = 'push'
+        self.pull_cmd = 'pull'
         self.stop_cmd = 'stop'
         self.tag_cmd = 'tag'
         self.rm_cmd = 'rm'
@@ -181,20 +182,51 @@ class DockerCLI(object):
             logging.error(output.strip())
             return False
 
-    def push(self, container, registry):
+    def push(self, image, registry=None):
         """
         Push an image to a remote registry.
         """
-        raw_image_name = container.image.split("/")[1]
-        new_image = "%s/%s" % (registry, raw_image_name)
-
-        tag = self.docker + ' ' + self.tag_cmd + ' ' + container.image + ' ' + new_image
+        if registry:
+            raw_image_name = image.split("/")[1]
+            new_image = "%s/%s" % (registry, raw_image_name)
+            tag = self.docker + ' ' + self.tag_cmd + ' ' + image + ' ' + new_image
+            logging.warning(tag)
+            Popen(tag, stdout=PIPE, shell=True).stdout.read()
+        else:
+            new_image = image
         push = self.docker + ' ' + self.push_cmd + ' ' + new_image
-        logging.warning(tag)
         logging.warning(push)
-        
-        Popen(tag, stdout=PIPE, shell=True).stdout.read()
         Popen(push, stdout=PIPE, shell=True).stdout.read()
+
+    def _continuous_print(self, process):
+        while True:
+            try:
+                out = process.stdout.read(15)
+                if out == '':
+                    break
+                else:
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
+            except IOError as e:
+                logging.warning(e)
+
+        try:
+            errmsg = process.stderr.readline()
+            if errmsg and errmsg != '':
+                logging.warning(errmsg)
+            else:
+                logging.warning("downloaded image!")
+        except IOError:
+            pass
+
+    def pull(self image):
+        """
+        Pull a remote image to the local registry. 
+        """
+        pull = self.docker + ' ' + self.pull_cmd + ' ' + image
+        logging.warning(pull)
+        child = Popen(pull, stdout=PIPE, shell=True)
+        self._continuous_print(child)
 
     def commit(self, container, snapshot_name):
         """

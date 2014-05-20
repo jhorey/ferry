@@ -218,8 +218,14 @@ class DockerFabric(object):
             if not registry:
                 self.cli.commit(c, image_name)
             else:
-                self.cli.push(c, registry)
+                self.cli.push(c.image, registry)
         return deployed
+
+    def push(self, image, registry=None):
+        """
+        Push an image to a remote registry.
+        """        
+        self.cli.push(image, registry)
 
     def halt(self, containers):
         """
@@ -282,3 +288,4 @@ class DockerFabric(object):
                                       registry = server)
         logging.error("Could not open login credentials " + ferry.install.DEFAULT_LOGIN_KEY)
         return False
+

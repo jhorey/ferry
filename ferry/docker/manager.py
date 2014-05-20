@@ -1316,6 +1316,17 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service_info)
         return service_uuid, containers
 
+    def push_image(self, image, registry=None):
+        """
+        Push a local image to a remote registry.         
+        """
+        return self.docker.push(image, registry)
+
+    def pull_image(self, image):
+        """
+        Pull a remote image to the local registry. 
+        """
+        logging.warning("pull image")
 
     def login_registry(self):
         """
