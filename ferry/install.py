@@ -55,7 +55,27 @@ def _supported_arch():
 
 def _supported_lxc():
     output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
-    ver = tuple(map(int, (output.strip().split(".")[:3])))
+
+    # Ignore all non-numeric strings in the
+    # versioning information. 
+    cleaned = []
+    tuples = output.strip().split(".")[:3]
+    for t in tuples: 
+        m = re.compile('(\d)*').match(t)
+        if m and len(m.groups()) > 0 and m.group(1) != '':
+            cleaned.append(m.group(1))
+        else:
+            cleaned.append(str(0))
+
+    # We need our tuples to be exactly three values. If
+    # there are more values, add a zero. 
+    for i in range(3 - len(cleaned)):
+        cleaned.append(0)
+
+    # Now compare the tuples. We need at least version 0.7.5. This
+    # assumes that lxc-version info is consistent across distributions
+    # which may not be true...
+    ver = tuple(map(int, cleaned))
     return ver > (0, 7, 5)
 
 def _supported_python():
