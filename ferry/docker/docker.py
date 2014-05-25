@@ -183,6 +183,28 @@ class DockerCLI(object):
             logging.error(output.strip())
             return False
 
+    def _continuous_print(self, process, msg):
+        while True:
+            try:
+                out = process.stdout.read(15)
+                if out == '':
+                    break
+                else:
+                    logging.warning(msg)
+            except IOError as e:
+                logging.warning(e)
+
+        try:
+            errmsg = process.stderr.readline()
+            if errmsg and errmsg != '':
+                logging.error(errmsg)
+                return False
+            else:
+                logging.warning("downloaded image!")
+        except IOError:
+            pass
+        return True
+
     def push(self, image, registry=None):
         """
         Push an image to a remote registry.
@@ -192,32 +214,13 @@ class DockerCLI(object):
             new_image = "%s/%s" % (registry, raw_image_name)
             tag = self.docker + ' ' + self.tag_cmd + ' ' + image + ' ' + new_image
             logging.warning(tag)
-            Popen(tag, stdout=PIPE, shell=True).stdout.read()
+            Popen(tag, shell=True)
         else:
             new_image = image
         push = self.docker + ' ' + self.push_cmd + ' ' + new_image
         logging.warning(push)
-        Popen(push, stdout=PIPE, shell=True).stdout.read()
-
-    def _continuous_print(self, process):
-        while True:
-            try:
-                out = process.stdout.read(15)
-                if out == '':
-                    break
-                else:
-                    logging.warning("downloading image...")
-            except IOError as e:
-                logging.warning(e)
-
-        try:
-            errmsg = process.stderr.readline()
-            if errmsg and errmsg != '':
-                logging.warning(errmsg)
-            else:
-                logging.warning("downloaded image!")
-        except IOError:
-            pass
+        child = Popen(push, stdout=PIPE, stderr=PIPE, shell=True).stdout.read()
+        return self._continuous_print(child, "uploading image...")
 
     def pull(self, image):
         """
@@ -226,8 +229,7 @@ class DockerCLI(object):
         pull = self.docker + ' ' + self.pull_cmd + ' ' + image
         logging.warning(pull)
         child = Popen(pull, stdout=PIPE, stderr=PIPE, shell=True)
-        self._continuous_print(child)
-        return True
+        return self._continuous_print(child, "downloading image...")
 
     def commit(self, container, snapshot_name):
         """
@@ -239,7 +241,7 @@ class DockerCLI(object):
         # Construct a new container using the given snapshot name. 
         cmd = self.docker + ' ' + self.commit_cmd + ' ' + run_cmd + ' ' + container.container + ' ' + snapshot_name
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        Popen(cmd, shell=True)
 
     """
     Stop a running container

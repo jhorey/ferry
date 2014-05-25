@@ -225,7 +225,7 @@ class DockerFabric(object):
         """
         Push an image to a remote registry.
         """        
-        self.cli.push(image, registry)
+        return self.cli.push(image, registry)
 
     def pull(self, image):
         """
