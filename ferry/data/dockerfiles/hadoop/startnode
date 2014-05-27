@@ -20,6 +20,7 @@ elif [ $1 == "start" ]; then
 	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
     elif [ $2 == "yarnmaster" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
+	su ferry -c '/service/packages/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver --config /service/conf'
     elif [ $2 == "yarnslave" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
     elif [ $2 == "gluster" ]; then 
@@ -35,6 +36,7 @@ elif [ $1 == "restart" ]; then
 	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
     elif [ $2 == "yarnmaster" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
+	su ferry -c '/service/packages/hadoop/sbin/mr-jobhistory-daemon.sh stop historyserver --config /service/conf'
     elif [ $2 == "yarnslave" ]; then	
 	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
     elif [ $2 == "gluster" ]; then 

@@ -267,7 +267,7 @@ class HadoopInitializer(object):
     """
     Generate the mapred-site configuration. 
     """
-    def _generate_mapred_site(self, config, containers, new_config_dir, container=None):
+    def _generate_mapred_site(self, yarn_master, config, containers, new_config_dir, container=None):
         mapred_in_file = open(self.template_dir + '/mapred-site.xml.template', 'r')
         mapred_out_file = open(new_config_dir + '/mapred-site.xml', 'w+')
 
@@ -282,7 +282,7 @@ class HadoopInitializer(object):
                     "NODE_MAPS":map_per_node,
                     "JOB_REDUCES":job_reduces,
                     "JOB_MAPS":job_maps,
-                    "HISTORY_SERVER":"0.0.0.0"}
+                    "HISTORY_SERVER":yarn_master}
 
         # Generate the temp area. This differs depending on whether
         # we need to be container specific or not. 
@@ -340,7 +340,7 @@ class HadoopInitializer(object):
             entry_point['instances'].append([c['data_ip'], c['host_name']])
 
             # Generate some mapred-site config
-            self._generate_mapred_site(config, containers, new_config_dir)
+            self._generate_mapred_site(yarn_master, config, containers, new_config_dir)
             self._generate_mapred_env(yarn_master, new_config_dir)
 
             # Now generate the yarn config files
