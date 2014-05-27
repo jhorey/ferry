@@ -1,8 +1,8 @@
 metadata:
-   author:James Horey
-   version:0.2.0
-   description:Hadoop stack
-   tags:[infrastructure,hadoop]
+   author: James Horey
+   version: 0.2.0
+   description: Hadoop stack
+   tags: [infrastructure,hadoop]
 backend:
    - storage:
         personality: "hadoop"

@@ -1,8 +1,8 @@
 metadata:
-   author:James Horey
-   version:0.2.0
-   description:Open MPI over GlusterFS
-   tags:[infrastructure,openmpi,glusterfs]
+   author: James Horey
+   version: 0.2.0
+   description: Open MPI over GlusterFS
+   tags: [infrastructure,openmpi,glusterfs]
 backend:
    - storage:
         personality: "gluster"

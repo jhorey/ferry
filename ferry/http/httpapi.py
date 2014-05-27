@@ -554,11 +554,11 @@ def query_deployed():
 
     return docker.query_deployed(params)
 
-"""
-Query the stacks.
-"""
 @app.route('/query', methods=['GET'])
 def query_stacks():
+    """
+    Query the stacks.
+    """
     if 'constraints' in request.args:
         constraints = json.loads(request.args['constraints'])
         return docker.query_stacks(constraints)

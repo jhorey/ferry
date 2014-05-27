@@ -25,6 +25,7 @@ import stat
 import sys
 import time
 import uuid
+import yaml
 from pymongo import MongoClient
 from sets import Set
 from ferry.install import *
@@ -276,25 +277,49 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
+    def _read_file_arg(self, file_name):
+        """
+        Helper method to read a file.
+        """
+        json_file = open(os.path.abspath(file_name), 'r')
+        json_text = ''
+
+        for line in json_file:
+            json_text += line.strip()
+
+        return json_text
+
+    def _query_application(self, directory):
+        apps = {}
+        for subdir, dirs, files in os.walk(directory):
+            for f in files:
+                n, e = os.path.splitext(f)
+                file_path = os.path.abspath(os.path.join(subdir, f))
+                content = None
+                if e == '.json':
+                    json_string = self._read_file_arg(file_path)
+                    content = json.loads(json_string)
+                elif e == '.yaml' or e == '.yml':
+                    yaml_file = open(file_path, 'r')
+                    content = yaml.load(yaml_file)
+
+                if content and 'metadata' in content:
+                    apps[n] = { 'author' : content['metadata']['author'],
+                                'version': content['metadata']['version'],
+                                'description': content['metadata']['description'][:21] + "..." }
+                else:
+                    apps[n] = { 'author' : "Unknown",
+                                'version': "Unknown",
+                                'description': "Unknown" }
+        return apps
+
     def query_applications(self):
         """
         Get list of installed applications.
         """
-        apps = set()
-        # First look in the Ferry home directory. 
-        builtin_apps = ferry.install.DEFAULT_BUILTIN_APPS
-        for subdir, dirs, files in os.walk(builtin_apps):
-            for f in files:
-                name, _ = f.split(".")
-                apps.add(name)
-
-        # Now look in the installed directory. 
-        builtin_apps = ferry.install.DEFAULT_FERRY_APPS
-        for subdir, dirs, files in os.walk(builtin_apps):
-            for f in files:
-                name, _ = f.split(".")
-                apps.add(name)
-        return json.dumps(list(apps))
+        builtin = self._query_application(ferry.install.DEFAULT_BUILTIN_APPS)
+        installed = self._query_application(ferry.install.DEFAULT_FERRY_APPS)
+        return json.dumps(dict(builtin.items() + installed.items()))
         
     def query_snapshots(self, constraints=None):
         """

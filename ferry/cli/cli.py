@@ -271,8 +271,19 @@ class CLI(object):
                 logging.error(reply)
 
     def _format_apps_query(self, json_data):
+        authors = []
+        versions = []
+        descriptions = []
+        for app in json_data.keys():
+            authors.append(json_data[app]['author'])
+            versions.append(json_data[app]['version'])
+            descriptions.append(json_data[app]['description'])            
+
         t = PrettyTable()
-        t.add_column("App", json_data)
+        t.add_column("App", json_data.keys())
+        t.add_column("Author", authors)
+        t.add_column("Version", versions)
+        t.add_column("Description", descriptions)
         return t.get_string(sortby="App",
                             padding_width=2)
         
@@ -378,6 +389,7 @@ class CLI(object):
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+
     def _list_snapshots(self):
         """
         List all snapshots.
@@ -464,10 +476,10 @@ class CLI(object):
                 return m.group(1)
         return default
 
-    """
-    Deploy the stack. 
-    """        
     def _deploy_stack(self, stack_id, args):
+        """
+        Deploy the stack. 
+        """
         mode = self._parse_deploy_arg('mode', args, default='local')
         conf = self._parse_deploy_arg('conf', args, default='default')
 
@@ -481,10 +493,10 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
-    """
-    Manage the stack. 
-    """
     def _manage_stacks(self, stack_info):
+        """
+        Manage the stack. 
+        """
         try:
             res = requests.post(self.ferry_server + '/manage/stack', data=stack_info)
             return str(res.text)        
@@ -492,16 +504,16 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
         
-    """
-    Output the help message.
-    """
     def _print_help(self):
+        """
+        Output the help message.
+        """
         return self.cmds.print_help()
 
-    """
-    Output version information.
-    """
     def _print_info(self):
+        """
+        Output version information.
+        """
         try:
             res = requests.get(self.ferry_server + '/version')
             s = self.cmds.description + '\n'
@@ -513,10 +525,10 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
         
-    """
-    Helper method to read a file.
-    """
     def _read_file_arg(self, file_name):
+        """
+        Helper method to read a file.
+        """
         json_file = open(os.path.abspath(file_name), 'r')
         json_text = ''
 
@@ -525,11 +537,11 @@ class CLI(object):
 
         return json_text
 
-    """
-    Read the location of the directory containing the keys
-    used to communicate with the containers. 
-    """
     def _read_key_dir(self):
+        """
+        Read the location of the directory containing the keys
+        used to communicate with the containers. 
+        """
         f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
         k = f.read().strip().split("://")
         return k[1], k[0]
