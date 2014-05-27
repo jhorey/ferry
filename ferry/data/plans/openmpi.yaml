@@ -1,12 +1,15 @@
+metadata:
+   author:James Horey
+   version:0.2.0
+   description:Open MPI over GlusterFS
+   tags:[infrastructure,openmpi,glusterfs]
 backend:
    - storage:
         personality: "gluster"
-        instances: 2
+        instances: ">=1"
      compute:
         - personality: "openmpi"
-          instances: 2
-          layers: 
-             - "hive"
+          instances: ">=1"
 connectors:
    - personality: "ferry/openmpi-client"
      name: "control-0"

@@ -276,10 +276,30 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
-    """
-    Query the available snapshots. 
-    """
+    def query_applications(self):
+        """
+        Get list of installed applications.
+        """
+        apps = set()
+        # First look in the Ferry home directory. 
+        builtin_apps = ferry.install.DEFAULT_BUILTIN_APPS
+        for subdir, dirs, files in os.walk(builtin_apps):
+            for f in files:
+                name, _ = f.split(".")
+                apps.add(name)
+
+        # Now look in the installed directory. 
+        builtin_apps = ferry.install.DEFAULT_FERRY_APPS
+        for subdir, dirs, files in os.walk(builtin_apps):
+            for f in files:
+                name, _ = f.split(".")
+                apps.add(name)
+        return json.dumps(list(apps))
+        
     def query_snapshots(self, constraints=None):
+        """
+        Query the available snapshots. 
+        """
         json_reply = {}
 
         values = self.snapshot_collection.find()

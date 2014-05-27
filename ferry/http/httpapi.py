@@ -564,18 +564,26 @@ def query_stacks():
         return docker.query_stacks(constraints)
     else:
         return docker.query_stacks()
-"""
-Query the snapshots
-"""
+
 @app.route('/snapshots', methods=['GET'])
 def snapshots():
+    """
+    Query the snapshots
+    """
     return docker.query_snapshots()
 
-"""
-Inspect a particular stack.
-"""
+@app.route('/apps', methods=['GET'])
+def apps():
+    """
+    Get list of installed applications.
+    """
+    return docker.query_applications()
+
 @app.route('/stack', methods=['GET'])
 def inspect():
+    """
+    Inspect a particular stack.
+    """
     uuid = request.args['uuid']
     return docker.inspect_stack(uuid)
 

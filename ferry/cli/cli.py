@@ -57,6 +57,7 @@ class CLI(object):
         self.cmds.add_cmd("install", "Install the Ferry images")
         self.cmds.add_cmd("login", "Login to Ferry servers")
         self.cmds.add_cmd("logs", "Copy over the logs to the host")
+        self.cmds.add_cmd("ls", "View installed applications")
         self.cmds.add_cmd("ps", "List deployed and running services")
         self.cmds.add_cmd("pull", "Pull a remote image")
         self.cmds.add_cmd("push", "Push an image to a remote registry")
@@ -68,12 +69,12 @@ class CLI(object):
         self.cmds.add_cmd("stop", "Stop a running service")
         self.cmds.add_cmd("quit", "Stop the Ferry servers")
 
-        
-        self.fery_apps = self.ferry_db['apps']['clusters']
         self.ferry_server = 'http://127.0.0.1:4000'
-        self.ferry_db = os.environ['FERRY_API_SERVER']
         self.default_user = 'root'
         self.installer = Installer()
+
+        if 'FERRY_API_SERVER' in os.environ:
+            self.ferry_db = os.environ['FERRY_API_SERVER']
 
     def _pull_image(self, image):
         """
@@ -269,6 +270,12 @@ class CLI(object):
             except ValueError as e:
                 logging.error(reply)
 
+    def _format_apps_query(self, json_data):
+        t = PrettyTable()
+        t.add_column("App", json_data)
+        return t.get_string(sortby="App",
+                            padding_width=2)
+        
     def _format_snapshots_query(self, json_data):
         bases = []
         date = []
@@ -360,7 +367,21 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
+    def _list_apps(self):
+        """
+        List all installed applications including the built-in applications.
+        """
+        try:
+            res = requests.get(self.ferry_server + '/apps')
+            json_reply = json.loads(res.text)
+            return self._format_apps_query(json_reply)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
     def _list_snapshots(self):
+        """
+        List all snapshots.
+        """
         try:
             res = requests.get(self.ferry_server + '/snapshots')
             json_reply = json.loads(res.text)
@@ -658,6 +679,8 @@ class CLI(object):
             self._check_ssh_key()
             stack_id = args.pop(0)
             return self._deploy_stack(stack_id, args)
+        elif(cmd == 'ls'):
+            return self._list_apps()
         elif(cmd == 'info'):
             return self._print_info()
         elif(cmd == 'build'):
