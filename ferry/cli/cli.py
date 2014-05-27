@@ -20,6 +20,7 @@ import json
 import logging
 import logging.config
 import os
+from pymongo import MongoClient
 import pwd
 import requests
 import re
@@ -67,15 +68,17 @@ class CLI(object):
         self.cmds.add_cmd("stop", "Stop a running service")
         self.cmds.add_cmd("quit", "Stop the Ferry servers")
 
+        
+        self.fery_apps = self.ferry_db['apps']['clusters']
         self.ferry_server = 'http://127.0.0.1:4000'
+        self.ferry_db = os.environ['FERRY_API_SERVER']
         self.default_user = 'root'
         self.installer = Installer()
 
-    def _pull(self, image):
+    def _pull_image(self, image):
         """
         Pull a remote image to the local registry. 
         """
-        logging.warning("pulling "  + image)
         try:
             payload = { 'image' : image } 
             res = requests.get(self.ferry_server + '/image', params=payload)
@@ -84,11 +87,64 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
-    def _push(self, image, registry):
+    def _pull_app(self, app):
+        """
+        Pull a local application to Ferry servers. 
+        """
+        # First find all the images that need to
+        # be pulled from the Docker registry. 
+        with open(app, "r") as f:
+            images = self._get_user_images(f)
+            for i in images:
+                self._pull_image(i)
+
+        # Now download the application description
+        # from the Ferry servers. 
+        account, key = self.installer.get_ferry_account()
+        if account:
+            # Read in the contents of the application and
+            # generate the API key. 
+            with open(app, "r") as f:
+                content = f.read()
+                req = { 'action' : 'fetch',
+                        'app' : app,
+                        'account' : account }
+                sig = self.installer.create_signature(json.dumps(req), key)
+        try:
+            payload = { 'id' : account,
+                        'sig' : sig }
+            res = requests.get(self.ferry_db + '/app', params=payload)
+            self.installer.store_app(app, res.text)
+            return app
+        except ConnectionError:
+            logging.error("could not connect to application server")
+            return "failed"
+
+    def _pull(self, image):
+        """
+        Pull a remote application/image to the local registry. 
+        """
+        logging.warning("pulling "  + image)
+
+        # Figure out if we're pushing a Ferry application or 
+        # plain Docker image. 
+        s = image.split("://")
+        if len(s) > 1:
+            proto = s[0]
+            image = s[1]
+        else:
+            proto = "image"
+            image = s[0]
+
+        if proto == "image":
+            return self._pull_image(image, registry)
+        else:
+            return self._pull_app(image)
+
+    def _push_image(self, image, registry):
         """
         Push a local image to a remote registry. 
         """
-        logging.warning("pushing "  + image)
         try:
             payload = { 'image' : image,
                         'server' : registry } 
@@ -97,6 +153,59 @@ class CLI(object):
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+
+    def _push_app(self, app):
+        """
+        Push a local application to Ferry servers. 
+        """
+        # First find all the images that need to
+        # be pushed to the Docker registry. 
+        with open(app, "r") as f:
+            images = self._get_user_images(f)
+            for i in images:
+                self._push_image(i)
+
+        # Register the application in the Ferry database. 
+        account, key = self.installer.get_ferry_account()
+        if account:
+            # Read in the contents of the application and
+            # generate the API key. 
+            with open(app, "r") as f:
+                content = f.read()
+                req = { 'action' : 'register',
+                        'app' : app,
+                        'content' : content,
+                        'account' : account }
+                sig = self.installer.create_signature(json.dumps(req), key)
+        try:
+            payload = { 'id' : account,
+                        'sig' : sig }
+            res = requests.post(self.ferry_db + '/app', data=payload)
+            return str(res.text)
+        except ConnectionError:
+            logging.error("could not connect to application server")
+            return "Could not register the application."
+
+    def _push(self, image, registry):
+        """
+        Push a local appliation/image to a remote registry. 
+        """
+        logging.warning("pushing "  + image)
+
+        # Figure out if we're pushing a Ferry application or 
+        # plain Docker image. 
+        s = image.split("://")
+        if len(s) > 1:
+            proto = s[0]
+            image = s[1]
+        else:
+            proto = "image"
+            image = s[0]
+
+        if proto == "image":
+            return self._push_image(image, registry)
+        else:
+            return self._push_app(image)
 
     def _build(self, dockerfile):
         """

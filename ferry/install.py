@@ -13,8 +13,11 @@
 # limitations under the License.
 #
 
+import base64
 import ferry
 import grp
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -106,6 +109,7 @@ DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_DIR='/var/lib/ferry'
 DOCKER_PID='/var/run/ferry.pid'
+DEFAULT_FERRY_APPS='/var/lib/ferry/apps'
 DEFAULT_MONGO_DB='/var/lib/ferry/mongo'
 DEFAULT_MONGO_LOG='/var/lib/ferry/mongolog'
 DEFAULT_REGISTRY_DB='/var/lib/ferry/registry'
@@ -116,7 +120,36 @@ class Installer(object):
     def __init__(self):
         self.network = DHCPClient()
 
+    def get_ferry_account(self):
+        """
+        Read in the remote Ferry DB account information. Used
+        for registering applications. 
+        """
+        with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
+            args = yaml.load(f)
+            args = args['ferry']
+            if all(k in args for k in ("user","key")):
+                return args['user'], args['key']
+        return None, None
+
+    def create_signature(self, request, key):
+        """
+        Generated a signed request.
+        """
+        return hmac.new(key, request, hashlib.sha256).digest()
+
+    def store_app(self, app, content):
+        """
+        Store the application in the global directory. 
+        """
+        file_name = os.path.join(DEFAULT_FERRY_APPS, app + ".yml")
+        with open(file_name, "w") as f:
+            f.write(content)
+
     def _read_key_dir(self):
+        """
+        Find the directory containing the container keys. 
+        """
         f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
         k = f.read().strip().split("://")
         return k[1], k[0]

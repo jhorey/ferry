@@ -76,6 +76,7 @@ class CassandraInitializer(object):
         ports.append(CassandraConfig.THRIFT_COM_PORT)
         ports.append(CassandraConfig.NATIVE_COM_PORT)
         ports.append(CassandraConfig.JMX_PORT)
+        ports.append(CassandraConfig.RMI_PORT)
 
         return ports
 
@@ -207,6 +208,7 @@ class CassandraConfig(object):
     THRIFT_COM_PORT  = 9160
     NATIVE_COM_PORT  = 9042
     JMX_PORT         = 7199
+    RMI_PORT         = 7200
 
     def __init__(self, num):
         self.num = num
