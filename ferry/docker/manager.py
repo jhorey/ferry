@@ -218,10 +218,41 @@ class DockerManager(object):
             for i in c['instances']:
                 self._copy_instance_logs(i, storage_dir)
 
-    """
-    Inspect a deployed stack. 
-    """
+    def _inspect_application(self, app, directory):
+        """
+        Read out the contents of an application
+        """
+        s = app.split('/')
+        if len(s) > 1:
+            name = s[1]
+        else:
+            name = s[0]
+
+        dir_path = os.path.dirname(os.path.join(directory, app))
+        if os.path.exists(dir_path):
+            for item in os.listdir(dir_path):
+                n, e = item.split('.')
+                if n == name:
+                    with open(os.path.join(dir_path, item), 'r') as f:
+                        return f.read()
+
+    def inspect_installed(self, app):
+        """
+        Inspect an installed application
+        """
+        content = self._inspect_application(app, ferry.install.DEFAULT_BUILTIN_APPS)
+        if not content:
+            content = self._inspect_application(app, ferry.install.DEFAULT_FERRY_APPS)
+        
+        if content:
+            return content
+        else:
+            return ""
+        
     def inspect_deployed(self, uuid, registry):
+        """
+        Inspect a deployed stack. 
+        """
         json_reply = {}
 
         # Need to inspect the registry to make sure
@@ -232,10 +263,10 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
-    """
-    Inspect a running stack. 
-    """
     def inspect_stack(self, stack_uuid):
+        """
+        Inspect a running stack. 
+        """
         json_reply = {}
 
         # Get the collection of all backends and connector UUIDS.
@@ -271,7 +302,8 @@ class DockerManager(object):
 
         # Now append some snapshot info. 
         json_reply['snapshots'] = self._get_snapshot_info(stack_uuid)
-
+           
+        json_reply['status'] = 'stack'
         return json.dumps(json_reply, 
                           sort_keys=True,
                           indent=2,
@@ -289,30 +321,42 @@ class DockerManager(object):
 
         return json_text
 
-    def _query_application(self, directory):
-        apps = {}
-        for subdir, dirs, files in os.walk(directory):
-            for f in files:
-                n, e = os.path.splitext(f)
-                file_path = os.path.abspath(os.path.join(subdir, f))
-                content = None
-                if e == '.json':
-                    json_string = self._read_file_arg(file_path)
-                    content = json.loads(json_string)
-                elif e == '.yaml' or e == '.yml':
-                    yaml_file = open(file_path, 'r')
-                    content = yaml.load(yaml_file)
-
-                if content and 'metadata' in content:
-                    apps[n] = { 'author' : content['metadata']['author'],
-                                'version': content['metadata']['version'],
-                                'description': content['metadata']['description'][:21] + "..." }
-                else:
-                    apps[n] = { 'author' : "Unknown",
-                                'version': "Unknown",
-                                'description': "Unknown" }
+    def _list_applications(self, directory):
+        apps = set()
+        content = os.listdir(directory)
+        for c in content:
+            if os.path.isdir(os.path.join(directory, c)):
+                user_apps = self._list_applications(os.path.join(directory, c))
+                for u in user_apps:
+                    apps.add(c + '/' + u)
+            else:
+                apps.add(c)
         return apps
 
+    def _query_application(self, directory):
+        apps = {}
+        app_files = self._list_applications(directory)
+        for f in app_files:
+            file_path = directory + '/' + f
+            n, e = f.split(".")
+            content = None
+            if e == 'json':
+                json_string = self._read_file_arg(file_path)
+                content = json.loads(json_string)
+            elif e == 'yaml' or e == 'yml':
+                yaml_file = open(file_path, 'r')
+                content = yaml.load(yaml_file)
+
+            if content and 'metadata' in content:
+                apps[n] = { 'author' : content['metadata']['author'],
+                            'version': content['metadata']['version'],
+                            'description': content['metadata']['description'][:21] + "..." }
+            else:
+                apps[n] = { 'author' : "Unknown",
+                            'version': "Unknown",
+                            'description': "Unknown" }
+        return apps
+    
     def query_applications(self):
         """
         Get list of installed applications.
@@ -427,10 +471,10 @@ class DockerManager(object):
         else:
             return False
 
-    """
-    Check if the application status
-    """
     def _confirm_status(self, uuid, status):
+        """
+        Check if the application status
+        """
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
             return cluster['status'] == status
@@ -441,11 +485,11 @@ class DockerManager(object):
         return self._confirm_status(uuid, 'stopped')
     def is_removed(self, uuid, conf=None):
         return self._confirm_status(uuid, 'removed')
-
-    """
-    Check if the UUID is of a deployed application. 
-    """
+    
     def is_deployed(self, uuid, conf=None):
+        """
+        Check if the UUID is of a deployed application. 
+        """
         v = self.deploy.find( one=True, 
                               spec = {'uuid':uuid},
                               conf = conf )
@@ -454,19 +498,26 @@ class DockerManager(object):
         else:
             return False
 
-    """
-    Get the base image of this cluster. 
-    """
+    def is_installed(self, app):
+        """
+        Indicate whether the application is installed. 
+        """
+        apps = self.query_applications()
+        return app in apps
+
     def get_base_image(self, uuid):
+        """
+        Get the base image of this cluster. 
+        """
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
             return cluster['base']
         return None
 
-    """
-    Create a new data directory
-    """
     def _new_data_dir(self, service_uuid, storage_type, storage_id):
+        """
+        Create a new data directory
+        """
         # Check the location of the scratch directory. If not defined
         # use the current directory
         if 'FERRY_SCRATCH' in os.environ:

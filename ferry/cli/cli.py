@@ -407,22 +407,23 @@ class CLI(object):
                           sort_keys=True,
                           indent=2,
                           separators=(',',':'))
-    """
-    Inspect a specific stack. 
-    """
+
     def _inspect_stack(self, stack_id):
+        """
+        Inspect a specific stack. 
+        """
         payload = { 'uuid':stack_id }
         try:
             res = requests.get(self.ferry_server + '/stack', params=payload)
-            json_value = json.loads(str(res.text))
-            return self._format_stack_inspect(json_value)
+            return res.text
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
-    """
-    Copy over the logs. 
-    """
+
     def _copy_logs(self, stack_id, to_dir):
+        """
+        Copy over the logs. 
+        """
         payload = {'uuid':stack_id,
                    'dir':to_dir}
         try:

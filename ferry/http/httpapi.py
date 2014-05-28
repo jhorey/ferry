@@ -543,11 +543,11 @@ def allocate_stack():
     else:
         return "Could not start " + payload['_file']
 
-"""
-Query the deployed applications.
-"""
 @app.route('/deployed', methods=['GET'])
 def query_deployed():
+    """
+    Query the deployed applications.
+    """
     mode = request.args['mode']
     conf = request.args['conf']
     params = docker._get_deploy_params(mode, conf)
@@ -585,7 +585,10 @@ def inspect():
     Inspect a particular stack.
     """
     uuid = request.args['uuid']
-    return docker.inspect_stack(uuid)
+    if docker.is_running(uuid) or docker.is_stopped(uuid):
+        return docker.inspect_stack(uuid)
+    elif docker.is_installed(uuid):
+        return docker.inspect_installed(uuid)
 
 """
 Copy over logs
