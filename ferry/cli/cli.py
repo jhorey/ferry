@@ -106,7 +106,7 @@ class CLI(object):
                         'sig' : sig }
             res = requests.get(server + '/app', params=payload)
             status = json.loads(res.text)
-            file_name = self.installer.store_app(app, status['ext'], status['content']):
+            file_name = self.installer.store_app(app, status['ext'], status['content'])
             if file_name:
                 content = self._read_app_content(file_name)
                 images = self._get_user_images(content)
@@ -189,7 +189,7 @@ class CLI(object):
                 json_arg = yaml.load(yaml_file)
         return json_arg
 
-    def _push_app(self, app):
+    def _push_app(self, app, registry):
         """
         Push a local application to Ferry servers. 
         """
@@ -199,7 +199,7 @@ class CLI(object):
         if content:
             images = self._get_user_images(content)
             for i in images:
-                self._push_image(i)
+                self._push_image(i, registry)
         
         # Register the application in the Ferry database. 
         account, key, server = self.installer.get_ferry_account()
@@ -257,7 +257,7 @@ class CLI(object):
         if proto == "image":
             return self._push_image(image, registry)
         else:
-            return self._push_app(image)
+            return self._push_app(image, registry)
 
     def _build(self, dockerfile):
         """

@@ -219,7 +219,7 @@ class DockerCLI(object):
             new_image = image
         push = self.docker + ' ' + self.push_cmd + ' ' + new_image
         logging.warning(push)
-        child = Popen(push, stdout=PIPE, stderr=PIPE, shell=True).stdout.read()
+        child = Popen(push, stdout=PIPE, stderr=PIPE, shell=True)
         return self._continuous_print(child, "uploading image...")
 
     def pull(self, image):
