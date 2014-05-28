@@ -20,6 +20,7 @@ import json
 import logging
 import logging.config
 import os
+import os.path
 from pymongo import MongoClient
 import pwd
 import requests
@@ -73,9 +74,6 @@ class CLI(object):
         self.default_user = 'root'
         self.installer = Installer()
 
-        if 'FERRY_API_SERVER' in os.environ:
-            self.ferry_db = os.environ['FERRY_API_SERVER']
-
     def _pull_image(self, image):
         """
         Pull a remote image to the local registry. 
@@ -92,31 +90,28 @@ class CLI(object):
         """
         Pull a local application to Ferry servers. 
         """
-        # First find all the images that need to
-        # be pulled from the Docker registry. 
-        with open(app, "r") as f:
-            images = self._get_user_images(f)
-            for i in images:
-                self._pull_image(i)
-
         # Now download the application description
         # from the Ferry servers. 
-        account, key = self.installer.get_ferry_account()
+        account, key, server = self.installer.get_ferry_account()
         if account:
             # Read in the contents of the application and
             # generate the API key. 
-            with open(app, "r") as f:
-                content = f.read()
-                req = { 'action' : 'fetch',
-                        'app' : app,
-                        'account' : account }
-                sig = self.installer.create_signature(json.dumps(req), key)
+            req = { 'action' : 'fetch',
+                    'app' : app,
+                    'account' : account }
+            sig = self.installer.create_signature(json.dumps(req), key)
         try:
             payload = { 'id' : account,
+                        'app' : app, 
                         'sig' : sig }
-            res = requests.get(self.ferry_db + '/app', params=payload)
-            self.installer.store_app(app, res.text)
-            return app
+            res = requests.get(server + '/app', params=payload)
+            status = json.loads(res.text)
+            if self.installer.store_app(app, status['ext'], status['content']):
+                # Now we need to pull all the images from the
+                # Docker registry. 
+                return app
+            else:
+                return "failed"
         except ConnectionError:
             logging.error("could not connect to application server")
             return "failed"
@@ -159,33 +154,49 @@ class CLI(object):
         """
         Push a local application to Ferry servers. 
         """
-        # First find all the images that need to
-        # be pushed to the Docker registry. 
-        with open(app, "r") as f:
-            images = self._get_user_images(f)
-            for i in images:
-                self._push_image(i)
-
+        # # First find all the images that need to
+        # # be pushed to the Docker registry. 
+        # with open(app, "r") as f:
+        #     images = self._get_user_images(f)
+        #     for i in images:
+        #         self._push_image(i)
+        
         # Register the application in the Ferry database. 
-        account, key = self.installer.get_ferry_account()
+        account, key, server = self.installer.get_ferry_account()
         if account:
             # Read in the contents of the application and
             # generate the API key. 
             with open(app, "r") as f:
+                name = account + '/' + os.path.basename(app)
+                name, ext = os.path.splitext(name)
                 content = f.read()
                 req = { 'action' : 'register',
-                        'app' : app,
-                        'content' : content,
+                        'app' : name,
                         'account' : account }
                 sig = self.installer.create_signature(json.dumps(req), key)
-        try:
-            payload = { 'id' : account,
-                        'sig' : sig }
-            res = requests.post(self.ferry_db + '/app', data=payload)
-            return str(res.text)
-        except ConnectionError:
-            logging.error("could not connect to application server")
-            return "Could not register the application."
+
+                try:
+                    payload = { 'id' : account,
+                                'app' : name, 
+                                'ext' : ext, 
+                                'content' : content,
+                                'sig' : sig }
+                    res = requests.post(server + '/app', data=payload)
+                    status = json.loads(res.text)
+                    if status['status'] == 'fail':
+                        logging.error("failed to register app " + app)
+                        return "Failed to register app " + app
+                    else:
+                        return status['name']
+                except ConnectionError:
+                    logging.error("could not connect to application server")
+                    return "Could not register the application."
+                except ValueError:
+                    logging.error("registration server sent back unknown reply")
+                    return "Registration server sent back unknown reply"
+        else:
+            logging.error("could not read account information")
+            return "Could not read account information."
 
     def _push(self, image, registry):
         """

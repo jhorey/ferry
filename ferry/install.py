@@ -29,6 +29,7 @@ import stat
 import struct
 import sys
 import time
+import yaml
 from distutils import spawn
 from string import Template
 from subprocess import Popen, PIPE
@@ -129,23 +130,28 @@ class Installer(object):
         with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
             args = yaml.load(f)
             args = args['ferry']
-            if all(k in args for k in ("user","key")):
-                return args['user'], args['key']
-        return None, None
+            if all(k in args for k in ("user","key","server")):
+                return args['user'], args['key'], args['server']
+        return None, None, None
 
     def create_signature(self, request, key):
         """
         Generated a signed request.
         """
-        return hmac.new(key, request, hashlib.sha256).digest()
+        return hmac.new(key, request, hashlib.sha256).hexdigest()
 
-    def store_app(self, app, content):
+    def store_app(self, app, ext, content):
         """
         Store the application in the global directory. 
         """
-        file_name = os.path.join(DEFAULT_FERRY_APPS, app + ".yml")
-        with open(file_name, "w") as f:
-            f.write(content)
+        try:
+            file_name = os.path.join(DEFAULT_FERRY_APPS, app + ext)
+            with open(file_name, "w") as f:
+                f.write(content)
+            return True
+        except IOError as e:
+            logging.error(e)
+            return False
 
     def _read_key_dir(self):
         """
