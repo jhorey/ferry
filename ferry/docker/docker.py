@@ -186,11 +186,11 @@ class DockerCLI(object):
     def _continuous_print(self, process, msg):
         while True:
             try:
-                out = process.stdout.read(15)
+                out = process.stdout.read(150)
                 if out == '':
                     break
                 else:
-                    logging.warning(msg)
+                    logging.warning(out)
             except IOError as e:
                 logging.warning(e)
 
