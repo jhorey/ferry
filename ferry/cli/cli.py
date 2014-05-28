@@ -106,9 +106,12 @@ class CLI(object):
                         'sig' : sig }
             res = requests.get(server + '/app', params=payload)
             status = json.loads(res.text)
-            if self.installer.store_app(app, status['ext'], status['content']):
-                # Now we need to pull all the images from the
-                # Docker registry. 
+            file_name = self.installer.store_app(app, status['ext'], status['content']):
+            if file_name:
+                content = self._read_app_content(file_name)
+                images = self._get_user_images(content)
+                for i in images:
+                    self._pull_image(i)
                 return app
             else:
                 return "failed"
@@ -150,16 +153,53 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
+    def _builtin_image(self, image):
+        """
+        Indicates whether the image is a pre-built Ferry image. 
+        Right now we only verify the client images. 
+        """
+        return image in ["ferry/hadoop-client",
+                         "ferry/spark-client",
+                         "ferry/cassandra-client",
+                         "ferry/openmpi-client"]
+
+    def _get_user_images(self, content):
+        """
+        Get the user-defined images.
+        """
+        images = set()
+        for c in content['connectors']:
+            p = c['personality']
+            if not self._builtin_image(p):
+                images.add(p)
+        return images
+
+    def _read_app_content(self, file_path):
+        """
+        Read the content of the application. 
+        """
+        json_arg = None
+        with open(file_path, "r") as f:
+            n, e = os.path.splitext(file_path)
+            if e == '.json':
+                json_string = self._read_file_arg(file_path)
+                json_arg = json.loads(json_string)
+            elif e == '.yaml' or e == '.yml':
+                yaml_file = open(file_path, 'r')
+                json_arg = yaml.load(yaml_file)
+        return json_arg
+
     def _push_app(self, app):
         """
         Push a local application to Ferry servers. 
         """
-        # # First find all the images that need to
-        # # be pushed to the Docker registry. 
-        # with open(app, "r") as f:
-        #     images = self._get_user_images(f)
-        #     for i in images:
-        #         self._push_image(i)
+        # First find all the images that need to
+        # be pushed to the Docker registry. 
+        content = self._read_app_content(app)
+        if content:
+            images = self._get_user_images(content)
+            for i in images:
+                self._push_image(i)
         
         # Register the application in the Ferry database. 
         account, key, server = self.installer.get_ferry_account()
@@ -624,22 +664,10 @@ class CLI(object):
 
             if os.path.exists(file_path):
                 file_path = os.path.abspath(file_path)
-                n, e = os.path.splitext(file_path)
-                if e == '.json':
-                    json_string = self._read_file_arg(file_path)
-                    json_arg = json.loads(json_string)
-                elif e == '.yaml' or e == '.yml':
-                    yaml_file = open(file_path, 'r')
-                    json_arg = yaml.load(yaml_file)
-                else:
-                    # This is an unknown file type. We're going to try to
-                    # pretend it is a JSON file and see if we fail.
-                    try:
-                        json_string = self._read_file_arg(file_path)
-                        json_arg = json.loads(json_string)
-                    except ValueError as e:
-                        logging.error("could not load file " + file_path)
-                        exit(1)
+                json_arg = self._read_app_content(file_path)
+                if not json_arg:
+                    logging.error("could not load file " + file_path)
+                    exit(1)
 
                 json_arg['_file_path'] = file_path
             json_arg['_file'] = arg

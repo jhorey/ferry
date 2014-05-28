@@ -148,10 +148,10 @@ class Installer(object):
             file_name = os.path.join(DEFAULT_FERRY_APPS, app + ext)
             with open(file_name, "w") as f:
                 f.write(content)
-            return True
+            return file_name
         except IOError as e:
             logging.error(e)
-            return False
+            return None
 
     def _read_key_dir(self):
         """
