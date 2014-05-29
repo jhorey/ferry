@@ -15,3 +15,4 @@ Getting Started
    hadoop
    openmpi
    spark
+   pulling

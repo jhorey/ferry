@@ -43,7 +43,29 @@ This will take at least tens of minutes, so sit back and relax. After all the im
     $ sudo ferry server
     $ ferry info
 
-Congratulations! Now head over to the :ref:`Hadoop <hadoop>` tutorial to create a brand new Hadoop cluster.
+Congratulations! 
+
+
+You can examine the pre-installed Ferry applications by typing: 
+
+.. code-block:: bash
+
+    $ ferry ls
+       App           Author       Version           Description
+       ---           ------       -------           -----------
+    cassandra     James Horey      0.2.0         Cassandra stack...
+      hadoop      James Horey      0.2.0          Hadoop stack...
+     openmpi      James Horey      0.2.0      Open MPI over Gluster...
+      spark       James Horey      0.2.0        Spark over Hadoop...
+       yarn       James Horey      0.2.0      Hadoop YARN over Glus...
+
+Say you're interested in the Hadoop application, just type the following to create a new Spark cluster: 
+
+.. code-block:: bash
+
+    $ ferry start hadoop
+
+At this point, you probably want to head over to the :ref:`Hadoop <hadoop>` tutorial to understand how to interact with your new cluster. 
 
 When you're all done writing your application, you can stop the Ferry servers by typing:
 

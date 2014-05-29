@@ -24,6 +24,7 @@ import os
 import os.path
 import pwd
 import re
+import sh
 import shutil
 import stat
 import struct
@@ -145,7 +146,11 @@ class Installer(object):
         Store the application in the global directory. 
         """
         try:
+            # We may need to create the parent directory
+            # if this is the first time an application from this user
+            # is downloaded. 
             file_name = os.path.join(DEFAULT_FERRY_APPS, app + ext)
+            sh.mkdir('-p', os.path.dirname(file_name))
             with open(file_name, "w") as f:
                 f.write(content)
             return file_name
