@@ -11,8 +11,8 @@ Getting Started
 
    basics
    advanced
+   pulling
    cassandra
    hadoop
    openmpi
    spark
-   pulling

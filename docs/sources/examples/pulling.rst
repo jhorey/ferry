@@ -4,11 +4,11 @@
 
 .. _pulling:
 
+
+Pushing and Pulling Applications
+================================
+
 Ferry lets you easily share your application with others. 
-
-
-Pushing Applications
-====================
 
 Once you're done developing your app, you can upload your application to the Ferry servers to share it with others. 
 For now, you'll need an account on Docker.io to upload your images and another on Ferry to store your application stack. Once
@@ -41,7 +41,7 @@ To upload the application, just perform a *push* command and point it to your ap
 The final name of the application is your Ferry user name appended with the name of the application file. 
 
 Pulling Applications
-====================
+--------------------
 
 To download an application, you'll want to perform a *pull* command. Ferry lets you download Docker images manually or an entire Ferry application. Here
 we're going to pull the *Mortar Recommendation System* application. 
