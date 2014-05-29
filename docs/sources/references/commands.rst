@@ -84,6 +84,17 @@ ls
 
 List installed applications
 
+.. code-block:: bash
+
+    $ ferry ls
+       App           Author       Version           Description
+       ---           ------       -------           -----------
+    cassandra     James Horey      0.2.0         Cassandra stack...
+      hadoop      James Horey      0.2.0          Hadoop stack...
+     openmpi      James Horey      0.2.0      Open MPI over Gluster...
+      spark       James Horey      0.2.0        Spark over Hadoop...
+       yarn       James Horey      0.2.0      Hadoop YARN over Glus...
+
 ps
 --
 
