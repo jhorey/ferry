@@ -419,7 +419,6 @@ def _allocate_new(payload):
     reply = {}
     backend_info, backend_plan = _allocate_backend(payload, replace=True)
     reply['status'] = backend_info['status']
-    logging.warning("NEW BACKEND: " + str(backend_info))
     if backend_info['status'] == 'ok':
         success, connector_info, connector_plan = _allocate_connectors(payload, backend_info['uuids'])
 
@@ -457,7 +456,6 @@ def _allocate_snapshot(payload):
     """
     Helper function to allocate and start a snapshot.
     """
-    logging.warning("ALLOCATE SNAPSHOT " + str(payload['_file']))
     backend_info, backend_plan = _allocate_backend_from_snapshot(payload)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_snapshot(payload, 

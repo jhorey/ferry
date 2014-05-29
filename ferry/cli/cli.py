@@ -635,10 +635,28 @@ class CLI(object):
                                       ferry.install.GLOBAL_KEY_DIR)
             logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_KEY_DIR)
 
-    """
-    This is the command dispatch table. 
-    """
+
+    def _find_installed_app(self, app):
+        """
+        Help find the path to the application. Check both the built-in
+        global directory and the user-installed directory.
+        """
+        file_path = None
+        for item in os.listdir(FERRY_HOME + '/data/plans/'):
+            if app == os.path.splitext(item)[0]:
+                return FERRY_HOME + '/data/plans/' + item
+
+        if not file_path:
+            for user in os.listdir(DEFAULT_FERRY_APPS):
+                if os.path.isdir(DEFAULT_FERRY_APPS + '/' + user):
+                    for item in os.listdir(DEFAULT_FERRY_APPS + '/' + user):
+                        if app == user + '/' + os.path.splitext(item)[0]:
+                            return DEFAULT_FERRY_APPS + '/' + user + '/' + item
+
     def dispatch_cmd(self, cmd, args, options):
+        """
+        This is the command dispatch table. 
+        """
         if(cmd == 'start'):
             self._check_ssh_key()
 
@@ -650,23 +668,11 @@ class CLI(object):
             arg = args.pop(0)
             json_arg = {}
             if not os.path.exists(arg):
-                # Check if the user wants to use one of the global plans.
-                global_path = FERRY_HOME + '/data/plans/' + arg
-
-                # See if it's a user application.
-                if not os.path.exists(global_path):
-                    global_path = DEFAULT_FERRY_APPS + '/' + args
-
-                # If the user has not supplied a file extension, look for the
-                # file with a YAML extension
-                file_path = global_path
-                n, e = os.path.splitext(global_path)
-                if e == '':
-                    file_path += '.yaml'
+                file_path = self._find_installed_app(arg)
             else:
                 file_path = arg
 
-            if os.path.exists(file_path):
+            if file_path and os.path.exists(file_path):
                 file_path = os.path.abspath(file_path)
                 json_arg = self._read_app_content(file_path)
                 if not json_arg:
