@@ -33,7 +33,7 @@ import yaml
 from requests.exceptions import ConnectionError
 from ferry.table.prettytable import *
 from ferry.options import CmdHelp
-from ferry.install import Installer, FERRY_HOME, GUEST_DOCKER_REPO
+from ferry.install import Installer, FERRY_HOME, GUEST_DOCKER_REPO, DEFAULT_FERRY_APPS
 
 class CLI(object):
     def __init__(self):
@@ -652,6 +652,10 @@ class CLI(object):
             if not os.path.exists(arg):
                 # Check if the user wants to use one of the global plans.
                 global_path = FERRY_HOME + '/data/plans/' + arg
+
+                # See if it's a user application.
+                if not os.path.exists(global_path):
+                    global_path = DEFAULT_FERRY_APPS + '/' + args
 
                 # If the user has not supplied a file extension, look for the
                 # file with a YAML extension
