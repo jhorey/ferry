@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2 series
+
+### 0.2.0 (2014-05-15)
+
+- Spark support 
+- Pig support in Hadoop client
+- Various bug fixes
+
+### 0.2.1 (2014-06-04)
+
+- Support for building images
+- Support for pushing and pulling applications
+- Enhanced  'ls' and 'inspect' commands
+- Fix Cassandra nodetool RMI port
+- Fix Hadoop jobhistoryserver
+
 ## 0.1 series
 
 ### 0.1.23 (2014-03-24)
@@ -35,8 +51,3 @@
 - Vagrant support
 - Check LXC version during install
 
-### 0.2.0 (2014-05-15)
-
-- Spark support 
-- Pig support in Hadoop client
-- Various bug fixes
