@@ -231,8 +231,8 @@ class CLI(object):
                 except ConnectionError:
                     logging.error("could not connect to application server")
                     return "Could not register the application."
-                except ValueError:
-                    logging.error("registration server sent back unknown reply")
+                except ValueError as e:
+                    logging.error(str(e))
                     return "Registration server sent back unknown reply"
         else:
             logging.error("could not read account information")

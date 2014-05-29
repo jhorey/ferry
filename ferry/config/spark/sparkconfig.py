@@ -161,7 +161,7 @@ class SparkInitializer(object):
 
 class SparkConfig(object):
     log_directory = '/service/packages/spark/logs'
-    config_directory = '/service/packages/spark/conf'
+    config_directory = '/service/conf/spark'
 
     MASTER_PORT = 7077
     SLAVE_PORT = 7078

@@ -12,21 +12,21 @@ elif [ $1 == "start" ]; then
     nohup /usr/sbin/glusterd &
     sleep 2
     if [ $2 == "master" ]; then
-	/service/configuration/configure start
+	/service/conf/gluster/configure start
     fi
 elif [ $1 == "restart" ]; then 
     nohup /usr/sbin/glusterd &
     sleep 2
     if [ $2 == "master" ]; then
-	/service/configuration/configure restart
+	/service/conf/gluster/configure restart
     fi
 elif [ $1 == "stop" ]; then 
     # Stop the gluster volume
     if [ $2 == "master" ]; then
-	/service/configuration/configure stop
+	/service/conf/gluster/configure stop
     fi
     # Stop the gluster daemon
     pkill -f glusterd
 elif [ $1 == "clean" ]; then 
-    /service/configuration/configure clean    
+    /service/conf/gluster/configure clean    
 fi

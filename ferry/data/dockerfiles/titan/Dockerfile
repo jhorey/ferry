@@ -5,7 +5,7 @@ NAME titan
 RUN apt-get --yes install unzip
 
 # Create necessary directories
-RUN mkdir -p /service/packages /service/conf /service/keys /service/sbin /service/bin /service/scripts /service/ext
+RUN mkdir -p /service/packages /service/conf/titan /service/keys /service/sbin /service/bin /service/scripts /service/ext
 
 # Download the latest package
 RUN wget https://s3.amazonaws.com/opencore/titan-all-0.3.1.zip -P /service/packages

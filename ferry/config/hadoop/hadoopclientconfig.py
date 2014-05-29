@@ -234,7 +234,7 @@ class HadoopClientInitializer(object):
 
 class HadoopClientConfig(object):
     log_directory = '/service/data/logs'
-    config_directory = '/service/conf'
+    config_directory = '/service/conf/hadoop'
 
     HDFS_MASTER = 9000
 

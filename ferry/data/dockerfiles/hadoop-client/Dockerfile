@@ -12,8 +12,8 @@ RUN ln -s /service/packages/pig-0.12.1 /service/packages/pig;
 
 # Environment variables. 
 ENV PIG_HOME /service/packages/pig
-ENV PIG_CLASSPATH /service/conf
-RUN echo export PIG_HOME=/service/packages/pig >> /etc/profile;echo export PIG_CLASSPATH=/service/conf >> /etc/profile;
+ENV PIG_CLASSPATH /service/conf/hadoop
+RUN echo export PIG_HOME=/service/packages/pig >> /etc/profile;echo export PIG_CLASSPATH=/service/conf/hadoop >> /etc/profile;
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/

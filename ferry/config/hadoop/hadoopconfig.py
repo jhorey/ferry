@@ -476,7 +476,7 @@ class HadoopConfig(object):
     data_directory = '/service/data/main'
     log_directory = '/service/data/logs'
     tmp_directory = '/service/data/tmp'
-    config_directory = '/service/conf'
+    config_directory = '/service/conf/hadoop'
 
     YARN_SCHEDULER = 8030
     YARN_ADMIN = 8033

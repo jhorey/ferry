@@ -14,15 +14,15 @@ elif [ $1 == "start" ]; then
     echo $2 >> /tmp/hadoop_services.log
 
     if [ $2 == "namenode" ]; then
-	su ferry -c '/service/packages/hadoop/bin/hdfs --config /service/conf namenode -format HADOOP_CLUSTER'
-	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start namenode'
+	su ferry -c '/service/packages/hadoop/bin/hdfs --config /service/conf/hadoop namenode -format HADOOP_CLUSTER'
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf/hadoop --script hdfs start namenode'
     elif [ $2 == "datanode" ]; then
-	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf/hadoop --script hdfs start datanode'
     elif [ $2 == "yarnmaster" ]; then	
-	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
-	su ferry -c '/service/packages/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver --config /service/conf'
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf/hadoop start resourcemanager'
+	su ferry -c '/service/packages/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver --config /service/conf/hadoop'
     elif [ $2 == "yarnslave" ]; then	
-	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf/hadoop start nodemanager'
     elif [ $2 == "gluster" ]; then 
 	python /service/scripts/mounthelper.py umount
 	python /service/scripts/mounthelper.py mount $3	
@@ -31,14 +31,14 @@ elif [ $1 == "start" ]; then
 elif [ $1 == "restart" ]; then 
     pophosts
     if [ $2 == "namenode" ]; then
-	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start namenode'
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf/hadoop --script hdfs start namenode'
     elif [ $2 == "datanode" ]; then
-	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs start datanode'
+	su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf/hadoop --script hdfs start datanode'
     elif [ $2 == "yarnmaster" ]; then	
-	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start resourcemanager'
-	su ferry -c '/service/packages/hadoop/sbin/mr-jobhistory-daemon.sh stop historyserver --config /service/conf'
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf/hadoop start resourcemanager'
+	su ferry -c '/service/packages/hadoop/sbin/mr-jobhistory-daemon.sh stop historyserver --config /service/conf/hadoop'
     elif [ $2 == "yarnslave" ]; then	
-	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf start nodemanager'
+	su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf/hadoop start nodemanager'
     elif [ $2 == "gluster" ]; then 
 	python /service/scripts/mounthelper.py umount
 	python /service/scripts/mounthelper.py mount $3	
@@ -49,13 +49,13 @@ elif [ $1 == "stop" ]; then
     while read line
     do
 	if [ "$line" == "namenode" ]; then
-	    su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop namenode'
+	    su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf/hadoop --script hdfs stop namenode'
 	elif [ "$line" == "datanode" ]; then
-	    su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf --script hdfs stop datanode'
+	    su ferry -c '/service/packages/hadoop/sbin/hadoop-daemon.sh --config /service/conf/hadoop --script hdfs stop datanode'
 	elif [ "$line" == "yarnmaster" ]; then	
-	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop resourcemanager'
+	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf/hadoop stop resourcemanager'
 	elif [ "$line" == "yarnslave" ]; then	
-	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf stop nodemanager'
+	    su ferry -c '/service/packages/hadoop/sbin/yarn-daemon.sh --config /service/conf/hadoop stop nodemanager'
 	elif [ "$line" == "gluster" ]; then 
 	    python /service/scripts/mounthelper.py umount
 	fi

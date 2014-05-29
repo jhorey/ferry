@@ -16,6 +16,7 @@ RUN rm /service/packages/*.tar.gz
 
 # Make symlinks
 RUN ln -s /service/packages/openmpi-1.7.3 /service/packages/openmpi
+RUN ln -s /usr/local/etc /service/conf/openmpi
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
@@ -27,11 +28,10 @@ RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmo
 
 # Make environment variables
 RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile
-RUN echo export MPI_CONF=/usr/local/etc >> /etc/profile
+RUN echo export MPI_CONF=/service/conf/openmpi >> /etc/profile
 
 # Generate an ssh key for this image.
 RUN mkdir /home/ferry/.ssh;ssh-keygen -f /home/ferry/.ssh/id_rsa -t rsa -N '' > /dev/null
 RUN cat /home/ferry/.ssh/id_rsa.pub >> /home/ferry/.ssh/authorized_keys;echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
 RUN chown -R ferry:ferry /home/ferry/.ssh
 
-CMD ["/service/sbin/startnode", "init"]

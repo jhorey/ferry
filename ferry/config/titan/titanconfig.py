@@ -130,6 +130,7 @@ class TitanInitializer(object):
 class TitanConfig(object):
     data_directory = '/service/data/main'
     log_directory = '/service/data/logs'
+    config_directory = '/service/conf/titan'
 
     REXSTER_PORT = 8182
     REXPRO_PORT = 8184
@@ -138,4 +139,4 @@ class TitanConfig(object):
 
     def __init__(self, num):
         self.num = num
-        self.config_directory = '/service/conf'
+        self.config_directory = TitanConfig.config_directory

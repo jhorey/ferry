@@ -186,7 +186,7 @@ class DockerCLI(object):
     def _continuous_print(self, process, msg):
         while True:
             try:
-                out = process.stdout.read(150)
+                out = process.stdout.read(160)
                 if out == '':
                     break
                 else:

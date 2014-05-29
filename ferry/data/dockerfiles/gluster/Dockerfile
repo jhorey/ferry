@@ -2,7 +2,7 @@ FROM $USER/ferry-base
 NAME gluster
 
 # Create necessary directories
-RUN mkdir -p /service/data /service/logs /service/sbin;chown -R ferry:docker /service/data;chown -R ferry:docker /service/logs
+RUN mkdir -p /service/data /service/logs /service/conf /service/sbin;chown -R ferry:docker /service/data;chown -R ferry:docker /service/logs;chown -R ferry:docker /service/conf
 
 # Add the latest stable GlusterFS repo
 RUN apt-get --yes install software-properties-common;add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4
@@ -19,6 +19,3 @@ RUN apt-get update; apt-get --yes install git glusterfs-common glusterfs-client 
 ADD ./startnode /service/sbin/
 RUN chmod a+x /service/sbin/startnode
 
-# Run the ssh daemon in the foreground (Docker does
-# like daemons running in background)
-CMD ["/service/sbin/startnode", "init"]

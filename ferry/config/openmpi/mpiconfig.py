@@ -154,7 +154,7 @@ class OpenMPIInitializer(object):
 
 class MPIConfig(object):
     log_directory = '/service/logs'
-    config_directory = '/usr/local/etc'
+    config_directory = '/service/conf/openmpi'
 
     BTL_PORT_MIN = 2000
     OOB_PORT_MIN = 6000

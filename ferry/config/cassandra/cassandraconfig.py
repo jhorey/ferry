@@ -201,7 +201,7 @@ class CassandraConfig(object):
     log_directory = '/service/logs'
     commit_directory = '/service/data/commits'
     cache_directory = '/service/data/cache'
-    config_directory = '/service/conf'
+    config_directory = '/service/conf/cassandra'
 
     CLUSTER_COM_PORT = 7000
     CLUSTER_SSL_PORT = 7001

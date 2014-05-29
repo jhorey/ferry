@@ -112,9 +112,9 @@ class HiveClientInitializer(object):
 class HiveClientConfig(object):
     data_directory = '/service/data/main'
     log_directory = '/service/data/logs'
-
+    config_directory = '/service/conf/hive'
     def __init__(self, num):
         self.num = num
-        self.config_directory = '/service/packages/hive/conf'
+        self.config_directory = HiveClientConfig.config_directory
         self.hadoop_config_dir = None
         self.metastore = None

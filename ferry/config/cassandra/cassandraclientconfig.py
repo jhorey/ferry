@@ -166,7 +166,7 @@ class CassandraClientConfig(object):
     log_directory = '/service/data/logs'
     commit_directory = '/service/data/commits'
     cache_directory = '/service/data/cache'
-    config_directory = '/service/conf'
+    config_directory = '/service/conf/cassandra'
 
     def __init__(self, num):
         self.num = num

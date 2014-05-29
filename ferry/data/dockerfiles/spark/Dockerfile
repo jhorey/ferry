@@ -17,6 +17,7 @@ RUN wget https://s3.amazonaws.com/opencore/spark-assembly_2.10-0.9.1-hadoop2.3.0
 
 # Make some symlinks
 RUN ln -s /service/packages/spark-0.9.1-bin-hadoop2 /service/packages/spark
+RUN ln -s /service/packages/spark/conf /service/conf/spark
 
 # Add all the scripts. 
 ADD ./startnode /service/sbin/
