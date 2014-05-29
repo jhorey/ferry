@@ -15,7 +15,7 @@ Deploy a service in an operational setting
 
 .. code-block:: bash
 
-    Usage: ferry deploy sn-fea3x --mode=local --conf=opconf
+    $ ferry deploy sn-fea3x --mode=local --conf=opconf
     
 Deploying an application pushes your connector images to the cloud
 and enables other users to interact with your application. Deployments
@@ -98,6 +98,7 @@ pull
 Download either individual Docker images or complete Ferry applications
 
 For example: 
+
 .. code-block:: bash
 
     $ ferry pull app://<user>/<app>
@@ -111,6 +112,7 @@ push
 Upload either individual Docker images or complete Ferry applications
 
 For example: 
+
 .. code-block:: bash
 
     $ ferry push app:///home/ferry/myapp.yml
@@ -125,6 +127,7 @@ rm
 Remove a stopped service 
 
 For example: 
+
 .. code-block:: bash
 
     $ ferry rm sa-0
