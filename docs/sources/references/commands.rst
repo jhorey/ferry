@@ -40,7 +40,7 @@ This command lists all the running services.
 inspect
 -------
 
-Print out detailed information about an application
+Print out detailed information about an application (either running or installed)
 
 For example:
 
@@ -79,6 +79,11 @@ For example:
 Note that ``sa-0`` is the unique ID of a running service, and ``LOGDIR`` is a directory 
 on the host where the logs should be copied.
 
+ls
+--
+
+List installed applications
+
 ps
 --
 
@@ -86,6 +91,33 @@ List the available applications
 
 By default this command will only print out ``running`` applications. You can
 print out ``stopped`` and ``terminated`` applications by typing: ``ferry ps -a``. 
+
+pull
+----
+
+Download either individual Docker images or complete Ferry applications
+
+For example: 
+.. code-block:: bash
+
+    $ ferry pull app://<user>/<app>
+    $ ferry pull image://<user>/<image>
+
+If you download an application, all the necessary images will download automatically. 
+
+push
+----
+
+Upload either individual Docker images or complete Ferry applications
+
+For example: 
+.. code-block:: bash
+
+    $ ferry push app:///home/ferry/myapp.yml
+    $ ferry push image://<user>/<image>
+
+If you upload an application, all the necessary images will be uploaded automatically to the Docker registry
+specified in the Ferry authorization file. 
 
 rm
 --
