@@ -1,16 +1,26 @@
 Ferry: Big Data Development Environment using Docker
 ====================================================
 
-Ferry lets you share and deploy big data applications on your local machine using [Docker](https://www.docker.io).
+Ferry lets you deploy virtual clusters on your local machine and share your big data application using [Docker](https://www.docker.io). Ferry currently supports:
 
-First create and package your Hadoop/Yarn, GlusterFS/OpenMPI, or Cassandra application in a Dockerfile. 
-Then deploy your application without the pain of installing and configuring all the complex backend software.
+* Hadoop/YARN (version 2.3.0)
+* Cassandra (version 2.0.6) + Titan (0.3.1)
+* Spark (version 0.9.1)
+* GlusterFS (version 3.4)
+* Open MPI (version 1.7.3)
 
-Big data technologies are designed to scale over many machines and are complex to install and set up. 
-Fortunately for us, Ferry simplifies the entire process by capturing the entire process
-in a set of lightweight Linux containers. This enables developers to quickly stand up a big data stack and 
-develop applications with zero manual configuration. Because Ferry uses Docker, developers can then share
-their Dockerfiles for others to use. 
+All you have to do to start is specify your stack using YAML or download a pre-existing application. 
+
+Why?
+====
+
+Ferry is made for developers and data scientists that want to develop big data applications without the fuss of setting up the infrastructure. It will help you: 
+
+* Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
+* Share and evaluate other people's big data application quickly and safely via Dockerfiles
+* Develop and test applications locally before being deployed onto an operational cluster
+
+Because Ferry uses Docker underneath, each virtual cluster is completely isolated. That means you can create multiple clusters for different applications.
 
 Getting started
 ===============
@@ -36,17 +46,10 @@ Once installed, you can create your big data application using YAML files.
 
 This stack consists of two GlusterFS data nodes, and two Hadoop/YARN compute nodes. There's also an Ubuntu-based
 client that automatically connects to those backend components. Of course you can substitute your own
-customized client. To create this stack, just type `ferry start yarn`. Once you create the stack, 
+customized client. 
+
+To create this stack, just type `ferry start yarn`. Once you create the stack, 
 you can log in by typing `ferry ssh control-0`. 
-
-Use cases
-=========
-
-Ferry is made for developers and data scientists that need something simple and powerful. It will help you: 
-
-* Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
-* Share and evaluate other people's big data application quickly and safely via Dockerfiles
-* Develop and test applications locally before being deployed onto an operational cluster
 
 Contributing
 ============
