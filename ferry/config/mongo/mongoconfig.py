@@ -29,7 +29,7 @@ class MongoInitializer(object):
         self.template_dir = None
         self.template_repo = None
 
-        self.container_data_dir = None
+        self.container_data_dir = MongoConfig.data_directory
         self.container_log_dir = MongoConfig.log_directory
 
     def new_host_name(self, instance_id):
@@ -89,7 +89,7 @@ class MongoInitializer(object):
         """
         return MongoConfig(num)
 
-    def _generate_mongo_config(self):
+    def _generate_mongo_config(self, host_dir, config):
         """
         Generate the MongoDB configuration file. 
         """
@@ -131,7 +131,7 @@ class MongoInitializer(object):
         if not 'storage' in containers[0]:
             # This is being called as a storage service. 
             # The client service doesn't do anything right now. 
-            self._generate_mongo_config()
+            self._generate_mongo_config(new_config_dir, config)
 
         # Transfer the configuration. 
         for c in containers:

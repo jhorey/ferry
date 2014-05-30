@@ -26,11 +26,15 @@ from ferry.ip.client import DHCPClient
 Allocate local docker instances
 """
 class DockerFabric(object):
-    def __init__(self):
+    def __init__(self, bootstrap=False):
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI()
-        self.network = DHCPClient(self._get_gateway())
+
+        # Bootstrap mode means that the DHCP network
+        # isn't available yet, so we can't use the network. 
+        if not bootstrap:
+            self.network = DHCPClient(self._get_gateway())
 
     def _get_gateway(self):
         cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
@@ -100,44 +104,46 @@ class DockerFabric(object):
         for c in container_info:
             # Get a new IP address for this container and construct
             # a default command. 
-            ip = self.network.assign_ip(c)
             gw = self._get_gateway().split("/")[0]
 
             # Check if we should use the manual LXC option. 
             if not 'netenable' in c:
+                ip = self.network.assign_ip(c)
                 lxc_opts = ["lxc.network.type = veth",
                             "lxc.network.ipv4 = %s/24" % ip, 
                             "lxc.network.ipv4.gateway = %s" % gw,
                             "lxc.network.link = drydock0",
                             "lxc.network.name = eth0",
                             "lxc.network.flags = up"]
+
+                # Check if we need to forward any ports. 
+                host_map = {}
+                for p in c['ports']:
+                    p = str(p)
+                    s = p.split(":")
+                    if len(s) > 1:
+                        host = s[0]
+                        dest = s[1]
+                    else:
+                        host = self.network.random_port()
+                        dest = s[0]
+                    host_map[dest] = [{'HostIp' : '0.0.0.0',
+                                       'HostPort' : host}]
+                    host_map_keys = host_map.keys()
+                    self.network.forward_rule('0.0.0.0/0', host, ip, dest)
             else:
                 lxc_opts = None
-
-            c['default_cmd'] = "/service/sbin/startnode init"
-
-            # Check if we need to forward any ports. 
-            host_map = {}
-            for p in c['ports']:
-                p = str(p)
-                s = p.split(":")
-                if len(s) > 1:
-                    host = s[0]
-                    dest = s[1]
-                else:
-                    host = self.network.random_port()
-                    dest = s[0]
-                host_map[dest] = [{'HostIp' : '0.0.0.0',
-                                   'HostPort' : host}]
-                self.network.forward_rule('0.0.0.0/0', host, ip, dest)
+                host_map = None
+                host_map_keys = []
 
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
+            c['default_cmd'] = "/service/sbin/startnode init"
             container = self.cli.run(service_type = c['type'], 
                                      image = c['image'], 
                                      volumes = c['volumes'],
                                      keys = c['keys'], 
-                                     open_ports = host_map.keys(),
+                                     open_ports = host_map_keys,
                                      host_map = host_map, 
                                      expose_group = c['exposed'], 
                                      hostname = c['hostname'],
@@ -146,9 +152,10 @@ class DockerFabric(object):
                                      lxc_opts = lxc_opts)
             if container:
                 container.default_user = self.docker_user
-                container.internal_ip = ip
                 containers.append(container)
-                self.network.set_owner(ip, container.container)
+                if not 'netenable' in c:
+                    container.internal_ip = ip
+                    self.network.set_owner(ip, container.container)
 
                 if 'name' in c:
                     container.name = c['name']
@@ -161,11 +168,11 @@ class DockerFabric(object):
                 # on the containers (otherwise sometimes we get a connection refused)
                 time.sleep(2)
 
-                # Check if we need to set the file permissions
-                # for the mounted volumes. 
-                for c, i in mounts.items():
-                    for _, v in i['vols']:
-                        self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+        # Check if we need to set the file permissions
+        # for the mounted volumes. 
+        for c, i in mounts.items():
+            for _, v in i['vols']:
+                self.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
         return containers
 

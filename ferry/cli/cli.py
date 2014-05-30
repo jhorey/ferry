@@ -72,7 +72,7 @@ class CLI(object):
 
         self.ferry_server = 'http://127.0.0.1:4000'
         self.default_user = 'root'
-        self.installer = Installer()
+        self.installer = Installer(self)
 
     def _pull_image(self, image):
         """

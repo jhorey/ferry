@@ -30,6 +30,7 @@ import stat
 import struct
 import sys
 import time
+import uuid
 import yaml
 from distutils import spawn
 from ferry.ip.client import DHCPClient
@@ -113,20 +114,22 @@ DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_DIR='/var/lib/ferry'
 DOCKER_PID='/var/run/ferry.pid'
+DEFAULT_TEMPLATE_DIR=FERRY_HOME + '/data/templates'
 DEFAULT_BUILTIN_APPS=FERRY_HOME + '/data/plans'
 DEFAULT_FERRY_APPS='/var/lib/ferry/apps'
 DEFAULT_MONGO_DB='/var/lib/ferry/mongo'
 DEFAULT_MONGO_LOG='/var/lib/ferry/mongolog'
-DEFAULT_MONGO_CMD='/service/sbin/startnode init'
 DEFAULT_REGISTRY_DB='/var/lib/ferry/registry'
 DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 
 class Installer(object):
-    def __init__(self):
+    def __init__(self, cli=None):
         self.network = DHCPClient()
         self.mongo = MongoInitializer()
-        self.fabric = DockerFabric()
+        self.mongo.template_dir = DEFAULT_TEMPLATE_DIR + '/mongo/'
+        self.fabric = DockerFabric(bootstrap=True)
+        self.cli = cli
 
     def get_ferry_account(self):
         """
@@ -295,7 +298,7 @@ class Installer(object):
             container = c[0]
             from_dir = c[1]
             to_dir = c[2]
-            self.docker.copy([container], from_dir, to_dir)
+            self.fabric.copy([container], from_dir, to_dir)
 
     def start_web(self, options=None, clean=False):
         start, msg = self._start_docker_daemon(options)
@@ -342,11 +345,14 @@ class Installer(object):
         # Check if there are any other Mongo instances runnig.
         self._clean_web()
 
+        # Copy over the ssh keys.
+        self.cli._check_ssh_key()
+
         # Start the Mongo server. Create a new configuration and
         # manually start the container. 
         keydir, _ = self._read_key_dir()
-        volumes = { DEFAULT_MONGO_LOG : mongo.log_directory,
-                    DEFAULT_MONGO_DB, : mongo.data_directory }
+        volumes = { DEFAULT_MONGO_LOG : self.mongo.container_log_dir,
+                    DEFAULT_MONGO_DB : self.mongo.container_data_dir }
         mongoplan = {'image':'ferry/mongodb',
                      'type':'ferry/mongodb', 
                      'volumes':volumes,
@@ -357,7 +363,8 @@ class Installer(object):
                      'hostname':'ferrydb',
                      'netenable':True, 
                      'args':None}
-        mongoconf = self.mongo.generate()
+        mongoconf = self.mongo.generate(1)
+        mongoconf.uuid = 'fdb-' + str(uuid.uuid4()).split('-')[0]
         mongobox = self.fabric.alloc([mongoplan])[0]
         if not mongobox:
             logging.error("Could not start MongoDB image")
@@ -368,7 +375,13 @@ class Installer(object):
 
         # Once the container is started, we'll need to copy over the
         # configuration files, and then manually send the 'start' command. 
-        config_dirs, entry_point = self.mongo.apply(mongo, [mongobox])
+        s = { 'container':mongobox,
+              'data_dev':'eth0', 
+              'data_ip':mongobox.internal_ip, 
+              'manage_ip':mongobox.internal_ip,
+              'host_name':mongobox.host_name,
+              'type':mongobox.service_type}
+        config_dirs, entry_point = self.mongo.apply(mongoconf, [s])
         self._transfer_config(config_dirs)
         self.mongo.start_service([mongobox], entry_point, self.fabric)
 

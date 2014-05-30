@@ -16,7 +16,7 @@
 import os
 import logging
 from pymongo import MongoClient
-from ferry.install import FERRY_HOME
+from ferry.install import FERRY_HOME, DEFAULT_TEMPLATE_DIR
 from ferry.docker.docker import DockerInstance
 from ferry.docker.fabric import DockerFabric
 from ferry.config.gluster.glusterconfig     import *
@@ -52,7 +52,7 @@ class ConfigFactory(object):
         self.spark_client = SparkClientInitializer()
 
         # Get the Ferry home to find the templates.
-        template_dir = FERRY_HOME + '/data/templates'
+        template_dir = DEFAULT_TEMPLATE_DIR
         self.hadoop.template_dir =        template_dir + '/hadoop/'
         self.yarn.template_dir =          template_dir + '/hadoop/'
         self.spark.template_dir =         template_dir + '/spark/'
@@ -100,7 +100,7 @@ class ConfigFactory(object):
             container_info.append(s)
 
         return self._generate_configuration(uuid, 
-                                                container_info, 
+                                            container_info, 
                                             service)
 
     def generate_storage_configuration(self, 
