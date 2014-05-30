@@ -65,7 +65,10 @@ class DockerManager(object):
                 'client' : self.config.hadoop_client},
             'hive': { 
                 'server' : self.config.hadoop,
-                'client' : self.config.hadoop_client}
+                'client' : self.config.hadoop_client},
+            'mongo': { 
+                'server' : self.config.mongo,
+                'client' : self.config.mongo_client}
             }
 
         # Docker tools
@@ -76,20 +79,20 @@ class DockerManager(object):
         self._init_state_db()
         self._clean_state_db()
 
-    """
-    Contact the state database. 
-    """
     def _init_state_db(self):
+        """
+        Contact the state database. 
+        """
         self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
 
         self.cluster_collection = self.mongo['state']['clusters']
         self.service_collection = self.mongo['state']['services']
         self.snapshot_collection = self.mongo['state']['snapshots']
 
-    """
-    Remove all the services that are "terminated". 
-    """
     def _clean_state_db(self):
+        """
+        Remove all the services that are "terminated". 
+        """
         self.cluster_collection.remove( {'status':'removed'} )
 
     def _serialize_containers(self, containers):
@@ -98,20 +101,21 @@ class DockerManager(object):
             info.append(c.json())
         return info
 
-    """
-    Update the service configuration. 
-    """
     def _update_service_configuration(self, service_uuid, service_info):
+        """
+        Update the service configuration. 
+        """
         service = self.service_collection.find_one( {'uuid':service_uuid} )
         if not service:
             self.service_collection.insert( service_info )
         else:
             self.service_collection.update( {'uuid' : service_uuid},
                                             {'$set': service_info} )
-    """
-    Get the storage information. 
-    """
+
     def _get_service_configuration(self, service_uuid, detailed=False):
+        """
+        Get the storage information. 
+        """
         info = self.service_collection.find_one( {'uuid':service_uuid}, {'_id':False} )
         if info:
             if detailed:
@@ -183,11 +187,11 @@ class DockerManager(object):
                 service_names.append(compute['type'])
         return client_services, service_names
 
-    """
-    Helper method to copy directories. shutil fails if the 
-    destination already exists. 
-    """
     def _copytree(src, dst):
+        """
+        Helper method to copy directories. shutil fails if the 
+        destination already exists. 
+        """
         for item in os.listdir(src):
             s = os.path.join(src, item)
             d = os.path.join(dst, item)
@@ -384,10 +388,10 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
     
-    """
-    Query the available stacks. 
-    """
     def query_stacks(self, constraints=None):
+        """
+        Query the available stacks. 
+        """
         json_reply = {}
 
         if constraints:
@@ -411,10 +415,10 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
-    """
-    Query the deployed applications. 
-    """
     def query_deployed(self, conf=None):
+        """
+        Query the deployed applications. 
+        """
         json_reply = {}
 
         cursors = self.deploy.find(conf=conf)
@@ -434,10 +438,10 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
-    """
-    Allocate new UUIDs. 
-    """
     def _new_service_uuid(self):
+        """
+        Allocate new UUIDs. 
+        """
         while True:
             longid = str(uuid.uuid4())
             shortid = 'se-' + longid.split('-')[0]
@@ -461,10 +465,10 @@ class DockerManager(object):
             if not services:
                 return shortid
 
-    """
-    Determine if the supplied UUID is a valid snapshot. 
-    """
     def is_snapshot(self, snapshot_uuid):
+        """
+        Determine if the supplied UUID is a valid snapshot. 
+        """
         v = self.snapshot_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if v:
             return True
@@ -530,10 +534,10 @@ class DockerManager(object):
         new_dir = scratch_dir + 'tmp/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         return self._create_dir(new_dir, replace=True)
 
-    """
-    Create a new log directory
-    """
     def _new_log_dir(self, service_uuid, storage_type, storage_id, replace = False):
+        """
+        Create a new log directory
+        """
         # Check the location of the scratch directory. If not defined
         # use the current directory
         if 'FERRY_SCRATCH' in os.environ:
@@ -583,17 +587,14 @@ class DockerManager(object):
 
         return container_dir, log_dir, host_name, ports, exposed
 
-    """
-    Read the directory containing the key we should use. 
-    """
     def _read_key_dir(self):
+        """
+        Read the directory containing the key we should use. 
+        """
         with open(ferry.install.DEFAULT_DOCKER_KEY, 'r') as f:
             k = f.read().strip().split("://")
             return { '/service/keys' : k[1]  }
 
-    """
-    Prepare the environment for storage containers.
-    """
     def _prepare_storage_environment(self, 
                                      service_uuid, 
                                      num_instances, 
@@ -601,6 +602,9 @@ class DockerManager(object):
                                      layers,
                                      args = None,
                                      replace = False):
+        """
+        Prepare the environment for storage containers.
+        """
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
         ports = []
@@ -640,15 +644,15 @@ class DockerManager(object):
 
         return plan
 
-    """
-    Prepare the environment for compute containers.
-    """
     def _prepare_compute_environment(self, 
                                      service_uuid, 
                                      num_instances, 
                                      compute_type,
                                      layers, 
                                      args = None):
+        """
+        Prepare the environment for compute containers.
+        """
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
         ports = []
@@ -680,19 +684,16 @@ class DockerManager(object):
             i += 1
         return plan
 
-    """
-    Fetch the instance type. If the UUID is not associated with a running
-    service, then just use the raw image. Otherwise, look for a snapshot image. 
-    """
     def _get_instance_image(self, instance_type, uuid=None):
+        """
+        Fetch the instance type. If the UUID is not associated with a running
+        service, then just use the raw image. Otherwise, look for a snapshot image. 
+        """
         s = instance_type.split('/')
         if len(s) == 1:
             instance_type = DEFAULT_DOCKER_REPO + '/' + instance_type
         return instance_type
 
-    """
-    Prepare the environment for connector containers.
-    """
     def _prepare_connector_environment(self, 
                                        service_uuid, 
                                        connector_type, 
@@ -700,6 +701,9 @@ class DockerManager(object):
                                        name=None, 
                                        ports=[],
                                        args=None):
+        """
+        Prepare the environment for connector containers.
+        """
         plan = {'localhost':{'containers':[]}}
 
         # Determine the instance type from the connector type. 
@@ -745,25 +749,26 @@ class DockerManager(object):
             self.docker.copy_raw(ip[0], '/tmp/instances', '/service/sconf/instances')
             self.docker.cmd_raw(ip[0], '/service/sbin/startnode hosts')
         
-    """
-    Transfer these environment variables to the containers.
-    Since the user normally interacts with these containers by 
-    logging in (via ssh), we must place these variables in the profile. 
-    """
     def _transfer_env_vars(self, containers, env_vars):
+        """
+        Transfer these environment variables to the containers.
+        Since the user normally interacts with these containers by 
+        logging in (via ssh), we must place these variables in the profile. 
+        """
         for k in env_vars.keys():
             self.docker.cmd(containers, 
                             "echo export %s=%s >> /etc/profile" % (k, env_vars[k]))
-    """
-    Start the containers on the specified environment
-    """
+
     def _start_containers(self, plan):
+        """
+        Start the containers on the specified environment
+        """
         return self.docker.alloc(plan['localhost']['containers']);
 
-    """
-    Restart the stopped containers. 
-    """
     def _restart_containers(self, containers):
+        """
+        Restart the stopped containers. 
+        """
         return self.docker.restart(containers)
 
     def cancel_stack(self, backends, connectors):

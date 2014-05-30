@@ -30,6 +30,8 @@ from ferry.config.openmpi.mpiclientconfig   import *
 from ferry.config.titan.titanconfig         import *
 from ferry.config.cassandra.cassandraconfig import *
 from ferry.config.cassandra.cassandraclientconfig import *
+from ferry.config.mongo.mongoconfig         import *
+from ferry.config.mongo.mongoclientconfig   import *
 
 class ConfigFactory(object):
     def __init__(self):
@@ -42,6 +44,8 @@ class ConfigFactory(object):
         self.cassandra = CassandraInitializer()
         self.titan = TitanInitializer()
         self.mpi = OpenMPIInitializer()
+        self.mongo = MongoInitializer()
+        self.mongo_client = MongoClientInitializer()
         self.cassandra_client = CassandraClientInitializer()
         self.mpi_client = OpenMPIClientInitializer()
         self.hadoop_client = HadoopClientInitializer()
@@ -61,25 +65,27 @@ class ConfigFactory(object):
         self.cassandra_client.template_dir =   template_dir + '/cassandra/'
         self.mpi.template_dir =           template_dir + '/openmpi/'
         self.mpi_client.template_dir =    template_dir + '/openmpi/'
+        self.mongo.template_dir =         template_dir + '/mongo/'
+        self.mongo_client.template_dir =  template_dir + '/mongo/'
 
-    """
-    Helper method to generate and copy over the configuration. 
-    """
     def _generate_configuration(self, uuid, container_info, config_factory):
+        """
+        Helper method to generate and copy over the configuration. 
+        """
         config = config_factory.generate(len(container_info))
         config.uuid = uuid
         return config_factory.apply(config, container_info)
 
-    """
-    Generagte a compute-specific configuration. This configuration
-    lives in its own directory that gets copied in each container. 
-    """
     def generate_compute_configuration(self, 
                                        uuid,
                                        containers,
                                        service,
                                        args, 
                                        storage_info):
+        """
+        Generate a compute-specific configuration. This configuration
+        lives in its own directory that gets copied in each container. 
+        """
         container_info = []
         for c in containers:
             s = {'data_dev':'eth0', 
@@ -97,15 +103,15 @@ class ConfigFactory(object):
                                                 container_info, 
                                             service)
 
-    """
-    Generagte a storage-specific configuration. This configuration
-    lives in its own directory that gets copied in each container. 
-    """
     def generate_storage_configuration(self, 
                                        uuid,
                                        containers,
                                        service, 
                                        args=None):
+        """
+        Generagte a storage-specific configuration. This configuration
+        lives in its own directory that gets copied in each container. 
+        """
         container_info = []
         for c in containers:
             s = {'data_dev':'eth0', 
@@ -122,9 +128,7 @@ class ConfigFactory(object):
 
             container_info.append(s)
         return self._generate_configuration(uuid, container_info, service) 
-    """
-    Generate a connector specific configuration. 
-    """
+
     def generate_connector_configuration(self, 
                                          uuid,
                                          containers,
@@ -132,6 +136,9 @@ class ConfigFactory(object):
                                          storage_info=None,
                                          compute_info=None,
                                          args=None):
+        """
+        Generate a connector specific configuration. 
+        """
         container_info = []
         for c in containers:
             s = {'data_dev':'eth0', 
@@ -147,12 +154,12 @@ class ConfigFactory(object):
             container_info.append(s)
         return self._generate_configuration(uuid, container_info, service) 
 
-    """
-    Helper method to generate some environment variables. 
-    """
     def _generate_key_value(self,
                             json_data,
                             base_key):
+        """
+        Helper method to generate some environment variables. 
+        """
         env = {}
         if type(json_data) is list:
             for j in json_data:
@@ -170,13 +177,13 @@ class ConfigFactory(object):
                     env = dict(env.items() + values.items())
         return env
 
-    """
-    Generate some environment variables for the connectors. 
-    These variables help the connectors query the backend. 
-    """
     def generate_env_vars(self,
                           storage_info=None,
                           compute_info=None):
+        """
+        Generate some environment variables for the connectors. 
+        These variables help the connectors query the backend. 
+        """
         storage_values = {}
         compute_values = {}
         if storage_info:
