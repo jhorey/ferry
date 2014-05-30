@@ -103,12 +103,16 @@ class DockerFabric(object):
             ip = self.network.assign_ip(c)
             gw = self._get_gateway().split("/")[0]
 
-            lxc_opts = ["lxc.network.type = veth",
-                        "lxc.network.ipv4 = %s/24" % ip, 
-                        "lxc.network.ipv4.gateway = %s" % gw,
-                        "lxc.network.link = drydock0",
-                        "lxc.network.name = eth0",
-                        "lxc.network.flags = up"]
+            # Check if we should use the manual LXC option. 
+            if not 'netenable' in c:
+                lxc_opts = ["lxc.network.type = veth",
+                            "lxc.network.ipv4 = %s/24" % ip, 
+                            "lxc.network.ipv4.gateway = %s" % gw,
+                            "lxc.network.link = drydock0",
+                            "lxc.network.name = eth0",
+                            "lxc.network.flags = up"]
+            else:
+                lxc_opts = None
 
             c['default_cmd'] = "/service/sbin/startnode init"
 

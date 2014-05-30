@@ -32,9 +32,11 @@ import sys
 import time
 import yaml
 from distutils import spawn
+from ferry.ip.client import DHCPClient
+from ferry.config.mongo.mongoconfig import *
+from ferry.docker.fabric import DockerFabric
 from string import Template
 from subprocess import Popen, PIPE
-from ferry.ip.client import DHCPClient
 
 def _get_ferry_home():
     if 'FERRY_HOME' in os.environ:
@@ -115,6 +117,7 @@ DEFAULT_BUILTIN_APPS=FERRY_HOME + '/data/plans'
 DEFAULT_FERRY_APPS='/var/lib/ferry/apps'
 DEFAULT_MONGO_DB='/var/lib/ferry/mongo'
 DEFAULT_MONGO_LOG='/var/lib/ferry/mongolog'
+DEFAULT_MONGO_CMD='/service/sbin/startnode init'
 DEFAULT_REGISTRY_DB='/var/lib/ferry/registry'
 DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
@@ -122,6 +125,8 @@ DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
 class Installer(object):
     def __init__(self):
         self.network = DHCPClient()
+        self.mongo = MongoInitializer()
+        self.fabric = DockerFabric()
 
     def get_ferry_account(self):
         """
@@ -327,30 +332,40 @@ class Installer(object):
         # Check if there are any other Mongo instances runnig.
         self._clean_web()
 
-        # Start the Mongo server.
+        # Start the Mongo server. Create a new configuration and
+        # manually start the container. 
         keydir, _ = self._read_key_dir()
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' run -d -v %s:%s -v %s:%s -v %s:%s %s/mongodb' % (keydir, '/service/keys',
-                                                                                                     DEFAULT_MONGO_DB, '/service/data',
-                                                                                                     DEFAULT_MONGO_LOG, '/service/logs',
-                                                                                                     DEFAULT_DOCKER_REPO)
-        logging.warning(cmd)
-        child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-        output = child.stderr.read().strip()
-        if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(output):
-            logging.error("Ferry docker daemon does not appear to be running")
-            sys.exit(1)
-        elif re.compile('Unable to find image[\'\s\w]*').match(output):
-            logging.error("Ferry mongo image not present")
-            sys.exit(1)
+        volumes = { DEFAULT_MONGO_LOG : mongo.log_directory,
+                    DEFAULT_MONGO_DB, : mongo.data_directory }
+        mongoplan = {'image':'ferry/mongodb',
+                     'type':'ferry/mongodb', 
+                     'volumes':volumes,
+                     'volume_user':DEFAULT_FERRY_OWNER, 
+                     'keys':  { '/service/keys' : keydir }, 
+                     'ports':[],
+                     'exposed':self.mongo.get_exposed_ports(1), 
+                     'hostname':'ferrydb',
+                     'netenable':True, 
+                     'args':None}
+        mongoconf = self.mongo.generate()
+        mongobox = self.fabric.alloc([mongoplan])[0]
 
-        # Need to get Mongo connection info and store in temp file. 
-        container = child.stdout.read().strip()
-        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect %s' % container
-        logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        output_json = json.loads(output.strip())
-        ip = output_json[0]['NetworkSettings']['IPAddress']
+        # output = child.stderr.read().strip()
+        # if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(output):
+        #     logging.error("Ferry docker daemon does not appear to be running")
+        #     sys.exit(1)
+        # elif re.compile('Unable to find image[\'\s\w]*').match(output):
+        #     logging.error("Ferry mongo image not present")
+        #     sys.exit(1)
+
+        ip = mongobox.internal_ip
         _touch_file('/tmp/mongodb.ip', ip, root=True)
+
+        # Once the container is started, we'll need to copy over the
+        # configuration files, and then manually send the 'start' command. 
+        config_dirs, _ = self.mongo.apply(mongo, [mongobox])
+        self._transfer_config(ip, config_dirs)
+        self._send_start_cmd(ip)
 
         # Set the MongoDB env. variable. 
         my_env = os.environ.copy()
