@@ -23,9 +23,6 @@ RUN echo export MONGO_DATA=/service/data >> /etc/profile;echo export MONGO_LOG=/
 ENV LC_ALL C
 RUN echo export LC_ALL=C >> /etc/profile
 
-# Expose mongodb port
-EXPOSE 27017
-
 # Add the start script
 ADD startnode /service/sbin/
 RUN chmod a+x /service/sbin/startnode

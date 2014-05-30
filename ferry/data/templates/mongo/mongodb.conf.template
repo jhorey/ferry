@@ -1,0 +1,15 @@
+systemLog:
+   destination: file
+   path: "$MONGO_LOG/mongodb.log"
+   quiet: true
+   logAppend: true
+storage:
+   journal:
+      enabled: true
+   dbPath: "$MONGO_DATA"
+   smallFiles: true
+processManagement:
+   fork: true
+net:
+   bindIp: 0.0.0.0
+   port: 27017
