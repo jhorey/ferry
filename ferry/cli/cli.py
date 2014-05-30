@@ -598,7 +598,7 @@ class CLI(object):
             keydir = ferry.install.DEFAULT_ROOT_KEY
         else:
             keydir = ferry.install.DEFAULT_DOCKER_KEY
-        with open(ferry.install.DEFAULT_ROOT_KEY, 'r') as f: 
+        with open(keydir, 'r') as f: 
             k = f.read().strip().split("://")
             return k[1], k[0]
 
@@ -618,10 +618,11 @@ class CLI(object):
         if keydir == ferry.install.DEFAULT_KEY_DIR:
             if root:
                 keydir = os.environ['HOME'] + '/.ssh/tmp-root'
+                ferry.install.GLOBAL_ROOT_DIR = 'tmp://' + keydir
             else:
                 keydir = os.environ['HOME'] + '/.ssh/tmp-ferry'
+                ferry.install.GLOBAL_KEY_DIR = 'tmp://' + keydir
 
-            ferry.install.GLOBAL_KEY_DIR = 'tmp://' + keydir
             try:
                 os.makedirs(keydir)
             except OSError as e:

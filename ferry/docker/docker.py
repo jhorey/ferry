@@ -359,7 +359,6 @@ class DockerCLI(object):
         instance.image = data['Config']['Image']
         instance.container = data['ID']
         instance.internal_ip = data['NetworkSettings']['IPAddress']
-        logging.warning("INTERNAL IP:" + str(data['NetworkSettings']))
 
         # If we've used the lxc config, then the networking information
         # will be located somewhere else. 

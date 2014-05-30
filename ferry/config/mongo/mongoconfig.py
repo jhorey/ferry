@@ -47,7 +47,7 @@ class MongoInitializer(object):
 
         # Now wait a couple seconds to make sure
         # everything has started.
-        time.sleep(5)
+        time.sleep(3)
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):

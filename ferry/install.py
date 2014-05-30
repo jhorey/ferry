@@ -192,14 +192,23 @@ class Installer(object):
             GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
             _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
         
-    def _process_ssh_key(self, options):
-        global GLOBAL_KEY_DIR
-        if options and '-k' in options:
-            GLOBAL_KEY_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
+    def _process_ssh_key(self, options, root=False):
+        if root:
+            global GLOBAL_ROOT_DIR
+            if options and '-k' in options:
+                GLOBAL_ROOT_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
+            else:
+                GLOBAL_ROOT_DIR = 'tmp://' + DEFAULT_KEY_DIR
+                logging.warning("using key directory " + GLOBAL_ROOT_DIR)
+                _touch_file(DEFAULT_ROOT_KEY, GLOBAL_ROOT_DIR, root=True)
         else:
-            GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
-        logging.warning("using key directory " + GLOBAL_KEY_DIR)
-        _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+            global GLOBAL_KEY_DIR
+            if options and '-k' in options:
+                GLOBAL_KEY_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
+            else:
+                GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
+                logging.warning("using key directory " + GLOBAL_KEY_DIR)
+                _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
 
     def install(self, args, options):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
@@ -310,7 +319,7 @@ class Installer(object):
             sys.exit(1)
 
         # Check if the user wants to use a specific key directory. 
-        self._process_ssh_key(options)
+        self._process_ssh_key(options, root=True)
 
         # Check if the user-application directory exists.
         # If not, create it. 

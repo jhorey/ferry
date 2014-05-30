@@ -22,14 +22,12 @@ from subprocess import Popen, PIPE
 from ferry.docker.docker import DockerCLI
 from ferry.ip.client import DHCPClient
 
-"""
-Allocate local docker instances
-"""
 class DockerFabric(object):
     def __init__(self, bootstrap=False):
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI()
+        self.bootstrap = bootstrap
 
         # Bootstrap mode means that the DHCP network
         # isn't available yet, so we can't use the network. 
@@ -55,31 +53,35 @@ class DockerFabric(object):
         cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         return Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
 
-    """
-    Read the location of the directory containing the keys
-    used to communicate with the containers. 
-    """
     def _read_key_dir(self):
-        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
-        k = f.read().strip().split("://")
-        return k[1], k[0]
+        """
+        Read the location of the directory containing the keys
+        used to communicate with the containers. 
+        """
+        if self.bootstrap:
+            keydir = ferry.install.DEFAULT_ROOT_KEY
+        else:
+            keydir = ferry.install.DEFAULT_DOCKER_KEY
+        with open(keydir, 'r') as f: 
+            k = f.read().strip().split("://")
+            return k[1], k[0]
  
-    """
-    Fetch the current docker version.
-    """
     def version(self):
+        """
+        Fetch the current docker version.
+        """
         return self.cli.version()
 
-    """
-    Get the filesystem type associated with docker. 
-    """
     def get_fs_type(self):
+        """
+        Get the filesystem type associated with docker. 
+        """
         return self.cli.get_fs_type()
 
-    """
-    Restart the stopped containers.
-    """
     def restart(self, containers):
+        """
+        Restart the stopped containers.
+        """
         new_containers = []
         for c in containers:
             container = self.cli.start(c.container,
@@ -95,10 +97,10 @@ class DockerFabric(object):
         time.sleep(2)
         return new_containers
 
-    """
-    Allocate several instances.
-    """
     def alloc(self, container_info):
+        """
+        Allocate several instances.
+        """
         containers = []
         mounts = {}
         for c in container_info:
