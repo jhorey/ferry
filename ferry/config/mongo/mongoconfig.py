@@ -144,7 +144,7 @@ class MongoInitializer(object):
 
 class MongoConfig(object):
     log_directory = '/service/logs'
-    config_directory = '/service/conf/mongo'
+    config_directory = '/service/conf/mongodb'
     data_directory = '/service/data'
     MONGO_PORT = 27017
 

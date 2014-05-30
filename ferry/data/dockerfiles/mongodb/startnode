@@ -14,7 +14,7 @@ elif [ $1 == "start" ]; then
 
     # Start the mongo server
     # su ferry -c '/usr/bin/mongod --unixSocketPrefix /service/com --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'
-    su ferry -c '/usr/bin/mongod --config /service/conf/mongo/mongodb.conf'
+    su ferry -c '/usr/bin/mongod --config /service/conf/mongodb/mongodb.conf'
 elif [ $1 == "stop" ]; then 
     # Shutdown MongoDB. 
     su ferry -c '/usr/bin/mongod --shutdown'
