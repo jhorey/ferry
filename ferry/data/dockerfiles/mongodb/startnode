@@ -2,7 +2,11 @@
 
 source /service/sbin/setup
 
-if [ $1 == "start" ]; then 
+if [ $1 == "init" ]; then 
+    /service/sbin/init01.sh
+elif [ $1 == "halt" ]; then 
+    /service/sbin/halt01.sh
+elif [ $1 == "start" ]; then 
     # Change the file ownership back to ferry user. This is 
     # necessary since the host may not have the ferry user. 
     chown -R ferry:ferry $MONGO_DATA
@@ -10,11 +14,7 @@ if [ $1 == "start" ]; then
 
     # Start the mongo server
     su ferry -c '/usr/bin/mongod --unixSocketPrefix /service/com --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'
-
-    # Finish init
-    /service/sbin/init01.sh
 elif [ $1 == "stop" ]; then 
     # Shutdown MongoDB. 
     su ferry -c '/usr/bin/mongod --shutdown'
-    /service/sbin/halt01.sh    
 fi

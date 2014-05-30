@@ -19,7 +19,4 @@ elif [ $1 == "restart" ]; then
 elif [ $1 == "stop" ]; then 
     # Stop the Cassandra daemon.
     pkill -f CassandraDaemon
-
-    # Killing the ssh daemon should automatically exit the container,
-    # since the sshd is the only thing running in the foreground. 
 fi

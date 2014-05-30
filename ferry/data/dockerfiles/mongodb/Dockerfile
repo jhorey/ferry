@@ -5,13 +5,13 @@ NAME mongodb
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv 7F0CEB10;echo "deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen" >> /etc/apt/sources.list
 
 # Update the repository for latest packages
-RUN apt-get update;apt-get --yes install mongodb-10gen python-pip python-dev build-essential
+RUN apt-get --yes install mongodb-10gen python-pip python-dev build-essential
 
 # To download pymongo
 RUN pip install --upgrade virtualenv;pip install pymongo
 
 # Create default data directory
-RUN mkdir -p /service/com /service/bin /service/data /service/logs
+RUN mkdir -p /service/com /service/sbin /service/data /service/logs /service/conf/mongodb
 RUN chown -R ferry:docker /service
 
 # Export data directory path
@@ -27,8 +27,5 @@ RUN echo export LC_ALL=C >> /etc/profile
 EXPOSE 27017
 
 # Add the start script
-ADD mongodb /service/bin/
-RUN chmod a+x /service/bin/mongodb
-
-# Default command
-CMD ["/service/bin/mongodb", "start"]
+ADD startnode /service/sbin/
+RUN chmod a+x /service/sbin/startnode
