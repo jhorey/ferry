@@ -287,6 +287,16 @@ class Installer(object):
         else:
             return True
 
+    def _transfer_config(self, config_dirs):
+        """
+        Transfer the configuration to the containers. 
+        """
+        for c in config_dirs:
+            container = c[0]
+            from_dir = c[1]
+            to_dir = c[2]
+            self.docker.copy([container], from_dir, to_dir)
+
     def start_web(self, options=None, clean=False):
         start, msg = self._start_docker_daemon(options)
         if not clean and not start:
@@ -349,23 +359,18 @@ class Installer(object):
                      'args':None}
         mongoconf = self.mongo.generate()
         mongobox = self.fabric.alloc([mongoplan])[0]
-
-        # output = child.stderr.read().strip()
-        # if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(output):
-        #     logging.error("Ferry docker daemon does not appear to be running")
-        #     sys.exit(1)
-        # elif re.compile('Unable to find image[\'\s\w]*').match(output):
-        #     logging.error("Ferry mongo image not present")
-        #     sys.exit(1)
+        if not mongobox:
+            logging.error("Could not start MongoDB image")
+            sys.exit(1)
 
         ip = mongobox.internal_ip
         _touch_file('/tmp/mongodb.ip', ip, root=True)
 
         # Once the container is started, we'll need to copy over the
         # configuration files, and then manually send the 'start' command. 
-        config_dirs, _ = self.mongo.apply(mongo, [mongobox])
-        self._transfer_config(ip, config_dirs)
-        self._send_start_cmd(ip)
+        config_dirs, entry_point = self.mongo.apply(mongo, [mongobox])
+        self._transfer_config(config_dirs)
+        self.mongo.start_service([mongobox], entry_point, self.fabric)
 
         # Set the MongoDB env. variable. 
         my_env = os.environ.copy()
