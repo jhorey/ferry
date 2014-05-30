@@ -293,6 +293,17 @@ class Installer(object):
         # Check if the user wants to use a specific key directory. 
         self._process_ssh_key(options)
 
+        # Check if the user-application directory exists.
+        # If not, create it. 
+        try:
+            if not os.path.isdir(DEFAULT_FERRY_APPS):
+                os.makedirs(DEFAULT_FERRY_APPS)
+                self._change_permission(DEFAULT_FERRY_APPS)
+        except OSError as e:
+            logging.error("Could not create application directory.\n") 
+            logging.error(e.strerror)
+            sys.exit(1)
+
         # Check if the Mongo directory exists yet. If not
         # go ahead and create it. 
         try:
