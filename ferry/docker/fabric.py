@@ -129,8 +129,8 @@ class DockerFabric(object):
                         dest = s[0]
                     host_map[dest] = [{'HostIp' : '0.0.0.0',
                                        'HostPort' : host}]
-                    host_map_keys = host_map.keys()
                     self.network.forward_rule('0.0.0.0/0', host, ip, dest)
+                host_map_keys = host_map.keys()
             else:
                 lxc_opts = None
                 host_map = None

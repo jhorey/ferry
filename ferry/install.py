@@ -106,6 +106,7 @@ FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
+GLOBAL_ROOT_DIR=FERRY_HOME + '/data/key'
 DEFAULT_DOCKER_LOGIN=os.environ['HOME'] + '/.ferry.docker'
 DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
@@ -122,6 +123,7 @@ DEFAULT_MONGO_LOG='/var/lib/ferry/mongolog'
 DEFAULT_REGISTRY_DB='/var/lib/ferry/registry'
 DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
 DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
+DEFAULT_ROOT_KEY='/var/lib/ferry/rootdir'
 
 class Installer(object):
     def __init__(self, cli=None):
@@ -166,19 +168,14 @@ class Installer(object):
             logging.error(e)
             return None
 
-    def _read_key_dir(self):
-        """
-        Find the directory containing the container keys. 
-        """
-        f = open(ferry.install.DEFAULT_DOCKER_KEY, 'r')
-        k = f.read().strip().split("://")
-        return k[1], k[0]
-
     def _clean_rules(self):
         self.network.clean_rules()
 
-    def _reset_ssh_key(self):
-        keydir, tmp = self._read_key_dir()
+    def _reset_ssh_key(self, root=False):
+        """
+        Reset the temporary ssh key. 
+        """
+        keydir, tmp = self.cli._read_key_dir(root)
 
         # Only reset temporary keys. User-defined key directories
         # shouldn't be touched. 
@@ -186,10 +183,14 @@ class Installer(object):
             shutil.rmtree(keydir)
 
         # Mark that we are using the default package keys
-        global GLOBAL_KEY_DIR
-        GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
-        _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
-        logging.warning("reset key directory " + GLOBAL_KEY_DIR)
+        if root:
+            global GLOBAL_ROOT_DIR
+            GLOBAL_ROOT_DIR = 'tmp://' + DEFAULT_KEY_DIR
+            _touch_file(DEFAULT_ROOT_KEY, GLOBAL_ROOT_DIR, root=True)
+        else:
+            global GLOBAL_KEY_DIR
+            GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
+            _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
         
     def _process_ssh_key(self, options):
         global GLOBAL_KEY_DIR
@@ -346,11 +347,11 @@ class Installer(object):
         self._clean_web()
 
         # Copy over the ssh keys.
-        self.cli._check_ssh_key()
+        self.cli._check_ssh_key(root=True)
 
         # Start the Mongo server. Create a new configuration and
         # manually start the container. 
-        keydir, _ = self._read_key_dir()
+        keydir, _ = self.cli._read_key_dir(root=True)
         volumes = { DEFAULT_MONGO_LOG : self.mongo.container_log_dir,
                     DEFAULT_MONGO_DB : self.mongo.container_data_dir }
         mongoplan = {'image':'ferry/mongodb',
@@ -413,11 +414,16 @@ class Installer(object):
             ip = f.read().strip()
             f.close()
 
-            keydir, tmp = self._read_key_dir()
+            keydir, tmp = self.cli._read_key_dir(root=True)
             key = keydir + "/id_rsa"
-            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/bin/mongodb stop' % (key, ip)
+            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode stop' % (key, ip)
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+            logging.warning(output)
+            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode halt' % (key, ip)
+            logging.warning(cmd)
+            output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+            logging.warning(output)
             os.remove('/tmp/mongodb.ip')
 
         # Kill all the gunicorn instances. 

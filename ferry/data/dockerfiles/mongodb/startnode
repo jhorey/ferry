@@ -9,13 +9,13 @@ elif [ $1 == "halt" ]; then
 elif [ $1 == "start" ]; then 
     # Change the file ownership back to ferry user. This is 
     # necessary since the host may not have the ferry user. 
-    chown -R ferry:ferry $MONGO_DATA
-    chown -R ferry:ferry $(dirname $MONGO_LOG)
+    chown -R ferry:ferry /service/data
+    chown -R ferry:ferry /service/logs
 
     # Start the mongo server
-    # su ferry -c '/usr/bin/mongod --unixSocketPrefix /service/com --fork --logpath $MONGO_LOG --dbpath $MONGO_DATA --smallfiles'
-    su ferry -c '/usr/bin/mongod --config /service/conf/mongodb/mongodb.conf'
+    LC_ALL=C
+    su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf' >> /service/logs/start.log
 elif [ $1 == "stop" ]; then 
     # Shutdown MongoDB. 
-    su ferry -c '/usr/bin/mongod --shutdown'
+    su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf --shutdown'
 fi
