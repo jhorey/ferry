@@ -77,7 +77,7 @@ class MongoInitializer(object):
         instances = []
 
         for i in range(num_instances):
-            instances.append('mongo')
+            instances.append('mongodb')
 
         return instances
 
@@ -110,11 +110,11 @@ class MongoInitializer(object):
         """
         Apply the configuration to the instances
         """
-        entry_point = { 'type' : 'mongo' }
+        entry_point = { 'type' : 'mongodb' }
         config_dirs = []
 
         # Keep track of the MongoDB IP address. 
-        entry_point['ip'] = str(containers[0]['data_ip'])
+        entry_point['ip'] = containers[0]['data_ip']
 
         new_config_dir = "/tmp/" + self._generate_config_dir(config.uuid)
         try:

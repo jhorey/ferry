@@ -66,7 +66,7 @@ class DockerManager(object):
             'hive': { 
                 'server' : self.config.hadoop,
                 'client' : self.config.hadoop_client},
-            'mongo': { 
+            'mongodb': { 
                 'server' : self.config.mongo,
                 'client' : self.config.mongo_client}
             }
@@ -1209,7 +1209,6 @@ class DockerManager(object):
         """
         snapshot = self.cluster_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if snapshot:
-            logging.warning("SNAPSHOT BACKEND: " + str(snapshot['backends']))
             return snapshot['backends']['backend']
 
     def fetch_deployed_backend(self, app_uuid, conf=None):

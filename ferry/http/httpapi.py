@@ -247,6 +247,7 @@ def _allocate_backend(payload,
             layers = []
             if 'layers' in storage:
                 layers = storage['layers']
+
             storage_uuid, storage_containers = docker.allocate_storage(storage_type = storage_type, 
                                                                        num_instances = num_instances,
                                                                        layers = layers,
