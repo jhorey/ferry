@@ -18,7 +18,6 @@ import logging
 from pymongo import MongoClient
 from ferry.install import FERRY_HOME, DEFAULT_TEMPLATE_DIR
 from ferry.docker.docker import DockerInstance
-from ferry.docker.fabric import DockerFabric
 from ferry.config.gluster.glusterconfig     import *
 from ferry.config.hadoop.hadoopconfig       import *
 from ferry.config.hadoop.hadoopclientconfig import *
@@ -35,7 +34,6 @@ from ferry.config.mongo.mongoclientconfig   import *
 
 class ConfigFactory(object):
     def __init__(self):
-        # Storage configuration tools
         self.gluster = GlusterInitializer()
         self.hadoop = HadoopInitializer()
         self.yarn = HadoopInitializer()

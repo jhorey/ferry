@@ -29,6 +29,14 @@ class MongoClientInitializer(object):
         self.container_log_dir = self.mongo.container_log_dir
 
     @property
+    def fabric(self):
+        self.mongo.fabric
+
+    @fabric.setter
+    def fabric(self, value):
+        self.mongo.fabric = value
+
+    @property
     def template_dir(self):
         self.mongo.template_dir
 

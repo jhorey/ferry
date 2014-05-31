@@ -39,6 +39,7 @@ class DockerManager(object):
 
     def __init__(self):
         # Generate configuration.
+        self.docker = DockerFabric()
         self.config = ConfigFactory()
 
         # Service mappings
@@ -71,11 +72,8 @@ class DockerManager(object):
                 'client' : self.config.mongo_client}
             }
 
-        # Docker tools
-        self.docker = DockerFabric()
-        self.deploy = DeployEngine(self.docker)
-
         # Initialize the state. 
+        self.deploy = DeployEngine(self.docker)
         self._init_state_db()
         self._clean_state_db()
 
@@ -162,7 +160,9 @@ class DockerManager(object):
 
     def _get_service(self, service_type):
         if service_type in self.service:
-            return self.service[service_type]['server']
+            service = self.service[service_type]['server']
+            service.fabric = self.docker
+            return service
         else:
             logging.error("unknown service " + service_type)
             return None
@@ -178,12 +178,16 @@ class DockerManager(object):
         for storage in storage_entry:
             if storage['type'] in self.service:
                 if 'client' in self.service[storage['type']]:
-                    client_services.add(self.service[storage['type']]['client'])
+                    cs = self.service[storage['type']]['client']
+                    cs.fabric = self.docker
+                    client_services.add(cs)
                 service_names.append(storage['type'])
         for compute in compute_entry:
             if compute['type'] in self.service:
                 if 'client' in self.service[compute['type']]:
-                    client_services.add(self.service[compute['type']]['client'])
+                    cs = self.service[compute['type']]['client']
+                    cs.fabric = self.docker
+                    client_services.add(cs)
                 service_names.append(compute['type'])
         return client_services, service_names
 

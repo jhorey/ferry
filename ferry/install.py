@@ -128,9 +128,10 @@ DEFAULT_ROOT_KEY='/var/lib/ferry/rootdir'
 class Installer(object):
     def __init__(self, cli=None):
         self.network = DHCPClient()
-        self.mongo = MongoInitializer()
-        self.mongo.template_dir = DEFAULT_TEMPLATE_DIR + '/mongo/'
         self.fabric = DockerFabric(bootstrap=True)
+        self.mongo = MongoInitializer()
+        self.mongo.fabric = self.fabric
+        self.mongo.template_dir = DEFAULT_TEMPLATE_DIR + '/mongo/'
         self.cli = cli
 
     def get_ferry_account(self):

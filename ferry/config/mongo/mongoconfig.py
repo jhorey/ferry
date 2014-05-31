@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import json
 import logging
 import os
 import sh
@@ -28,7 +29,7 @@ class MongoInitializer(object):
         """
         self.template_dir = None
         self.template_repo = None
-
+        self.fabric = None
         self.container_data_dir = MongoConfig.data_directory
         self.container_log_dir = MongoConfig.log_directory
 
@@ -132,6 +133,12 @@ class MongoInitializer(object):
             # This is being called as a storage service. 
             # The client service doesn't do anything right now. 
             self._generate_mongo_config(new_config_dir, config)
+
+            # Expose the login info. 
+            output = self.fabric.cmd_raw(entry_point['ip'], '/service/sbin/startnode login')
+            login_info = json.loads(str(output))
+            entry_point['user'] = login_info['user']
+            entry_point['pass'] = login_info['pass']
 
         # Transfer the configuration. 
         for c in containers:

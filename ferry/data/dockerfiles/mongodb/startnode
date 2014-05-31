@@ -3,9 +3,30 @@
 source /service/sbin/setup
 
 if [ $1 == "init" ]; then 
+    # Generate a unique login/password
+    # for the admin account.
+    LOGIN=$(cat /proc/sys/kernel/random/uuid)
+    PASS=$(cat /proc/sys/kernel/random/uuid)
+    echo $LOGIN > /service/conf/mongodb/login
+    echo $PASS > /service/conf/mongodb/pass
+
+    # Now finish the init process
     /service/sbin/init01.sh
 elif [ $1 == "halt" ]; then 
     /service/sbin/halt01.sh
+elif [ $1 == "login" ]; then 
+    # Print out login info. 
+    linput=/service/conf/mongodb/login
+    while read line
+    do
+	login=$line
+    done < "$linput"
+    pinput=/service/conf/mongodb/pass
+    while read line
+    do
+	pass=$line
+    done < "$pinput"
+    echo -e "{\"user\":\"${login}\",\"pass\":\"${pass}\"}"
 elif [ $1 == "start" ]; then 
     # Change the file ownership back to ferry user. This is 
     # necessary since the host may not have the ferry user. 
