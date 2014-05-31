@@ -51,7 +51,7 @@ class GlusterInitializer(object):
         slave nodes before the master, since the master assumes everything is
         waiting for it to start. 
         """
-        master_ip = entry_point['ip']
+        master_ip = entry_point['gluster']
         for c in containers:
             if c.internal_ip != master_ip:
                 output = fabric.cmd([c], '/service/sbin/startnode %s slave' % cmd)
@@ -133,7 +133,7 @@ class GlusterInitializer(object):
         # Start making the changes. 
         try:
             # Write out the list of all addresses
-            entry_point['ip'] = config.head_node['data_ip']
+            entry_point['gluster'] = config.head_node['data_ip']
             entry_point['instances'] = []
             for server in containers:
                 entry_point['instances'].append([server['data_ip'], server['host_name']])

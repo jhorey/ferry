@@ -48,10 +48,10 @@ class HadoopClientInitializer(object):
     def _execute_service(self, containers, entry_point, fabric, cmd):
         # We need to know what sort of storage backend we are
         # using, since this will help set up everything.
-        if entry_point['storage_type'] == 'hadoop':
+        if entry_point['hdfs_type'] == 'hadoop':
             output = fabric.cmd(containers, '/service/sbin/startnode %s hadoop' % cmd)
-        elif entry_point['storage_type'] == 'gluster':
-            mount_url = entry_point['storage_url']
+        elif entry_point['hdfs_type'] == 'gluster':
+            mount_url = entry_point['gluster_url']
             output = fabric.cmd(containers, 
                                 '/service/sbin/startnode %s gluster %s' % (cmd, mount_url))
     def start_service(self, containers, entry_point, fabric):
@@ -200,13 +200,13 @@ class HadoopClientInitializer(object):
                 config.hive_meta = storage['db']
 
         # Check what sort of storage we are using.
-        entry_point['storage_type'] = storage['type']
+        entry_point['hdfs_type'] = storage['type']
         if storage['type'] == 'hadoop':
             config.hdfs_master = storage['hdfs']
             self._generate_core_site(config.hdfs_master, new_config_dir)
         elif storage['type'] == 'gluster':
-            mount_url = "%s:/%s" % (storage['ip'], storage['volume'])
-            entry_point['storage_url'] = mount_url
+            mount_url = "%s:/%s" % (storage['gluster'], storage['volume'])
+            entry_point['gluster_url'] = mount_url
             self._generate_gluster_core_site('/data', new_config_dir)
 
         # Generate the Hadoop conf files.

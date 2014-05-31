@@ -37,7 +37,6 @@ class OpenMPIInitializer(object):
         Start the service on the containers. 
         """
         output = fabric.cmd(containers, '/service/sbin/startnode %s %s' % (cmd, entry_point['mount']))
-        logging.warning("MPI OUT:" + str(output))
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
@@ -134,7 +133,7 @@ class OpenMPIInitializer(object):
         # a Gluster end point. 
         storage = self._find_mpi_storage(containers)
         if storage:
-            mount_ip = storage['ip']
+            mount_ip = storage['gluster']
             mount_dir = storage['volume']
             entry_point['mount'] = "%s:/%s" % (mount_ip, mount_dir)
 

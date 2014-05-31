@@ -55,7 +55,7 @@ class HadoopInitializer(object):
         hdfs_master = None
 
         # Now start the HDFS cluster. 
-        if entry_point['storage_type'] == 'hadoop':
+        if entry_point['hdfs_type'] == 'hadoop':
             hdfs_master = entry_point['hdfs']
             for c in containers:
                 if c.service_type == 'hadoop':
@@ -67,8 +67,8 @@ class HadoopInitializer(object):
             # Now wait a couple seconds to make sure
             # everything has started.
             time.sleep(5)
-        elif entry_point['storage_type'] == 'gluster':
-            mount_url = entry_point['storage_url']
+        elif entry_point['hdfs_type'] == 'gluster':
+            mount_url = entry_point['gluster_url']
             output = fabric.cmd(containers, 
                                 '/service/sbin/startnode %s gluster %s' % (cmd, mount_url))
                                 
@@ -412,10 +412,10 @@ class HadoopInitializer(object):
             # Now we need to configure additional storage parameters. For example,
             # for Gluster, etc. 
             storage_entry = self._find_hadoop_storage(containers)
-            entry_point['storage_type'] = storage_entry['type']
+            entry_point['hdfs_type'] = storage_entry['type']
             if storage_entry['type'] == 'gluster':
                 url = self._apply_gluster(config, storage_entry, new_config_dir, c)
-                entry_point['storage_url'] = url
+                entry_point['gluster_url'] = url
 
             config_dirs.append([c['container'], 
                                 new_config_dir + '/*',
@@ -445,7 +445,7 @@ class HadoopInitializer(object):
         self._generate_gluster_core_site(new_config_dir, container)
 
         # The mount URL specifies how to connect to Gluster. 
-        mount_url = "%s:/%s" % (storage_entry['ip'], storage_entry['volume'])
+        mount_url = "%s:/%s" % (storage_entry['gluster'], storage_entry['volume'])
         return mount_url
 
     def apply(self, config, containers):
@@ -469,7 +469,7 @@ class HadoopInitializer(object):
             # This Hadoop instance is being applied for both storage
             # and compute. Right now there's no way to just instantiate HDFS. 
             hadoop_dirs, hadoop_entry = self._apply_hadoop(config, hadoop_containers)
-            hadoop_entry['storage_type'] = 'hadoop'
+            hadoop_entry['hdfs_type'] = 'hadoop'
 
         hive_entry = {}
         if len(hive_containers) > 0:

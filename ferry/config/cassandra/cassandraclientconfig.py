@@ -41,7 +41,7 @@ class CassandraClientInitializer(object):
     """
     def _execute_service(self, containers, entry_point, fabric, cmd):
         output = fabric.cmd(containers, 
-                            '/service/sbin/startnode %s %s' % (cmd, entry_point['storage_url']))
+                            '/service/sbin/startnode %s %s' % (cmd, entry_point['cassandra_url']))
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
@@ -90,7 +90,7 @@ class CassandraClientInitializer(object):
                     "DATA_DIR":config.data_directory,
                     "CACHE_DIR":config.cache_directory,
                     "COMMIT_DIR":config.commit_directory,
-                    "SEEDS":entry_point['storage_url']}
+                    "SEEDS":entry_point['cassandra_url']}
 
         for line in yaml_in_file:
             s = Template(line).substitute(changes)
@@ -135,8 +135,7 @@ class CassandraClientInitializer(object):
             return None, None
 
         # Otherwise record the storage type and get the seed node. 
-        entry_point['storage_type'] = storage_entry['type']
-        entry_point['storage_url'] = storage_entry['seed']
+        entry_point['cassandra_url'] = storage_entry['seed']
 
         # Create a new configuration directory, and place
         # into the template directory. 
