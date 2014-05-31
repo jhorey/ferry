@@ -124,7 +124,7 @@ class MongoInitializer(object):
         config_dirs = []
 
         # Keep track of the MongoDB IP address. 
-        entry_point['ip'] = containers[0]['data_ip']
+        entry_point['mongo'] = containers[0]['data_ip']
 
         new_config_dir = "/tmp/" + self._generate_config_dir(config.uuid)
         try:
@@ -147,10 +147,10 @@ class MongoInitializer(object):
                 self._generate_mongo_config(new_config_dir, config, 'notrust')
 
             # Expose the login info. 
-            output = self.fabric.cmd_raw(entry_point['ip'], '/service/sbin/startnode login')
+            output = self.fabric.cmd_raw(entry_point['mongo'], '/service/sbin/startnode login')
             login_info = json.loads(str(output))
-            entry_point['user'] = login_info['user']
-            entry_point['pass'] = login_info['pass']
+            entry_point['mongo_user'] = login_info['user']
+            entry_point['mongo_pass'] = login_info['pass']
 
         # Transfer the configuration. 
         for c in containers:
@@ -162,9 +162,9 @@ class MongoInitializer(object):
         return config_dirs, entry_point
 
 class MongoConfig(object):
-    log_directory = '/service/logs'
-    config_directory = '/service/conf/mongodb'
-    data_directory = '/service/data'
+    log_directory = '/service/logs/'
+    config_directory = '/service/conf/mongodb/'
+    data_directory = '/service/data/'
     MONGO_PORT = 27017
 
     def __init__(self, num):

@@ -191,9 +191,9 @@ class GlusterInitializer(object):
 A GlusterFS configuration. 
 """
 class GlusterConfig(object):
-    data_directory = '/service/data'
-    log_directory = '/service/logs'
-    config_directory = '/service/conf/gluster'
+    data_directory = '/service/data/'
+    log_directory = '/service/logs/'
+    config_directory = '/service/conf/gluster/'
 
     BRICK_PORT = 24009
     MANAGEMENT_PORT = 24007

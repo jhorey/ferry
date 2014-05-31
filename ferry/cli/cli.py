@@ -368,16 +368,20 @@ class CLI(object):
                 connectors.append(c)
 
             backends = json_data[uuid]['backends']
+            bstore = []
+            cstore = []
             for b in backends:
                 if b['storage']:
-                    storage.append(b['storage'])
+                    bstore.append(b['storage'])
                 else:
-                    storage.append(' ')
+                    bstore.append(' ')
 
                 if b['compute']:
-                    compute.append(b['compute'])
+                    cstore.append(b['compute'])
                 else:
-                    compute.append(' ')
+                    cstore.append(' ')
+            storage.append(bstore)
+            compute.append(cstore)
 
             status.append(json_data[uuid]['status'])
             base.append(json_data[uuid]['base'])

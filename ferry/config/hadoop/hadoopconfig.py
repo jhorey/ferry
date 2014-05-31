@@ -24,11 +24,12 @@ from ferry.config.hadoop.hiveconfig import *
 from ferry.config.hadoop.metastore  import *
 
 class HadoopInitializer(object):
-    """
-    Create a new initializer
-    Param user The user login for the git repo
-    """
+
     def __init__(self):
+        """
+        Create a new initializer
+        Param user The user login for the git repo
+        """
         self.template_dir = None
         self.template_repo = None
 
@@ -40,16 +41,16 @@ class HadoopInitializer(object):
         self.hive_client.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
         self.hive_ms.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
 
-    """
-    Generate a new hostname
-    """
     def new_host_name(self, instance_id):
+        """
+        Generate a new hostname
+        """
         return 'hadoop' + str(instance_id)
 
-    """
-    Start the service on the containers. 
-    """
     def _execute_service(self, containers, entry_point, fabric, cmd):
+        """
+        Start the service on the containers. 
+        """
         yarn_master = entry_point['yarn']
         hdfs_master = None
 
@@ -92,23 +93,23 @@ class HadoopInitializer(object):
     def stop_service(self, containers, entry_point, fabric):
         output = fabric.cmd(containers, '/service/sbin/startnode stop')
 
-    """
-    Generate a new configuration.
-    """
     def _generate_config_dir(self, uuid, container):
+        """
+        Generate a new configuration.
+        """
         return 'hadoop_' + str(uuid) + '_' + str(container['data_ip'])
 
-    """
-    Get the ports necessary. 
-    """
     def get_necessary_ports(self, num_instances):
+        """
+        Get the ports necessary. 
+        """
         return []
 
-    """
-    Get the ports to expose internally between containers
-    (but not outside containers). 
-    """
     def get_exposed_ports(self, num_instances):
+        """
+        Get the ports to expose internally between containers
+        (but not outside containers). 
+        """
         ports = []
         ports.append(HadoopConfig.YARN_SCHEDULER)
         ports.append(HadoopConfig.YARN_ADMIN)
@@ -123,11 +124,11 @@ class HadoopInitializer(object):
         ports.append(HadoopConfig.HIVE_SERVER)
         return ports
 
-    """
-    Get total number of instances. For Hadoop we must have additional containers
-    for the YARN master, HDFS master, and possibly the Hive metastore. 
-    """
     def get_total_instances(self, num_instances, layers):
+        """
+        Get total number of instances. For Hadoop we must have additional containers
+        for the YARN master, HDFS master, and possibly the Hive metastore. 
+        """
         instances = []
 
         for i in range(num_instances + 2):
@@ -138,27 +139,27 @@ class HadoopInitializer(object):
 
         return instances
 
-    """
-    Generate a new configuration
-    """
     def generate(self, num):
+        """
+        Generate a new configuration
+        """
         return HadoopConfig(num)
 
-    """
-    Need to estimate the amount of memory available on
-    one of the containers. 
-    """
     def _estimate_mem_size(self, config):
+        """
+        Need to estimate the amount of memory available on
+        one of the containers. 
+        """
         if config.system_info != None:
             return config.system_info['mem']
         else:
             # Estimate 2GB of available memory. 
             return 2
 
-    """
-    Generate the core-site configuration for a local filesystem. 
-    """
     def _generate_gluster_core_site(self, new_config_dir, container):
+        """
+        Generate the core-site configuration for a local filesystem. 
+        """
         core_in_file = open(self.template_dir + '/core-site.xml.template', 'r')
         core_out_file = open(new_config_dir + '/core-site.xml', 'w+')
 
@@ -171,10 +172,10 @@ class HadoopInitializer(object):
         core_in_file.close()
         core_out_file.close()
 
-    """
-    Generate the core-site configuration. 
-    """
     def _generate_core_site(self, hdfs_master, new_config_dir):
+        """
+        Generate the core-site configuration. 
+        """
         core_in_file = open(self.template_dir + '/core-site.xml.template', 'r')
         core_out_file = open(new_config_dir + '/core-site.xml', 'w+')
 
@@ -190,10 +191,10 @@ class HadoopInitializer(object):
         core_in_file.close()
         core_out_file.close()
 
-    """
-    Generate the hdfs-site configuration. 
-    """
     def _generate_hdfs_site(self, config, hdfs_master, new_config_dir):
+        """
+        Generate the hdfs-site configuration. 
+        """
         hdfs_in_file = open(self.template_dir + '/hdfs-site.xml.template', 'r')
         hdfs_out_file = open(new_config_dir + '/hdfs-site.xml', 'w+')
 
@@ -205,10 +206,10 @@ class HadoopInitializer(object):
         hdfs_in_file.close()
         hdfs_out_file.close()
 
-    """
-    Generate the yarn-site configuration. 
-    """
     def _generate_yarn_site(self, yarn_master, new_config_dir, container=None):
+        """
+        Generate the yarn-site configuration. 
+        """
         yarn_in_file = open(self.template_dir + '/yarn-site.xml.template', 'r')
         yarn_out_file = open(new_config_dir + '/yarn-site.xml', 'w+')
 
@@ -238,10 +239,10 @@ class HadoopInitializer(object):
         in_file.close()
         out_file.close()
 
-    """
-    Generate the yarn-env configuration. 
-    """
     def _generate_yarn_env(self, yarn_master, new_config_dir):
+        """
+        Generate the yarn-env configuration. 
+        """
         yarn_in_file = open(self.template_dir + '/yarn-env.sh.template', 'r')
         yarn_out_file = open(new_config_dir + '/yarn-env.sh', 'w+')
 
@@ -251,10 +252,10 @@ class HadoopInitializer(object):
         yarn_in_file.close()
         yarn_out_file.close()
 
-    """
-    Generate the yarn-env configuration. 
-    """
     def _generate_mapred_env(self, new_config_dir):
+        """
+        Generate the yarn-env configuration. 
+        """
         in_file = open(self.template_dir + '/mapred-env.sh', 'r')
         out_file = open(new_config_dir + '/mapred-env.sh', 'w+')
 
@@ -264,10 +265,10 @@ class HadoopInitializer(object):
         in_file.close()
         out_file.close()
 
-    """
-    Generate the mapred-site configuration. 
-    """
     def _generate_mapred_site(self, yarn_master, config, containers, new_config_dir, container=None):
+        """
+        Generate the mapred-site configuration. 
+        """
         mapred_in_file = open(self.template_dir + '/mapred-site.xml.template', 'r')
         mapred_out_file = open(new_config_dir + '/mapred-site.xml', 'w+')
 
@@ -298,22 +299,22 @@ class HadoopInitializer(object):
         mapred_in_file.close()
         mapred_out_file.close()
 
-    """
-    Apply the Hive metastore configuration
-    """
     def _apply_hive_metastore(self, config, containers):
+        """
+        Apply the Hive metastore configuration
+        """
         return self.hive_ms.apply(config, containers)
 
-    """
-    Apply the Hive client configuration
-    """
     def _apply_hive_client(self, config, containers):
+        """
+        Apply the Hive client configuration
+        """
         return self.hive_client.apply(config, containers)
 
-    """
-    Apply the Hadoop configuration
-    """
     def _apply_hadoop(self, config, containers):
+        """
+        Apply the Hadoop configuration
+        """
         entry_point = { 'type' : 'hadoop' }
 
         # Pick out the various master nodes. The Hadoop configuration assumes
@@ -362,10 +363,19 @@ class HadoopInitializer(object):
 
         return config_dirs, entry_point
 
-    """
-    Apply the YARN-only configuration
-    """
+    def _find_hadoop_storage(self, containers):
+        """
+        Find a Hadoop compatible storage entry. 
+        """
+        for c in containers:
+            for s in c['storage']:
+                if s['type'] == 'gluster' or s['type'] == 'hadoop':
+                    return s
+
     def _apply_yarn(self, config, containers):
+        """
+        Apply the YARN-only configuration
+        """
         entry_point = { 'type' : 'yarn' }
 
         # Pick out the various master nodes. The Hadoop configuration assumes
@@ -401,7 +411,7 @@ class HadoopInitializer(object):
 
             # Now we need to configure additional storage parameters. For example,
             # for Gluster, etc. 
-            storage_entry = containers[0]['storage'][0]
+            storage_entry = self._find_hadoop_storage(containers)
             entry_point['storage_type'] = storage_entry['type']
             if storage_entry['type'] == 'gluster':
                 url = self._apply_gluster(config, storage_entry, new_config_dir, c)
@@ -438,10 +448,10 @@ class HadoopInitializer(object):
         mount_url = "%s:/%s" % (storage_entry['ip'], storage_entry['volume'])
         return mount_url
 
-    """
-    Apply the configuration to the instances
-    """
     def apply(self, config, containers):
+        """
+        Apply the configuration to the instances
+        """
         # First separate the Hadoop and Hive containers.
         hadoop_containers = []
         hive_containers = []

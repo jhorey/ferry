@@ -1001,10 +1001,6 @@ class DockerManager(object):
                    'storage':storage_uuid, 
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
-
-        # After the docker instance start, we need to start the
-        # actual storage service (gluster, etc.). 
-        # self._start_service(service_uuid, containers, compute_type, entry_point)
         return service_uuid, containers
         
     def _start_service(self,

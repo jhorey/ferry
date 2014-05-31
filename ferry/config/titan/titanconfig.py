@@ -72,7 +72,7 @@ class TitanInitializer(object):
         in_file = open(self.template_dir + '/rexster.xml.template', 'r')
         out_file = open(host_dir + '/rexster.xml', 'w+')
         changes = { "GRAPH_BACKEND":storage_entry['type'], 
-                    "GRAPH_HOST":storage_entry['ip'],
+                    "GRAPH_HOST":storage_entry['seed'],
                     "GRAPH_NAME":container['args']['db'],
                     "IP":container['data_ip']}
         for line in in_file:
@@ -86,7 +86,7 @@ class TitanInitializer(object):
         out_file = open(host_dir + '/titan.properties', 'w+')
         changes = { "BACKEND":"cassandrathrift", 
                     "DB":container['args']['db'],
-                    "IP":storage_entry['ip']}
+                    "IP":storage_entry['seed']}
         for line in in_file:
             s = Template(line).substitute(changes)
             out_file.write(s)
@@ -128,9 +128,9 @@ class TitanInitializer(object):
         return config_dirs, entry_point
 
 class TitanConfig(object):
-    data_directory = '/service/data/main'
-    log_directory = '/service/data/logs'
-    config_directory = '/service/conf/titan'
+    data_directory = '/service/data/main/'
+    log_directory = '/service/data/logs/'
+    config_directory = '/service/conf/titan/'
 
     REXSTER_PORT = 8182
     REXPRO_PORT = 8184

@@ -104,12 +104,21 @@ class CassandraClientInitializer(object):
         out_file = open(host_dir + '/titan.properties', 'w+')
         changes = { "BACKEND":"cassandrathrift", 
                     "DB":container['args']['db'],
-                    "IP":storage_entry['ip']}
+                    "IP":storage_entry['seed']}
         for line in in_file:
             s = Template(line).substitute(changes)
             out_file.write(s)
         out_file.close()
         in_file.close()
+
+    def _find_cassandra_storage(self, containers):
+        """
+        Find a Cassandra compatible storage entry. 
+        """
+        for c in containers:
+            for s in c['storage']:
+                if s['type'] == 'cassandra':
+                    return s
 
     """
     Apply the configuration to the instances
@@ -119,16 +128,15 @@ class CassandraClientInitializer(object):
         entry_point['ip'] = containers[0]['data_ip']
 
         # Get the storage information. 
-        storage_entry = containers[0]['storage'][0]
-        if storage_entry['type'] != 'cassandra':
+        storage_entry = self._find_cassandra_storage(containers)
+        if not storage_entry:
             # The Cassandra client is currently only compatible with a 
             # Cassandra backend. So just return an error.
             return None, None
 
         # Otherwise record the storage type and get the seed node. 
         entry_point['storage_type'] = storage_entry['type']
-        seed = storage_entry['ip']
-        entry_point['storage_url'] = seed
+        entry_point['storage_url'] = storage_entry['seed']
 
         # Create a new configuration directory, and place
         # into the template directory. 
@@ -162,11 +170,11 @@ class CassandraClientInitializer(object):
         return config_dirs, entry_point
 
 class CassandraClientConfig(object):
-    data_directory = '/service/data/main'
-    log_directory = '/service/data/logs'
-    commit_directory = '/service/data/commits'
-    cache_directory = '/service/data/cache'
-    config_directory = '/service/conf/cassandra'
+    data_directory = '/service/data/main/'
+    log_directory = '/service/data/logs/'
+    commit_directory = '/service/data/commits/'
+    cache_directory = '/service/data/cache/'
+    config_directory = '/service/conf/cassandra/'
 
     def __init__(self, num):
         self.num = num

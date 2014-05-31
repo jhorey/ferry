@@ -153,7 +153,7 @@ class CassandraInitializer(object):
 
         # In Cassandra all nodes are equal, so just pick one
         # as the "entry" node
-        entry_point['ip'] = str(containers[0]['data_ip'])
+        entry_point['seed'] = str(containers[0]['data_ip'])
 
         # Generate list of the seed nodes. We don't need the entire
         # list of containers, just a few. 

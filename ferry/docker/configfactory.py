@@ -185,9 +185,13 @@ class ConfigFactory(object):
         storage_values = {}
         compute_values = {}
         if storage_info:
-            storage_values = self._generate_key_value(storage_info[0],
-                                              "BACKEND_STORAGE")
+            for s in storage_info:
+                values = self._generate_key_value(s, "BACKEND_STORAGE")
+                storage_values = dict(storage_values.items() + values.items())
+                                                          
         if compute_info:
-            compute_values = self._generate_key_value(compute_info[0],
-                                              "BACKEND_COMPUTE")
+            for c in compute_info:
+                values = self._generate_key_value(c, "BACKEND_COMPUTE")
+                compute_values = dict(compute_values.items() + values.items())
+                                                          
         return dict(storage_values.items() + compute_values.items())

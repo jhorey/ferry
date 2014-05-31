@@ -19,10 +19,6 @@ import sys
 from string import Template
 
 class OpenMPIInitializer(object):
-    """
-    Create a new initializer
-    Param user The user login for the git repo
-    """
     def __init__(self):
         self.template_dir = None
         self.template_repo = None
@@ -30,39 +26,41 @@ class OpenMPIInitializer(object):
         self.container_data_dir = None
         self.container_log_dir = MPIConfig.log_directory
 
-    """
-    Generate a new hostname
-    """
     def new_host_name(self, instance_id):
+        """
+        Generate a new hostname
+        """
         return 'openmpi' + str(instance_id)
 
-    """
-    Start the service on the containers. 
-    """
     def _execute_service(self, containers, entry_point, fabric, cmd):
+        """
+        Start the service on the containers. 
+        """
         output = fabric.cmd(containers, '/service/sbin/startnode %s %s' % (cmd, entry_point['mount']))
+        logging.warning("MPI OUT:" + str(output))
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):        
         self._execute_service(containers, entry_point, fabric, "stop")
-    """
-    Generate a new configuration.
-    """
+
     def _generate_config_dir(self, uuid):
+        """
+        Generate a new configuration.
+        """
         return 'openmpi_' + str(uuid)
 
-    """
-    Get the ports necessary.
-    """
     def get_necessary_ports(self, num_instances):
+        """
+        Get the ports necessary.
+        """
         return []
 
-    """
-    Get the internal ports. 
-    """
     def get_exposed_ports(self, num_instances):
+        """
+        Get the internal ports. 
+        """
         BTL_PORT_END = MPIConfig.BTL_PORT_MIN + (MPIConfig.PORT_RANGE * num_instances)
         OOB_PORT_END = MPIConfig.OOB_PORT_MIN + (MPIConfig.PORT_RANGE * num_instances)
         BTL_PORTS = '%s-%s' % (MPIConfig.BTL_PORT_MIN, BTL_PORT_END)
@@ -77,12 +75,13 @@ class OpenMPIInitializer(object):
 
         return instances
 
-    """
-    Generate a new configuration
-    Param num Number of instances that need to be configured
-    Param image Image type of the instances
-    """
     def generate(self, num):
+        """
+        Generate a new configuration
+        Param num Number of instances that need to be configured
+        Param image Image type of the instances
+
+        """
         config = MPIConfig(num)
         config.btl_port_min = MPIConfig.BTL_PORT_MIN
         config.oob_port_min = MPIConfig.OOB_PORT_MIN
@@ -91,10 +90,10 @@ class OpenMPIInitializer(object):
 
         return config
 
-    """
-    Generate the mca-params configuration. 
-    """
     def _generate_mca_params(self, config, new_config_dir):
+        """
+        Generate the mca-params configuration. 
+        """
         in_file = open(self.template_dir + '/openmpi-mca-params.conf', 'r')
         out_file = open(new_config_dir + '/openmpi-mca-params.conf', 'w+')
 
@@ -109,10 +108,19 @@ class OpenMPIInitializer(object):
         in_file.close()
         out_file.close()
 
-    """
-    Apply the configuration to the instances
-    """
+    def _find_mpi_storage(self, containers):
+        """
+        Find a MPI compatible storage entry. 
+        """
+        for c in containers:
+            for s in c['storage']:
+                if s['type'] == 'gluster':
+                    return s
+
     def apply(self, config, containers):
+        """
+        Apply the configuration to the instances
+        """
         entry_point = { 'type' : 'openmpi' }
         config_dirs = []
 
@@ -124,8 +132,8 @@ class OpenMPIInitializer(object):
 
         # For now the MPI client assumes there is only one storage and that it is
         # a Gluster end point. 
-        storage = containers[0]['storage'][0]
-        if storage['type'] == 'gluster':
+        storage = self._find_mpi_storage(containers)
+        if storage:
             mount_ip = storage['ip']
             mount_dir = storage['volume']
             entry_point['mount'] = "%s:/%s" % (mount_ip, mount_dir)
@@ -153,8 +161,8 @@ class OpenMPIInitializer(object):
         return config_dirs, entry_point
 
 class MPIConfig(object):
-    log_directory = '/service/logs'
-    config_directory = '/service/conf/openmpi'
+    log_directory = '/service/logs/'
+    config_directory = '/service/conf/openmpi/'
 
     BTL_PORT_MIN = 2000
     OOB_PORT_MIN = 6000

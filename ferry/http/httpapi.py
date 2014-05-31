@@ -210,6 +210,8 @@ def _allocate_backend(payload,
                      'uuids' : [],
                      'backend' : backends }
     storage_plan = []
+    compute_plan = []
+    compute_uuids = []
 
     # First we need to check if either the storage or the compute 
     # have unspecified number of instances. If so, we'll need to abort
@@ -272,16 +274,19 @@ def _allocate_backend(payload,
                                                   
         # Now allocate the compute backend. The compute is optional so
         # we should check if it even exists first. 
-        compute_uuids = []
-        compute_plan = []
+        compute_uuid = []
         if 'compute' in b:
             if not uuid:
-                compute_uuids, compute_plan = _allocate_compute(b['compute'], storage_uuid, iparams)
+                compute_uuid, plan = _allocate_compute(b['compute'], storage_uuid, iparams)
+                compute_uuids += compute_uuid
+                compute_plan += plan
             else:
-                compute_uuids, compute_plan = _restart_compute(b['compute'])
-        
+                compute_uuid, plan = _restart_compute(b['compute'])
+                compute_uuids += compute_uuid
+                compute_plan += plan
+
         backend_info['uuids'].append( {'storage':storage_uuid,
-                                       'compute':compute_uuids} )
+                                       'compute':compute_uuid} )
     return backend_info, { 'storage' : storage_plan,
                            'compute' : compute_plan }
 
@@ -419,6 +424,8 @@ def _allocate_new(payload):
     """
     reply = {}
     backend_info, backend_plan = _allocate_backend(payload, replace=True)
+    logging.warning("\nBACKEND: " + str(backend_info) + "\n")
+
     reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
         success, connector_info, connector_plan = _allocate_connectors(payload, backend_info['uuids'])
