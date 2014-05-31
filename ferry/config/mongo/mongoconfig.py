@@ -44,11 +44,15 @@ class MongoInitializer(object):
         Start the service on the containers. 
         """
         for c in containers:
-            fabric.cmd([c], '/service/sbin/startnode %s' % cmd)
+            if c.args:
+                args = c.args
+            else:
+                args = 'notrust'
+            fabric.cmd([c], '/service/sbin/startnode %s %s' % (cmd, args))
 
         # Now wait a couple seconds to make sure
         # everything has started.
-        time.sleep(3)
+        time.sleep(2)
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
@@ -90,12 +94,17 @@ class MongoInitializer(object):
         """
         return MongoConfig(num)
 
-    def _generate_mongo_config(self, host_dir, config):
+    def _generate_mongo_config(self, host_dir, config, arg):
         """
         Generate the MongoDB configuration file. 
         """
-        in_file = open(self.template_dir + '/mongodb.conf.template', 'r')
-        out_file = open(host_dir + '/mongodb.conf', 'w+')
+        if arg == "trust":
+            conf_file = "trusted.conf"
+        else:
+            conf_file = "mongodb.conf"
+
+        in_file = open(self.template_dir + '/%s.template' % conf_file, 'r')
+        out_file = open(host_dir + '/%s' % conf_file, 'w+')
 
         changes = { "MONGO_LOG":config.log_directory, 
                     "MONGO_DATA":config.data_directory }
@@ -132,7 +141,10 @@ class MongoInitializer(object):
         if not 'storage' in containers[0]:
             # This is being called as a storage service. 
             # The client service doesn't do anything right now. 
-            self._generate_mongo_config(new_config_dir, config)
+            if 'args' in containers[0] and containers[0]['args']:
+                self._generate_mongo_config(new_config_dir, config, containers[0]['args'])
+            else:
+                self._generate_mongo_config(new_config_dir, config, 'notrust')
 
             # Expose the login info. 
             output = self.fabric.cmd_raw(entry_point['ip'], '/service/sbin/startnode login')

@@ -368,12 +368,13 @@ class Installer(object):
                      'type':'ferry/mongodb', 
                      'volumes':volumes,
                      'volume_user':DEFAULT_FERRY_OWNER, 
-                     'keys':  { '/service/keys' : keydir }, 
+                     'keys': { '/service/keys' : keydir }, 
                      'ports':[],
                      'exposed':self.mongo.get_exposed_ports(1), 
                      'hostname':'ferrydb',
                      'netenable':True, 
-                     'args':None}
+                     'args': 'trust'
+                     }
         mongoconf = self.mongo.generate(1)
         mongoconf.uuid = 'fdb-' + str(uuid.uuid4()).split('-')[0]
         mongobox = self.fabric.alloc([mongoplan])[0]
@@ -391,7 +392,8 @@ class Installer(object):
               'data_ip':mongobox.internal_ip, 
               'manage_ip':mongobox.internal_ip,
               'host_name':mongobox.host_name,
-              'type':mongobox.service_type}
+              'type':mongobox.service_type,
+              'args':mongobox.args }
         config_dirs, entry_point = self.mongo.apply(mongoconf, [s])
         self._transfer_config(config_dirs)
         self.mongo.start_service([mongobox], entry_point, self.fabric)

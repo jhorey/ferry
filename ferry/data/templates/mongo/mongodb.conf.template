@@ -1,3 +1,5 @@
+security:
+   authorization: enabled
 systemLog:
    destination: file
    path: "$MONGO_LOG/mongodb.log"

@@ -2,41 +2,103 @@
 
 source /service/sbin/setup
 
-if [ $1 == "init" ]; then 
-    # Generate a unique login/password
-    # for the admin account.
-    LOGIN=$(cat /proc/sys/kernel/random/uuid)
-    PASS=$(cat /proc/sys/kernel/random/uuid)
-    echo $LOGIN > /service/conf/mongodb/login
-    echo $PASS > /service/conf/mongodb/pass
-
-    # Now finish the init process
-    /service/sbin/init01.sh
-elif [ $1 == "halt" ]; then 
-    /service/sbin/halt01.sh
-elif [ $1 == "login" ]; then 
-    # Print out login info. 
+#
+# Read in the login information from the 
+# stored files. Stores these in global vars. 
+#
+LOGIN=''
+PASS=''
+function read_login {
     linput=/service/conf/mongodb/login
     while read line
     do
-	login=$line
+	LOGIN=$line
     done < "$linput"
     pinput=/service/conf/mongodb/pass
     while read line
     do
-	pass=$line
+	PASS=$line
     done < "$pinput"
-    echo -e "{\"user\":\"${login}\",\"pass\":\"${pass}\"}"
-elif [ $1 == "start" ]; then 
+}
+
+#
+# Save the login information in stored files. 
+#
+function save_login {
+    echo $LOGIN > /service/conf/mongodb/login
+    echo $PASS > /service/conf/mongodb/pass
+}
+
+#
+# Generate a new random login and password. 
+#
+function generate_login {
+    LOGIN=$(cat /proc/sys/kernel/random/uuid)
+    PASS=$(cat /proc/sys/kernel/random/uuid)
+}
+
+#
+# Record that we performed a login event. 
+#
+function record_login {
+    touch /tmp/login
+}
+
+#
+# Start the Mongo server. 
+#
+function start_mongo {
     # Change the file ownership back to ferry user. This is 
     # necessary since the host may not have the ferry user. 
     chown -R ferry:ferry /service/data
     chown -R ferry:ferry /service/logs
 
-    # Start the mongo server
+    # Start the mongo server. MongoDB can be started in either
+    # trusted or non-trusted modes. Trusted means that authentication
+    # is turned off (should only be used by the installer). 
     LC_ALL=C
-    su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf' >> /service/logs/start.log
-elif [ $1 == "stop" ]; then 
-    # Shutdown MongoDB. 
-    su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf --shutdown'
+    if [[ $1  == "trust" ]]; then
+	su ferry -c 'mongod --config /service/conf/mongodb/trusted.conf' >> /service/logs/start.log
+    else
+	su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf' >> /service/logs/start.log
+    fi
+}
+
+if [[ $1 == "init" ]]; then 
+    # Generate a unique login/password
+    # for the admin account and save it.
+    generate_login
+    save_login
+    record_login
+
+    # Now finish the init process
+    /service/sbin/init01.sh
+elif [[ $1 == "halt" ]]; then 
+    /service/sbin/halt01.sh
+elif [[ $1 == "login" ]]; then 
+    # Print out login info. 
+    read_login
+    echo -e "{\"user\":\"${LOGIN}\",\"pass\":\"${PASS}\"}"
+elif [[ $1 == "start" ]]; then 
+    start_mongo $2
+
+    # Check if the adminstrator account has already
+    # been created. If not, we need to create one. 
+    if [[ $2 == "notrust" ]] && [[ -e /tmp/login ]]; then
+	read_login
+	sed -i "s/LOGIN/$LOGIN/g" /service/sbin/createadmin.js
+	sed -i "s/PASS/$PASS/g" /service/sbin/createadmin.js
+	su ferry -c 'mongo localhost:27017/admin /service/sbin/createadmin.js'
+	rm /tmp/login
+    fi
+elif [[ $1 == "restart" ]]; then 
+    start_mongo $2
+elif [[ $1 == "stop" ]]; then 
+    # Shutdown MongoDB. We have to use the right
+    # configuration file so that we know which to shutdown. 
+    if [[ -e /service/conf/mongodb/trusted.conf ]]; then
+	su ferry -c 'mongod --config /service/conf/mongodb/trusted.conf --shutdown'
+    else
+	su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf --shutdown'
+    fi
 fi

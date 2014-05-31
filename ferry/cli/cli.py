@@ -21,7 +21,6 @@ import logging
 import logging.config
 import os
 import os.path
-from pymongo import MongoClient
 import pwd
 import requests
 import re

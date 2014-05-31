@@ -1,0 +1,12 @@
+metadata:
+   author: James Horey
+   version: 0.2.0
+   description: MongoDB
+   tags: [infrastructure,mongodb]
+backend:
+   - storage:
+        personality: "mongodb"
+        instances: 1
+connectors:
+   - personality: "ferry/mongodb-client"
+     name: "control-0"

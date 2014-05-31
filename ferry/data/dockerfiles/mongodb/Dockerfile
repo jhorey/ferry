@@ -25,5 +25,6 @@ ENV LC_ALL C
 RUN echo export LC_ALL=C >> /etc/profile
 
 # Add the start script
+ADD ./createadmin.js /service/sbin/
 ADD ./startnode /service/sbin/
 RUN chmod a+x /service/sbin/startnode
