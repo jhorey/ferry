@@ -147,8 +147,7 @@ class SparkInitializer(object):
             # This is being called as a client service. 
             # For the client, also include the host/IP of the compute service. 
             compute = containers[0]['compute'][0]
-            master = compute['master']
-            entry_point['master'] = master
+            entry_point['master'] = compute['master']
 
         # Transfer the configuration. 
         for c in containers:

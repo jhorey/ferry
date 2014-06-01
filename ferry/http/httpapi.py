@@ -424,8 +424,6 @@ def _allocate_new(payload):
     """
     reply = {}
     backend_info, backend_plan = _allocate_backend(payload, replace=True)
-    logging.warning("\nBACKEND: " + str(backend_info) + "\n")
-
     reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
         success, connector_info, connector_plan = _allocate_connectors(payload, backend_info['uuids'])

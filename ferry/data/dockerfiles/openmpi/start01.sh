@@ -14,3 +14,12 @@ python /service/sbin/mounthelper.py umount
 # Mount GlusterFS and set the owner as 'ferry' user. 
 python /service/sbin/mounthelper.py mount $1
 chown -R ferry:docker /service/data
+
+# Make a copy of the communication keys to a
+# shared directory.
+if [[ $2 == "master" ]]; then
+    if [[ ! -e /service/data/.comkeys ]]; then
+	mkdir /service/data/.comkeys
+    fi
+    cp /home/ferry/.ssh/id_rsa* /service/data/.comkeys/
+fi    

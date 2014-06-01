@@ -36,7 +36,8 @@ class OpenMPIInitializer(object):
         """
         Start the service on the containers. 
         """
-        output = fabric.cmd(containers, '/service/sbin/startnode %s %s' % (cmd, entry_point['mount']))
+        fabric.cmd(containers[:1], '/service/sbin/startnode %s %s %s' % (cmd, entry_point['mount'], 'master'))
+        fabric.cmd(containers[1:len(containers)], '/service/sbin/startnode %s %s %s' % (cmd, entry_point['mount'], 'slave'))
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
@@ -116,6 +117,15 @@ class OpenMPIInitializer(object):
                 if s['type'] == 'gluster':
                     return s
 
+    def _find_mpi_compute(self, containers):
+        """
+        Find a MPI compatible compute entry. 
+        """
+        for c in containers:
+            for s in c['compute']:
+                if s['type'] == 'openmpi':
+                    return s
+    
     def apply(self, config, containers):
         """
         Apply the configuration to the instances
@@ -139,16 +149,18 @@ class OpenMPIInitializer(object):
 
             # Check if we are being called as a compute instance or client.
             if not 'compute' in containers[0]:
+                entry_point['hosts'] = []
                 entry_point['instances'] = []
                 for server in containers:
                     entry_point['instances'].append([server['data_ip'], server['host_name']])
+                    entry_point['hosts'].append([server['data_ip'], server['host_name']])
             else:
                 # This is the MPI client. Create a "hosts" file that contains the
                 # IP addresses of the compute nodes. 
                 entry_point['ip'] = containers[0]['data_ip']
-                compute = containers[0]['compute'][0]
+                compute = self._find_mpi_compute(containers)
                 with open(new_config_dir + '/hosts', 'w+') as hosts_file:
-                    for c in compute['instances']:
+                    for c in compute['hosts']:
                         hosts_file.write(c[0] + "\n")
 
             self._generate_mca_params(config, new_config_dir)
