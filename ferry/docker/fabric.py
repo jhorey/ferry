@@ -35,6 +35,10 @@ class DockerFabric(object):
             self.network = DHCPClient(self._get_gateway())
 
     def _get_gateway(self):
+        """
+        Get the gateway address in CIDR notation. This defines the
+        range of IP addresses available to the containers. 
+        """
         cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
 
