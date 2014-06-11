@@ -162,7 +162,7 @@ function make_images_external {
     	echo -e "${RED}you must set the FERRY_DIR environment variable${NC}"
     else
     	echo -e "${BLUE}starting ferry, using $FERRY_DIR to save state${NC}"
-	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh internal $1
+	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e USER=$USER -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh internal $1
     fi
 }
 
@@ -176,7 +176,7 @@ function run_ferry_server {
     	echo -e "${RED}you must set the FERRY_DIR environment variable${NC}"
     else
     	echo -e "${BLUE}starting ferry client${NC}"
-	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh console
+	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e USER=$USER -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh console
     fi
 }
 
@@ -228,7 +228,6 @@ if [[ $1 == "internal" ]]; then
     make_images_internal $ARG
 elif [[ $1 == "console" ]]; then
     prepare_dind
-    check_ghost_mongo
     exec bash
 elif [[ $1 == "install" ]]; then
     check_docker_version
@@ -236,4 +235,4 @@ elif [[ $1 == "install" ]]; then
 elif [[ $1 == "start" ]]; then
     check_docker_version
     run_ferry_server
-fi    
+fi
