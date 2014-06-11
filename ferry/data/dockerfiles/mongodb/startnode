@@ -56,12 +56,12 @@ function start_mongo {
     # Start the mongo server. MongoDB can be started in either
     # trusted or non-trusted modes. Trusted means that authentication
     # is turned off (should only be used by the installer). 
-    LC_ALL=C
     if [[ $1  == "trust" ]]; then
-	su ferry -c 'mongod --config /service/conf/mongodb/trusted.conf' >> /service/logs/start.log
+	su ferry -c 'source /etc/profile;mongod --config /service/conf/mongodb/trusted.conf' >> /service/logs/start.log 2>> /service/logs/err.log
     else
-	su ferry -c 'mongod --config /service/conf/mongodb/mongodb.conf' >> /service/logs/start.log
+	su ferry -c 'source /etc/profile;mongod --config /service/conf/mongodb/mongodb.conf' >> /service/logs/start.log 2>> /service/logs/err.log
     fi
+    sleep 2
 }
 
 if [[ $1 == "init" ]]; then 
