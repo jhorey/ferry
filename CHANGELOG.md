@@ -16,6 +16,12 @@
 - Fix Cassandra nodetool RMI port
 - Fix Hadoop jobhistoryserver
 
+### 0.2.2 (2014-06-11)
+
+- MongoDB storage service
+- Support for multiple storage backends
+- Support for multiple compute backends
+
 ## 0.1 series
 
 ### 0.1.23 (2014-03-24)
