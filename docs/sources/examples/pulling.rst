@@ -4,7 +4,6 @@
 
 .. _pulling:
 
-
 Pushing and Pulling Applications
 ================================
 

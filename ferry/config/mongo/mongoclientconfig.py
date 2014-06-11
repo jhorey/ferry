@@ -94,4 +94,5 @@ class MongoClientInitializer(object):
     def apply(self, config, containers):
         config_dirs, entry_point = self.mongo.apply(config, containers)
         entry_point['type'] = 'mongo-client'
+        entry_point['ip'] = entry_point['mongo']
         return config_dirs, entry_point
