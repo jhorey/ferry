@@ -45,6 +45,12 @@ def _get_ferry_home():
     else:
         return os.path.dirname(__file__)
 
+def _get_ferry_dir():
+    if 'FERRY_DIR' in os.environ:
+        return os.environ['FERRY_DIR']
+    else:
+        return '/var/lib/ferry'
+
 def _get_ferry_user():
     uid = pwd.getpwnam("root").pw_uid
     gid = grp.getgrnam("docker").gr_gid
@@ -113,17 +119,17 @@ GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'
 DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
-DOCKER_DIR='/var/lib/ferry'
 DOCKER_PID='/var/run/ferry.pid'
+DOCKER_DIR=_get_ferry_dir()
 DEFAULT_TEMPLATE_DIR=FERRY_HOME + '/data/templates'
 DEFAULT_BUILTIN_APPS=FERRY_HOME + '/data/plans'
-DEFAULT_FERRY_APPS='/var/lib/ferry/apps'
-DEFAULT_MONGO_DB='/var/lib/ferry/mongo'
-DEFAULT_MONGO_LOG='/var/lib/ferry/mongolog'
-DEFAULT_REGISTRY_DB='/var/lib/ferry/registry'
-DEFAULT_DOCKER_LOG='/var/lib/ferry/docker.log'
-DEFAULT_DOCKER_KEY='/var/lib/ferry/keydir'
-DEFAULT_ROOT_KEY='/var/lib/ferry/rootdir'
+DEFAULT_FERRY_APPS=DOCKER_DIR + '/apps'
+DEFAULT_MONGO_DB=DOCKER_DIR + '/mongo'
+DEFAULT_MONGO_LOG=DOCKER_DIR + '/mongolog'
+DEFAULT_REGISTRY_DB=DOCKER_DIR + '/registry'
+DEFAULT_DOCKER_LOG=DOCKER_DIR + '/docker.log'
+DEFAULT_DOCKER_KEY=DOCKER_DIR + '/keydir'
+DEFAULT_ROOT_KEY=DOCKER_DIR + '/rootdir'
 
 class Installer(object):
     def __init__(self, cli=None):
