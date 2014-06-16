@@ -692,12 +692,34 @@ class Installer(object):
         cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' | grep none | awk \'{print $1}\' | xargs ' + DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' rmi'
         Popen(cmd, stdout=PIPE, shell=True)
 
+    def _is_parent_dir(self, pdir, cdir):
+        pdirs = pdir.split("/")
+        cdirs = cdir.split("/")
+
+        # Parent directory can never be longer than
+        # the child directory. 
+        if len(pdirs) > len(cdirs):
+            return False
+            
+        for i in range(0, len(pdirs)):
+            # The parent directory shoudl always match
+            # the child directory. Ignore the start and end
+            # blank spaces caused by "split". 
+            if pdirs[i] != "" and pdirs[i] != cdirs[i]:
+                return False
+
+        return True
+
     def _is_running_btrfs(self):
         logging.warning("checking for btrfs")
-        cmd = 'cat /etc/mtab | grep %s | awk \'{print $3}\'' % DOCKER_DIR
+        cmd = 'cat /etc/mtab | grep btrfs | awk \'{print $2}\''
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        return output.strip() == "btrfs"
-
+        dirs = output.strip().split("\n")
+        for d in dirs:
+            if self._is_parent_dir(output.strip(), DOCKER_DIR):
+                return True
+        return False
+        
     def _start_docker_daemon(self, options=None):
         # Check if the docker daemon is already running
         try:
