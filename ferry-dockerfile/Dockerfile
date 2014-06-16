@@ -1,4 +1,5 @@
-FROM ubuntu:14.04
+# FROM ubuntu:14.04
+FROM ubuntu:13.10
 
 # Install Docker
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
@@ -14,6 +15,7 @@ RUN adduser --disabled-password --gecos "" ferry;usermod -a -G docker ferry
 RUN mkdir -p /service/sbin /var/run/sshd
 
 # Install Ferry from GitHub master branch
+RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install git net-tools
 WORKDIR /home/ferry
 RUN git clone https://github.com/opencore/ferry
 RUN cd ferry; python setup.py install
