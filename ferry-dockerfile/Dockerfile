@@ -1,5 +1,4 @@
-# FROM ubuntu:14.04
-FROM ubuntu:13.10
+FROM ubuntu:14.04
 
 # Install Docker
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
