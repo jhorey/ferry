@@ -12,8 +12,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install build-essential git sca
 RUN pip install numpy
 
 # Add the binaries
-RUN wget https://s3.amazonaws.com/opencore/spark-0.9.1-bin-hadoop2.tgz -P /service/packages/; cd /service/packages; tar -xzf spark-0.9.1-bin-hadoop2.tgz
-RUN wget https://s3.amazonaws.com/opencore/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar -P /service/packages/
+RUN wget $DOWNLOAD_URL/spark-0.9.1-bin-hadoop2.tgz -P /service/packages/ 
+RUN wget $DOWNLOAD_URL/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar -P /service/packages/
+RUN cd /service/packages; tar -xzf spark-0.9.1-bin-hadoop2.tgz
 
 # Make some symlinks
 RUN ln -s /service/packages/spark-0.9.1-bin-hadoop2 /service/packages/spark

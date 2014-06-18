@@ -39,6 +39,12 @@ from ferry.docker.fabric import DockerFabric
 from string import Template
 from subprocess import Popen, PIPE
 
+def _get_download_url():
+    if 'DOWNLOAD_URL' in os.environ:
+        return os.environ['DOWNLOAD_URL']
+    else:
+        return "https://s3.amazonaws.com/opencore"
+    
 def _get_ferry_home():
     if 'FERRY_HOME' in os.environ:
         return os.environ['FERRY_HOME']
@@ -533,7 +539,7 @@ class Installer(object):
                         self._tag_images(image, repo, images)
 
             # After building everything, get rid of the temp dir.
-            shutil.rmtree("/tmp/dockerfiles")
+            # shutil.rmtree("/tmp/dockerfiles")
         else:
             logging.error("ferry daemon not started")
 
@@ -556,7 +562,7 @@ class Installer(object):
                     self._tag_images(image, repo, images)
 
             # After building everything, get rid of the temp dir.
-            shutil.rmtree("/tmp/dockerfiles")
+            # shutil.rmtree("/tmp/dockerfiles")
         else:
             logging.error("ferry daemon not started")
 
@@ -581,7 +587,9 @@ class Installer(object):
         out_file = "/tmp/dockerfiles/" + f + "/Dockerfile"
         out = open(out_file, "w+")
         uid, gid = _get_ferry_user()
+        download_url = _get_download_url()
         changes = { "USER" : repo,
+                    "DOWNLOAD_URL" : download_url,
                     "DOCKER" : gid }
         for line in open(image_dir + '/' + f + '/Dockerfile', "r"):
             s = Template(line).substitute(changes)
@@ -590,14 +598,14 @@ class Installer(object):
 
     def _build_image(self, image, f, repo, built_images, recurse=False, build=False):
         base = self._get_base(f)
-        if recurse and base != "base":
+        if recurse and base != "ubuntu:14.04":
             image_dir = os.path.dirname(os.path.dirname(f))
             dockerfile = image_dir + '/' + base + '/Dockerfile'
             self._build_image(base, dockerfile, repo, built_images, recurse, build)
 
         if not image in built_images:
-            if base == "base":
-                self._pull_image(base, tag='latest')
+            if base == "ubuntu:14.04":
+                self._pull_image(base)
 
             built_images[image] = True
             self._compile_image(image, repo, os.path.dirname(f), build)

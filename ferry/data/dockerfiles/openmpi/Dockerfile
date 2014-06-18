@@ -7,15 +7,14 @@ RUN mkdir -p /service/examples /service/packages /service/runscripts/start /serv
 RUN apt-get --yes install autotools-dev autoconf automake g++ gfortran build-essential
 
 # Add the package
-RUN wget https://s3.amazonaws.com/opencore/openmpi-1.7.3-bin.tar.gz -P /service/packages;cd /service/packages;tar -xzf openmpi-1.7.3-bin.tar.gz
-RUN cd /service/packages/openmpi-1.7.3;make install
-RUN ldconfig
+RUN wget $DOWNLOAD_URL/openmpi-1.8.1-bin.tar.gz -P /service/packages
+RUN cd /service/packages;tar -xzf openmpi-1.8.1-bin.tar.gz
 
 # Get rid of the tarballs.
 RUN rm /service/packages/*.tar.gz
 
 # Make symlinks
-RUN ln -s /service/packages/openmpi-1.7.3 /service/packages/openmpi
+RUN ln -s /service/packages/openmpi-1.8.1 /service/packages/openmpi
 RUN ln -s /usr/local/etc /service/conf/openmpi
 
 # Add the control script to the image. 

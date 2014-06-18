@@ -6,8 +6,10 @@ RUN mkdir -p /service/packages /service/conf /service/data/main /service/data/hi
 
 # Download some dependencies
 RUN apt-get --yes install openjdk-7-jdk zlib1g lib32z1 libpostgresql-jdbc-java software-properties-common
-RUN wget https://s3.amazonaws.com/opencore/hadoop-2.3.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
-RUN wget https://s3.amazonaws.com/opencore/hive-0.12.0.tar.gz -P /service/packages;cd /service/packages;tar -xzf hive-0.12.0.tar.gz
+RUN wget $DOWNLOAD_URL/hadoop-2.3.0.tar.gz -P /service/packages
+RUN wget $DOWNLOAD_URL/hive-0.12.0.tar.gz -P /service/packages
+RUN cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
+RUN cd /service/packages;tar -xzf hive-0.12.0.tar.gz
 
 # Get rid of the tarballs. 
 RUN rm /service/packages/*.tar.gz

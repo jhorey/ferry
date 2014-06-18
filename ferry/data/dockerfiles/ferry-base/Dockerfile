@@ -1,8 +1,8 @@
-FROM base
+FROM ubuntu:14.04
 NAME ferry-base
 
 # Get rid of Upstart and FUSE errors
-RUN dpkg-divert --local --rename --add /sbin/initctl && ln -s /bin/true /sbin/initctl
+# RUN dpkg-divert --local --rename --add /sbin/initctl && ln -s /bin/true /sbin/initctl
 RUN dpkg-divert --local --add --rename --divert /bin/mknod.real /bin/mknod && ln -s /bin/true /bin/mknod
 
 # Fake a fuse install

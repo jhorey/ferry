@@ -5,7 +5,8 @@ NAME hadoop-client
 RUN mkdir -p /service/runscripts/start /service/runscripts/restart /service/runscripts/test /service/runscripts/stop
 
 # The Pig package should just reside on the client.
-RUN wget https://s3.amazonaws.com/opencore/pig-0.12.1.tar.gz -P /service/packages;cd /service/packages;tar -xzf pig-0.12.1.tar.gz
+RUN wget $DOWNLOAD_URL/pig-0.12.1.tar.gz -P /service/packages
+RUN cd /service/packages;tar -xzf pig-0.12.1.tar.gz
 
 # Create a symlink to the package dir. 
 RUN ln -s /service/packages/pig-0.12.1 /service/packages/pig;
