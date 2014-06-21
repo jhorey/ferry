@@ -22,3 +22,7 @@ RUN cd ferry; python setup.py install
 # Add the dind/start script
 ADD ./make.sh /service/sbin/
 RUN chmod +x /service/sbin/*
+
+# Add customized ssh banner 
+ADD ./50-ferryheader /etc/update-motd.d/
+ADD ./51-ferryhelp /etc/update-motd.d/

@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+#    50-ferryheader - create the Ferry MOTD header
+#    Copyright (C) 2014 OpenCore LLC
+#
+#    Authors: James Horey <jlh@opencore.io>
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+RED='\e[0;31m'
+BLUE='\e[0;34m'
+NC='\e[0m'
+
+echo -e "${RED}Start the Ferry server by typing:${NC}"
+echo -e "${BLUE}sudo ferry -d${NC}"
+echo -e ""
+echo -e "${RED}Then start using Ferry. If you're new to Ferry, try:${NC}"
+echo -e "${BLUE}ferry help${NC}"
+echo -e ""
+echo -e "${RED}For more documentation, visit http://ferry.opencore.io${NC}"
