@@ -592,7 +592,7 @@ class CLI(object):
 
         return json_text
 
-    def _read_key_dir(self, root=False):
+    def _read_key_dir(self, options=None, root=False):
         """
         Read the location of the directory containing the keys
         used to communicate with the containers. 
@@ -601,6 +601,13 @@ class CLI(object):
             keydir = ferry.install.DEFAULT_ROOT_KEY
         else:
             keydir = ferry.install.DEFAULT_DOCKER_KEY
+
+        # Looks like the keydir file doesn't exist yet.
+        # Probably because this is the first time 
+        if not os.path.isfile(keydir):
+            self.installer._process_ssh_key(options=None)
+
+        # Read the key directory
         with open(keydir, 'r') as f: 
             k = f.read().strip().split("://")
             return k[1], k[0]
@@ -612,12 +619,12 @@ class CLI(object):
         keydir, tmp = self._read_key_dir(root=True)
         return tmp == "tmp"
 
-    def _check_ssh_key(self, root=False):
+    def _check_ssh_key(self, options=None, root=False):
         """
         Check if the user has supplied a custom key
         directory. If not copies over a temporary key. 
         """
-        keydir, _ = self._read_key_dir(root)
+        keydir, _ = self._read_key_dir(options, root)
         if keydir == ferry.install.DEFAULT_KEY_DIR:
             if root:
                 keydir = os.environ['HOME'] + '/.ssh/tmp-root'
@@ -681,7 +688,7 @@ class CLI(object):
         This is the command dispatch table. 
         """
         if(cmd == 'start'):
-            self._check_ssh_key()
+            self._check_ssh_key(options=options)
 
             # Check if we need to build the image before running. 
             if '-b' in options:
@@ -729,7 +736,7 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
-            self._check_ssh_key()
+            self._check_ssh_key(options=options)
             self.installer.start_web()
             self.installer._clean_rules()
             self.installer.stop_web()
@@ -744,7 +751,7 @@ class CLI(object):
             self.installer.start_web(options)
             return 'started ferry'
         elif(cmd == 'ssh'):
-            self._check_ssh_key()
+            self._check_ssh_key(options=options)
             stack_id = args[0]
             connector_id = None
             if len(args) > 1:
@@ -752,7 +759,7 @@ class CLI(object):
 
             return self._connect_stack(stack_id, connector_id)
         elif(cmd == 'quit'):
-            self._check_ssh_key(root=True)
+            self._check_ssh_key(options=options, root=True)
             self._stop_all()
             self.installer.stop_web()
             self.installer._stop_docker_daemon()
@@ -761,7 +768,7 @@ class CLI(object):
                 self.installer._reset_ssh_key(root=True)
             return 'stopped ferry'
         elif(cmd == 'deploy'):
-            self._check_ssh_key()
+            self._check_ssh_key(options=options)
             stack_id = args.pop(0)
             return self._deploy_stack(stack_id, args)
         elif(cmd == 'ls'):

@@ -26,3 +26,5 @@ RUN chmod +x /service/sbin/*
 # Add customized ssh banner 
 ADD ./50-ferryheader /etc/update-motd.d/
 ADD ./51-ferryhelp /etc/update-motd.d/
+RUN chmod +x /etc/update-motd.d/50-ferryheader
+RUN chmod +x /etc/update-motd.d/51-ferryhelp
