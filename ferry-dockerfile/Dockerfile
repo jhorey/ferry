@@ -24,7 +24,11 @@ ADD ./make.sh /service/sbin/
 RUN chmod +x /service/sbin/*
 
 # Add customized ssh banner 
+RUN rm /etc/update-motd.d/*
+RUN rm /var/run/motd.dynamic
 ADD ./50-ferryheader /etc/update-motd.d/
 ADD ./51-ferryhelp /etc/update-motd.d/
 RUN chmod +x /etc/update-motd.d/50-ferryheader
 RUN chmod +x /etc/update-motd.d/51-ferryhelp
+RUN /etc/update-motd.d/50-ferryheader >> /var/run/motd.dynamic
+RUN /etc/update-motd.d/51-ferryhelp >> /var/run/motd.dynamic

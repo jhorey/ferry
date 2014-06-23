@@ -18,6 +18,6 @@
 
 echo 'Start the Ferry server by typing:'
 echo 'sudo ferry server'
-echo 'Then start using Ferry. If you're new to Ferry, try:'
+echo 'Then start using the Ferry client. Try typing:'
 echo 'ferry help'
 echo 'For more documentation, visit http://ferry.opencore.io'

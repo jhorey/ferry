@@ -724,7 +724,7 @@ class Installer(object):
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         dirs = output.strip().split("\n")
         for d in dirs:
-            if self._is_parent_dir(output.strip(), DOCKER_DIR):
+            if self._is_parent_dir(d, DOCKER_DIR):
                 return True
         return False
         
