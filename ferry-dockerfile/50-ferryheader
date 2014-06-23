@@ -4,7 +4,7 @@
 #    Copyright (C) 2014 OpenCore LLC
 #
 #    Authors: James Horey <jlh@opencore.io>
-#    Licensed under the Apache License, Version 2.0 (the "License");
+#    Licensed under the Apache License, Version 2.0 (the "sLicense");
 #    you may not use this file except in compliance with the License.
 #    You may obtain a copy of the License at
 #
@@ -16,19 +16,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-GREEN='\e[0;32m'
-NC='\e[0m'
-
-echo -e "${GREEN}   _       __     __                             __      ${NC}"
-echo -e "${GREEN}  | |     / /__  / /________  ____ ___  ___     / /_____ ${NC}"
-echo -e "${GREEN}  | | /| / / _ \/ / ___/ __ \/ __ `__ \/ _ \   / __/ __ \${NC}"
-echo -e "${GREEN}  | |/ |/ /  __/ / /__/ /_/ / / / / / /  __/  / /_/ /_/ /${NC}"
-echo -e "${GREEN}  |__/|__/\___/_/\___/\____/_/ /_/ /_/\___/   \__/\____/ ${NC}"
-echo -e ""
-echo -e "${GREEN}    ______                     ${NC}"
-echo -e "${GREEN}   / ____/__  ____________  __ ${NC}"
-echo -e "${GREEN}  / /_  / _ \/ ___/ ___/ / / / ${NC}"
-echo -e "${GREEN} / __/ /  __/ /  / /  / /_/ /  ${NC}"
-echo -e "${GREEN}/_/    \___/_/  /_/   \__, /   ${NC}"
-echo -e "${GREEN}                     /____/    ${NC}"
-echo -e ""
+echo ''
+echo '   _       __     __                             __      '
+echo '  | |     / /__  / /________  ____ ___  ___     / /_____ '
+echo '  | | /| / / _ \/ / ___/ __ \/ __ `__ \/ _ \   / __/ __ \'
+echo '  | |/ |/ /  __/ / /__/ /_/ / / / / / /  __/  / /_/ /_/ /'
+echo '  |__/|__/\___/_/\___/\____/_/ /_/ /_/\___/   \__/\____/ '
+echo '    ______                     '
+echo '   / ____/__  ____________  __ '
+echo '  / /_  / _ \/ ___/ ___/ / / / '
+echo ' / __/ /  __/ /  / /  / /_/ /  '
+echo '/_/    \___/_/  /_/   \__, /   '
+echo '                     /____/    '
+echo ''

@@ -16,14 +16,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-RED='\e[0;31m'
-BLUE='\e[0;34m'
-NC='\e[0m'
-
-echo -e "${RED}Start the Ferry server by typing:${NC}"
-echo -e "${BLUE}sudo ferry -d${NC}"
-echo -e ""
-echo -e "${RED}Then start using Ferry. If you're new to Ferry, try:${NC}"
-echo -e "${BLUE}ferry help${NC}"
-echo -e ""
-echo -e "${RED}For more documentation, visit http://ferry.opencore.io${NC}"
+echo 'Start the Ferry server by typing:'
+echo 'sudo ferry server'
+echo 'Then start using Ferry. If you're new to Ferry, try:'
+echo 'ferry help'
+echo 'For more documentation, visit http://ferry.opencore.io'
