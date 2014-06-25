@@ -3,7 +3,7 @@ security:
 systemLog:
    destination: file
    path: "$MONGO_LOG/mongodb.log"
-   quiet: true
+   quiet: false
    logAppend: true
 storage:
    journal:
