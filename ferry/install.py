@@ -184,11 +184,11 @@ class Installer(object):
     def _clean_rules(self):
         self.network.clean_rules()
 
-    def _reset_ssh_key(self, root=False):
+    def _reset_ssh_key(self, root):
         """
         Reset the temporary ssh key. 
         """
-        keydir, tmp = self.cli._read_key_dir(root)
+        keydir, tmp = self.cli._read_key_dir(root=root)
 
         # Only reset temporary keys. User-defined key directories
         # shouldn't be touched. 

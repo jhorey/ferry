@@ -624,7 +624,8 @@ class CLI(object):
         Check if the user has supplied a custom key
         directory. If not copies over a temporary key. 
         """
-        keydir, _ = self._read_key_dir(options, root)
+        keydir, _ = self._read_key_dir(options=options,
+                                       root=root)
         if keydir == ferry.install.DEFAULT_KEY_DIR:
             if root:
                 keydir = os.environ['HOME'] + '/.ssh/tmp-root'
@@ -646,9 +647,9 @@ class CLI(object):
                 uid = pwd.getpwnam(os.environ['USER']).pw_uid
                 gid = grp.getgrnam(os.environ['USER']).gr_gid
                 os.chown(keydir + '/id_rsa', uid, gid)
-                os.chmod(keydir + '/id_rsa', 0400)
+                os.chmod(keydir + '/id_rsa', 0600)
                 os.chown(keydir + '/id_rsa.pub', uid, gid)
-                os.chmod(keydir + '/id_rsa.pub', 0444)
+                os.chmod(keydir + '/id_rsa.pub', 0644)
             except OSError as e:
                 logging.error("Could not copy ssh keys (%s)" % str(e))
                 exit(1)
@@ -741,7 +742,7 @@ class CLI(object):
             self.installer._clean_rules()
             self.installer.stop_web()
             self.installer._stop_docker_daemon(force=True)
-            self.installer._reset_ssh_key()
+            self.installer._reset_ssh_key(root=True)
             return 'cleaned ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
@@ -765,6 +766,8 @@ class CLI(object):
             self.installer._stop_docker_daemon()
 
             if self._using_tmp_ssh_key():
+                keydir, _ = self._read_key_dir(options=options, 
+                                               root=True)
                 self.installer._reset_ssh_key(root=True)
             return 'stopped ferry'
         elif(cmd == 'deploy'):
