@@ -595,7 +595,11 @@ class DockerManager(object):
         """
         Read the directory containing the key we should use. 
         """
-        with open(ferry.install.DEFAULT_DOCKER_KEY, 'r') as f:
+        # This needs to be fixed. When starting the
+        # container, we need to know which key is being used. 
+        # However, we want to read the client directory instead of
+        # the server directory!
+        with open(ferry.install._get_key_dir(root=False, server=False), 'r') as f:
             k = f.read().strip().split("://")
             return { '/service/keys' : k[1]  }
 

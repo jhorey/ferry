@@ -592,20 +592,19 @@ class CLI(object):
 
         return json_text
 
-    def _read_key_dir(self, options=None, root=False):
+    def _read_key_dir(self, options=None, root=False, server=False):
         """
         Read the location of the directory containing the keys
         used to communicate with the containers. 
         """
         if root:
-            keydir = ferry.install.DEFAULT_ROOT_KEY
+            keydir = ferry.install._get_key_dir(root=True, server=server)
         else:
-            keydir = ferry.install.DEFAULT_DOCKER_KEY
+            keydir = ferry.install._get_key_dir(root=False, server=server)
 
-        # Looks like the keydir file doesn't exist yet.
-        # Probably because this is the first time 
+        # May need to generate the user key. 
         if not os.path.isfile(keydir):
-            self.installer._process_ssh_key(options=None)
+            self.installer._process_ssh_key(options=options, root=False)
 
         # Read the key directory
         with open(keydir, 'r') as f: 
@@ -616,10 +615,10 @@ class CLI(object):
         """
         Check if the key being used is a temporary key. 
         """
-        keydir, tmp = self._read_key_dir(root=True)
+        keydir, tmp = self._read_key_dir(root=True, server=True)
         return tmp == "tmp"
 
-    def _check_ssh_key(self, options=None, root=False):
+    def _check_ssh_key(self, options=None, root=False, server=False):
         """
         Check if the user has supplied a custom key
         directory. If not copies over a temporary key. 
@@ -659,12 +658,13 @@ class CLI(object):
                 exit(1)
 
             if root:
-                ferry.install._touch_file(ferry.install.DEFAULT_ROOT_KEY, 
+                ferry.install._touch_file(ferry.install._get_key_dir(root=True, server=server), 
                                           ferry.install.GLOBAL_ROOT_DIR)
+                logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_ROOT_DIR)
             else:
-                ferry.install._touch_file(ferry.install.DEFAULT_DOCKER_KEY, 
+                ferry.install._touch_file(ferry.install._get_key_dir(root=False, server=server), 
                                           ferry.install.GLOBAL_KEY_DIR)
-            logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_KEY_DIR)
+                logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_KEY_DIR)
 
 
     def _find_installed_app(self, app):
@@ -737,8 +737,8 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
-            self._check_ssh_key(options=options)
-            self.installer.start_web()
+            self._check_ssh_key(options=options, server=True)
+            self.installer.start_web(clean=True)
             self.installer._clean_rules()
             self.installer.stop_web()
             self.installer._stop_docker_daemon(force=True)
@@ -760,14 +760,12 @@ class CLI(object):
 
             return self._connect_stack(stack_id, connector_id)
         elif(cmd == 'quit'):
-            self._check_ssh_key(options=options, root=True)
+            self._check_ssh_key(options=options, root=True, server=True)
             self._stop_all()
             self.installer.stop_web()
             self.installer._stop_docker_daemon()
 
             if self._using_tmp_ssh_key():
-                keydir, _ = self._read_key_dir(options=options, 
-                                               root=True)
                 self.installer._reset_ssh_key(root=True)
             return 'stopped ferry'
         elif(cmd == 'deploy'):

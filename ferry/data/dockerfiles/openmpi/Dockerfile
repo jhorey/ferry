@@ -4,11 +4,13 @@ NAME openmpi
 RUN mkdir -p /service/examples /service/packages /service/runscripts/start /service/runscripts/restart /service/runscripts/stop /service/runscripts/test
 
 # Download the various packages needed
-RUN apt-get --yes install autotools-dev autoconf automake g++ gfortran build-essential
+RUN apt-get --yes install autotools-dev autoconf automake g++ gfortran build-essential libevent-dev 
 
 # Add the package
 RUN wget $DOWNLOAD_URL/openmpi-1.8.1-bin.tar.gz -P /service/packages
 RUN cd /service/packages;tar -xzf openmpi-1.8.1-bin.tar.gz
+RUN cd /service/packages/openmpi-1.8.1;make install
+RUN ldconfig
 
 # Get rid of the tarballs.
 RUN rm /service/packages/*.tar.gz

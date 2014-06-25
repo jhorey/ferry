@@ -51,11 +51,27 @@ def _get_ferry_home():
     else:
         return os.path.dirname(__file__)
 
-def _get_ferry_dir():
+def _get_ferry_dir(server):
+    """
+    Get the Ferry data directory. 
+    For now we need to keep the client/server synched,
+    (this is something we need to fix later). 
+    """
     if 'FERRY_DIR' in os.environ:
         return os.environ['FERRY_DIR']
     else:
-        return '/var/lib/ferry'
+        # We need to figure out if this is being called
+        # from the server or client. 
+        if server:
+            return '/var/lib/ferry'
+        else:
+            return os.environ['HOME'] + '/.ferry'
+
+def _get_key_dir(root, server):
+    if root:
+        return _get_ferry_dir(server=server) + '/rootdir'
+    else:
+        return _get_ferry_dir(server=server) + '/keydir'
 
 def _get_ferry_user():
     uid = pwd.getpwnam("root").pw_uid
@@ -102,15 +118,21 @@ def _supported_python():
     return sys.version_info[0] == 2
 
 def _touch_file(file_name, content, root=False):
+    # Check if we need to create the parent dir.
+    # first. If the parent dir. doesn't exist, then
+    # "open" will throw an exception. 
+    if not os.path.isdir(os.path.dirname(file_name)):
+        os.makedirs(os.path.dirname(file_name))
+
     try:
         f = open(file_name, 'w+')
         f.write(content)
         f.close()
 
+        os.chmod(file_name, 0664)
         if root:
             uid, gid = _get_ferry_user()
             os.chown(file_name, uid, gid)
-            os.chmod(file_name, 0664)
     except IOError as e:
         logging.error("Could not create %s.\n" % file_name)
 
@@ -126,7 +148,7 @@ DEFAULT_FERRY_OWNER='ferry:docker'
 DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_PID='/var/run/ferry.pid'
-DOCKER_DIR=_get_ferry_dir()
+DOCKER_DIR=_get_ferry_dir(server=True)
 DEFAULT_TEMPLATE_DIR=FERRY_HOME + '/data/templates'
 DEFAULT_BUILTIN_APPS=FERRY_HOME + '/data/plans'
 DEFAULT_FERRY_APPS=DOCKER_DIR + '/apps'
@@ -134,8 +156,6 @@ DEFAULT_MONGO_DB=DOCKER_DIR + '/mongo'
 DEFAULT_MONGO_LOG=DOCKER_DIR + '/mongolog'
 DEFAULT_REGISTRY_DB=DOCKER_DIR + '/registry'
 DEFAULT_DOCKER_LOG=DOCKER_DIR + '/docker.log'
-DEFAULT_DOCKER_KEY=DOCKER_DIR + '/keydir'
-DEFAULT_ROOT_KEY=DOCKER_DIR + '/rootdir'
 
 class Installer(object):
     def __init__(self, cli=None):
@@ -186,7 +206,8 @@ class Installer(object):
 
     def _reset_ssh_key(self, root):
         """
-        Reset the temporary ssh key. 
+        Reset the temporary ssh key. This function should only be
+        called from the server. 
         """
         keydir, tmp = self.cli._read_key_dir(root=root)
 
@@ -199,13 +220,17 @@ class Installer(object):
         if root:
             global GLOBAL_ROOT_DIR
             GLOBAL_ROOT_DIR = 'tmp://' + DEFAULT_KEY_DIR
-            _touch_file(DEFAULT_ROOT_KEY, GLOBAL_ROOT_DIR, root=True)
+            _touch_file(_get_key_dir(root=True, server=True), GLOBAL_ROOT_DIR, root=True)
         else:
             global GLOBAL_KEY_DIR
             GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
-            _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+            _touch_file(_get_key_dir(root=False, server=True), GLOBAL_KEY_DIR, root=True)
         
     def _process_ssh_key(self, options, root=False):
+        """
+        Initialize the ssh key location. This method is used
+        when starting the ferry server. 
+        """
         if root:
             global GLOBAL_ROOT_DIR
             if options and '-k' in options:
@@ -213,7 +238,7 @@ class Installer(object):
             else:
                 GLOBAL_ROOT_DIR = 'tmp://' + DEFAULT_KEY_DIR
                 logging.warning("using key directory " + GLOBAL_ROOT_DIR)
-                _touch_file(DEFAULT_ROOT_KEY, GLOBAL_ROOT_DIR, root=True)
+                _touch_file(_get_key_dir(root=True, server=True), GLOBAL_ROOT_DIR, root=True)
         else:
             global GLOBAL_KEY_DIR
             if options and '-k' in options:
@@ -221,7 +246,7 @@ class Installer(object):
             else:
                 GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
                 logging.warning("using key directory " + GLOBAL_KEY_DIR)
-                _touch_file(DEFAULT_DOCKER_KEY, GLOBAL_KEY_DIR, root=True)
+                _touch_file(_get_key_dir(root=False, server=False), GLOBAL_KEY_DIR, root=False)
 
     def install(self, args, options):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
@@ -292,7 +317,7 @@ class Installer(object):
     def _check_all_images(self):
         not_installed = []
         images = ['mongodb', 'ferry-base', 'hadoop-base', 'hadoop', 'hadoop-client',
-                  'hive-metastore', 'gluster', 'openmpi', 'cassandra', 'cassandra-client', 
+                  'hive-metastore', 'gluster', 'openmpi', 'openmpi-client', 'cassandra', 'cassandra-client', 
                   'titan', 'spark']
         for i in images:
             if not self._check_image_installed("%s/%s" % (DEFAULT_DOCKER_REPO, i)):
@@ -332,8 +357,8 @@ class Installer(object):
             sys.exit(1)
 
         # Check if the user wants to use a specific key directory. 
-        self._process_ssh_key(options, root=True)
-
+        self._process_ssh_key(options=options, root=True)
+                               
         # Check if the user-application directory exists.
         # If not, create it. 
         try:
@@ -369,7 +394,7 @@ class Installer(object):
         self._clean_web()
 
         # Copy over the ssh keys.
-        self.cli._check_ssh_key(root=True)
+        self.cli._check_ssh_key(root=True, server=True)
 
         # Start the Mongo server. Create a new configuration and
         # manually start the container. 
