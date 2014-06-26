@@ -526,32 +526,22 @@ class DockerManager(object):
         """
         Create a new data directory
         """
-        # Check the location of the scratch directory. If not defined
-        # use the current directory
-        if 'FERRY_SCRATCH' in os.environ:
-            scratch_dir = os.environ['FERRY_SCRATCH'] + '/'
-        else:
-            scratch_dir = ''
+        scratch_dir = ferry.install._get_ferry_scratch()
 
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
-        new_dir = scratch_dir + 'tmp/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
+        new_dir = scratch_dir + '/%s/data_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         return self._create_dir(new_dir, replace=True)
 
     def _new_log_dir(self, service_uuid, storage_type, storage_id, replace = False):
         """
         Create a new log directory
         """
-        # Check the location of the scratch directory. If not defined
-        # use the current directory
-        if 'FERRY_SCRATCH' in os.environ:
-            scratch_dir = os.environ['FERRY_SCRATCH'] + '/'
-        else:
-            scratch_dir = ''
+        scratch_dir = ferry.install._get_ferry_scratch()
 
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
-        new_dir = scratch_dir + 'tmp/%s/log_%s' % (service_uuid, storage_type + '_' + str(storage_id))
+        new_dir = scratch_dir + '/%s/log_%s' % (service_uuid, storage_type + '_' + str(storage_id))
         return self._create_dir(new_dir, replace=replace)
 
     def _create_dir(self, new_dir, replace=False):

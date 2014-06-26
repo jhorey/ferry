@@ -24,8 +24,8 @@ from ferry.docker.docker import DockerInstance
 app = Flask(__name__)
 
 # Initialize the storage driver
-docker = DockerManager()
 installer = Installer()
+docker = DockerManager()
 
 """
 Fetch the current information for a particular filesystem. 

@@ -67,6 +67,18 @@ def _get_ferry_dir(server):
         else:
             return os.environ['HOME'] + '/.ferry'
 
+def _get_ferry_scratch():
+    if 'FERRY_SCRATCH' in os.environ:
+        scratch_dir = os.environ['FERRY_SCRATCH']
+    else:
+        scratch_dir = os.path.join(_get_ferry_dir(server=True), 'scratch')
+
+    if not os.path.isdir(scratch_dir):
+        logging.warning("CREATING SCRATCH DIR: " + scratch_dir)
+        os.makedirs(scratch_dir)
+
+    return scratch_dir
+
 def _get_key_dir(root, server):
     if root:
         return _get_ferry_dir(server=server) + '/rootdir'
