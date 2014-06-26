@@ -512,8 +512,6 @@ class CLI(object):
             elif connector_id == cg['uniq']:
                 connector_ip = cg['entry']['ip']
                 break
-            else:
-                logging.warning("no match: %s %s" % (connector_id, cg['uniq']))
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
@@ -525,6 +523,8 @@ class CLI(object):
             cmd = "ssh %s %s %s %s" % (key_opt, host_opt, ident, dest)
             logging.warning(cmd)
             os.execv('/usr/bin/ssh', cmd.split())
+        else:
+            logging.warning("could not find connector %s" % connector_id)
 
     def _parse_deploy_arg(self, param, args, default):
         pattern = re.compile('--%s=(\w+)' % param)
