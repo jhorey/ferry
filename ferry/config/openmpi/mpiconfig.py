@@ -36,8 +36,8 @@ class OpenMPIInitializer(object):
         """
         Start the service on the containers. 
         """
-        fabric.cmd(containers[:1], '/service/sbin/startnode %s %s %s' % (cmd, entry_point['mount'], 'master'))
-        fabric.cmd(containers[1:len(containers)], '/service/sbin/startnode %s %s %s' % (cmd, entry_point['mount'], 'slave'))
+        fabric.cmd(containers[:1], '/service/sbin/startnode %s %s %s' % (cmd, entry_point['mount'], 'glustermaster'))
+        fabric.cmd(containers[1:len(containers)], '/service/sbin/startnode %s %s %s' % (cmd, entry_point['mount'], 'glusterslave'))
     def start_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
