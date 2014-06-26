@@ -364,12 +364,14 @@ class CLI(object):
 
         # Each additional row should include the actual data.
         for uuid in json_data.keys():
-            for c in json_data[uuid]['connectors']:
-                connectors.append(c)
-
-            backends = json_data[uuid]['backends']
+            csstore = []
             bstore = []
             cstore = []
+
+            for c in json_data[uuid]['connectors']:
+                csstore.append(c)
+
+            backends = json_data[uuid]['backends']
             for b in backends:
                 if b['storage']:
                     bstore.append(b['storage'])
@@ -382,6 +384,7 @@ class CLI(object):
                     cstore.append(' ')
             storage.append(bstore)
             compute.append(cstore)
+            connectors.append(csstore)
 
             status.append(json_data[uuid]['status'])
             base.append(json_data[uuid]['base'])

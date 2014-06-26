@@ -54,7 +54,8 @@ class DockerManager(object):
                 'server' : self.config.spark,
                 'client' : self.config.spark_client },
             'gluster': { 
-                'server' : self.config.gluster },
+                'server' : self.config.gluster,
+                'client' : self.config.mpi_client },
             'cassandra': { 
                 'server' : self.config.cassandra,
                 'client' : self.config.cassandra_client},

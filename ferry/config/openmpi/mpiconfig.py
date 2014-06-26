@@ -155,15 +155,18 @@ class OpenMPIInitializer(object):
                     entry_point['instances'].append([server['data_ip'], server['host_name']])
                     entry_point['hosts'].append([server['data_ip'], server['host_name']])
             else:
-                # This is the MPI client. Create a "hosts" file that contains the
+                # This is the MPI client. First check if there are any compute
+                # nodes (the MPI client can be used with just a raw GlusterFS
+                # configuration). If it does have a compute, create a "hosts" file that contains the
                 # IP addresses of the compute nodes. 
                 entry_point['ip'] = containers[0]['data_ip']
                 compute = self._find_mpi_compute(containers)
-                with open(new_config_dir + '/hosts', 'w+') as hosts_file:
-                    for c in compute['hosts']:
-                        hosts_file.write(c[0] + "\n")
+                if compute and 'hosts' in compute:
+                    with open(new_config_dir + '/hosts', 'w+') as hosts_file:
+                        for c in compute['hosts']:
+                            hosts_file.write(c[0] + "\n")
+                    self._generate_mca_params(config, new_config_dir)
 
-            self._generate_mca_params(config, new_config_dir)
             for c in containers:
                 config_files = new_config_dir + '/*'
                 config_dirs.append([c['container'],
