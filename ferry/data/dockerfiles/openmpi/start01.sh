@@ -26,4 +26,4 @@ if [[ $2 == "glustermaster" ]] || [[ $2 == "glusterslave" ]]; then
 	fi
 	cp /home/ferry/.ssh/id_rsa* /service/data/.comkeys/
     fi    
-gi
+fi
