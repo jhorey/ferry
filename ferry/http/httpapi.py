@@ -296,39 +296,54 @@ def _allocate_connectors(payload, backend_info):
     if 'connectors' in payload:
         connectors = payload['connectors']
         for c in connectors:
-            connector_type = c['personality']
-            
+            # Check number of instances.
+            num_instances = 1
+            if 'instances' in c:
+                num_instances = int(c['instances'])
+
             # Check if this connector type has already been pulled
             # into the local index. If not, manually pull it. 
+            connector_type = c['personality']
+            logging.warning("allocating %d instances of %s" % (num_instances, connector_type))
             if not installer._check_and_pull_image(connector_type):
                 # We could not fetch this connetor. Instead of 
                 # finishing, just return an error.
                 return False, connector_info, None
 
-            # Connector names are created by the user 
-            # to help identify particular instances. 
-            connector_name = None
-            if 'name' in c:
-                connector_name = c['name']
+            for i in range(num_instances):
+                # Connector names are created by the user 
+                # to help identify particular instances. 
+                if 'name' in c:
+                    connector_name = c['name']
+                    if num_instances > 1:
+                        connector_name = connector_name + "-" + str(i)
+                else:
+                    connector_name = None
 
-            args = {}
-            if 'args' in c:
-                args = c['args']
+                # Arguments are optional parameters defined by
+                # the user and passed to the connectors.
+                if 'args' in c:
+                    args = c['args']
+                else:
+                    args = {}
 
-            ports = []
-            if 'ports' in c:
-                ports = c['ports']
+                # The user can choose to expose ports on the connectors.                
+                if 'ports' in c:
+                    ports = c['ports']
+                else:
+                    ports = []
 
-            uuid, containers = docker.allocate_connector(connector_type = connector_type,
-                                                         backend = backend_info, 
-                                                         name = connector_name, 
-                                                         args = args,
-                                                         ports = ports)
-            connector_plan.append( { 'uuid' : uuid,
-                                     'containers' : containers,
-                                     'type' : connector_type, 
-                                     'start' : 'start' } )
-            connector_info.append(uuid)
+                # Now allocate the connector. 
+                uuid, containers = docker.allocate_connector(connector_type = connector_type,
+                                                             backend = backend_info, 
+                                                             name = connector_name, 
+                                                             args = args,
+                                                             ports = ports)
+                connector_plan.append( { 'uuid' : uuid,
+                                         'containers' : containers,
+                                         'type' : connector_type, 
+                                         'start' : 'start' } )
+                connector_info.append(uuid)
     return True, connector_info, connector_plan
 
 """
@@ -438,6 +453,7 @@ def _allocate_new(payload):
             reply['status'] = 'failed'
     else:
         reply['questions'] = backend_info['query']
+
     return json.dumps(reply)
 
 def _allocate_stopped(payload):
