@@ -315,8 +315,7 @@ class CLI(object):
         posted, reply = self._create_stack(stack_description, args)
         if posted:
             try:
-                reply = json.loads(reply)
-                return reply['text']
+                return self._format_output(json.loads(reply))
             except ValueError as e:
                 logging.error(reply)
 
@@ -687,6 +686,12 @@ class CLI(object):
                         if app == user + '/' + os.path.splitext(item)[0]:
                             return DEFAULT_FERRY_APPS + '/' + user + '/' + item
 
+    def _format_output(self, reply):
+        output = reply['text'] + "\n"
+        for c in reply['msgs'].keys():
+            output += "%s: %s\n" % (c, reply['msgs'][c])
+        return output
+        
     def dispatch_cmd(self, cmd, args, options):
         """
         This is the command dispatch table. 
@@ -724,7 +729,7 @@ class CLI(object):
                     elif reply['status'] == 'failed':
                         return 'could not create application'
                     else:
-                        return reply['text']
+                        return self._format_output(reply)
                 except ValueError as e:
                     logging.error(reply)
         elif(cmd == 'ps'):

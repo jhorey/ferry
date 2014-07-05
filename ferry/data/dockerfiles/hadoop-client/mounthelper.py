@@ -7,9 +7,7 @@ from subprocess import Popen, PIPE
 def mkdir(directory):
     if not os.path.isdir(directory):
         cmd = 'mkdir -p %s' % directory
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        logging.info(cmd)
-        logging.info(output)
+        Popen(cmd, shell=True)
 
 def mount(entry_point, mount_point):
     # Check if the mount point exists. If not
@@ -17,16 +15,11 @@ def mount(entry_point, mount_point):
     # mount -t glusterfs entry_point mount_point
     cmd = 'mount -t glusterfs %s %s' % (entry_point,
                                         mount_point)
-    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-    logging.info(cmd)
-    logging.info(output)
-    print output
+    Popen(cmd, shell=True)
 
 def umount(mount_point):
     cmd = 'umount %s' % mount_point
-    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-    logging.info(cmd)
-    logging.info(output)
+    Popen(cmd, shell=True)
 
 cmd = sys.argv[1]
 if cmd == "mount":

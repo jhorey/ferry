@@ -13,20 +13,20 @@
 # limitations under the License.
 #
 
+from ferry.docker.docker import DockerCLI
+from ferry.ip.client import DHCPClient
 import ferry.install
 import json
 import logging
+from subprocess import Popen, PIPE
 import time
 import yaml
-from subprocess import Popen, PIPE
-from ferry.docker.docker import DockerCLI
-from ferry.ip.client import DHCPClient
 
 class DockerFabric(object):
     def __init__(self, bootstrap=False):
         self.repo = 'public'
         self.docker_user = 'root'
-        self.cli = DockerCLI()
+        self.cli = DockerCLI(ferry.install.DOCKER_REGISTRY)
         self.bootstrap = bootstrap
 
         # Bootstrap mode means that the DHCP network
@@ -278,7 +278,7 @@ class DockerFabric(object):
         all_output = {}
         for c in containers:
             output = self.cmd_raw(c.internal_ip, cmd)
-            all_output[c] = output.strip()
+            all_output[c.host_name] = output.strip()
         return all_output
 
     def cmd_raw(self, ip, cmd):

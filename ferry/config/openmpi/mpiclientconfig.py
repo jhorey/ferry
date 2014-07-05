@@ -45,11 +45,11 @@ class OpenMPIClientInitializer(object):
         return 'openmpi_client' + str(instance_id)
 
     def start_service(self, containers, entry_point, fabric):
-        self.mpi.start_service(containers, entry_point, fabric)
+        return self.mpi.start_service(containers, entry_point, fabric)
     def restart_service(self, containers, entry_point, fabric):
-        self.mpi.restart_service(containers, entry_point, fabric)
+        return self.mpi.restart_service(containers, entry_point, fabric)
     def stop_service(self, containers, entry_point, fabric):        
-        self.mpi.stop_service(containers, entry_point, fabric)
+        return self.mpi.stop_service(containers, entry_point, fabric)
 
     def get_necessary_ports(self, num_instances):
         return self.mpi.get_necessary_ports(num_instances)

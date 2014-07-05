@@ -427,11 +427,17 @@ def _start_all_services(backend_plan, connector_plan):
         else:
             docker._restart_service(c['uuid'], c['containers'], c['type'])
 
+    # The connectors can optionally output msgs for the user.
+    # Collect them so that we can display them later. 
+    all_output = {}
     for c in connector_plan:
         if c['start'] == 'start':
-            docker.start_service(c['uuid'], c['containers'])
+            output = docker.start_service(c['uuid'], c['containers'])
+            all_output = dict(all_output.items() + output.items())
         else:
-            docker._restart_connectors(c['uuid'], c['containers'], c['backend'])
+            output = docker._restart_connectors(c['uuid'], c['containers'], c['backend'])
+            all_output = dict(all_output.items() + output.items())
+    return all_output
 
 def _allocate_new(payload):
     """
@@ -444,9 +450,10 @@ def _allocate_new(payload):
         success, connector_info, connector_plan = _allocate_connectors(payload, backend_info['uuids'])
 
         if success:
-            _start_all_services(backend_plan, connector_plan)
+            output = _start_all_services(backend_plan, connector_plan)
             uuid = docker.register_stack(backend_info, connector_info, payload['_file'])
             reply['text'] = str(uuid)
+            reply['msgs'] = output
         else:
             # One or more connectors was not instantiated properly. 
             docker.cancel_stack(backend_info, connector_info)
@@ -464,13 +471,14 @@ def _allocate_stopped(payload):
     backend_info, backend_plan = _allocate_backend_from_stopped(payload)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_stopped(payload, backend_info['uuids'])
-        _start_all_services(backend_plan, connector_plan)        
+        output = _start_all_services(backend_plan, connector_plan)        
         uuid = docker.register_stack(backends = backend_info,
                                      connectors = connector_info,
                                      base = base,
                                      uuid = payload['_file'])
         return json.dumps({'status' : 'ok',
-                           'text' : str(uuid)})
+                           'text' : str(uuid),
+                           'msgs' : output})
     else:
         return json.dumps({'status' : 'failed'})
 
@@ -482,10 +490,11 @@ def _allocate_snapshot(payload):
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_snapshot(payload, 
                                                                             backend_info['uuids'])
-        _start_all_services(backend_plan, connector_plan)
+        output = _start_all_services(backend_plan, connector_plan)
         uuid = docker.register_stack(backend_info, connector_info, payload['_file'])
         return json.dumps({'status' : 'ok',
-                           'text' : str(uuid)})
+                           'text' : str(uuid),
+                           'msgs' : output })
     else:
         return json.dumps({'status' : 'failed'})
 
@@ -498,10 +507,11 @@ def _allocate_deployed(payload, params=None):
         connector_info, connector_plan = _allocate_connectors_from_deploy(payload, 
                                                                           backend_info['uuids'],
                                                                           params)
-        _start_all_services(backend_plan, connector_plan)
+        output = _start_all_services(backend_plan, connector_plan)
         uuid = docker.register_stack(backend_info, connector_info, payload['_file'])
         return json.dumps({'status' : 'ok',
-                           'text' : str(uuid)})
+                           'text' : str(uuid),
+                           'msgs' : output })
 
 
 @app.route('/login', methods=['POST'])

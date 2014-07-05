@@ -74,7 +74,7 @@ class DockerInstance(object):
 
 """ Alternative API for Docker that uses external commands """
 class DockerCLI(object):
-    def __init__(self):
+    def __init__(self, registry=None):
         self.docker = 'docker-ferry -H=' + DOCKER_SOCK
         self.version_cmd = 'version'
         self.start_cmd = 'start'
@@ -101,6 +101,8 @@ class DockerCLI(object):
         self.disable_net = ' -n=false'
         self.host_flag = ' -h'
         self.fs_flag = ' -s'
+        self.env_flag = ' -e'
+        self.registry = registry
 
     """
     Get the backend driver docker is using. 
@@ -314,6 +316,14 @@ class DockerCLI(object):
                 flags += self.lxc_flag
                 flags += ' \"%s\"' % o
 
+        # See if we need to pass in the external
+        # Docker registry URL. 
+        if self.registry:
+            flags += self.env_flag
+            flags += ' \"DOCKER_REGISTRY=%s\"' % self.registry
+
+        # If there's not a default command, just
+        # make it blank.
         if not default_cmd:
             default_cmd = ''
 

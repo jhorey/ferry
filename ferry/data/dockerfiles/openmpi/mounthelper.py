@@ -16,15 +16,11 @@ def mount(entry_point, mount_point):
     # go ahead and create it. 
     cmd = 'mount -t glusterfs %s %s' % (entry_point,
                                         mount_point)
-    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-    logging.info(cmd)
-    logging.info(output)
+    Popen(cmd, shell=True)
 
 def umount(mount_point):
     cmd = 'umount %s' % mount_point
-    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-    logging.info(cmd)
-    logging.info(output)
+    Popen(cmd, shell=True)
 
 cmd = sys.argv[1]
 if cmd == "mount":

@@ -5,8 +5,7 @@ source /etc/profile
 
 if [ $1 == "gluster" ]; then 
     sleep 3
-    python /service/scripts/mounthelper.py umount  >> /tmp/gluster.log
-    python /service/scripts/mounthelper.py mount $2  >> /tmp/gluster.log
+    python /service/scripts/mounthelper.py umount
+    python /service/scripts/mounthelper.py mount $2
     chown -R ferry:docker /service/data
-    echo "Restart Gluster" >> /tmp/gluster.log
 fi

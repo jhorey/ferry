@@ -949,7 +949,7 @@ class DockerManager(object):
         Start the service.
         """
         service_info = self._get_service_configuration(uuid, detailed=True)
-        self._start_service(uuid, containers, service_info)
+        return self._start_service(uuid, containers, service_info)
 
     def allocate_compute(self,
                          compute_type, 
@@ -1004,13 +1004,17 @@ class DockerManager(object):
                        service_info): 
         if service_info['class'] != 'connector':
             service = self._get_service(service_info['type'])
-            service.start_service(containers, service_info['entry'], self.docker)
+            return service.start_service(containers, service_info['entry'], self.docker)
         else:
             storage_entry = service_info['storage']
             compute_entry = service_info['compute']
             services, backend_names = self._get_client_services(storage_entry, compute_entry)
+            all_output = {}
             for service in services:
-                service.start_service(containers, service_info['entry'], self.docker)
+                output = service.start_service(containers, service_info['entry'], self.docker)
+                if output:
+                    all_output = dict(all_output.items() + output.items())
+            return all_output
 
     def _restart_service(self,
                          uuid,
@@ -1020,12 +1024,16 @@ class DockerManager(object):
         entry_point = service_info['entry']        
         if service_info['class'] != 'connector':
             service = self._get_service(service_type)
-            service.restart_service(containers, entry_point, self.docker)
+            return service.restart_service(containers, entry_point, self.docker)
         else:
+            all_output = {}
             for backend in service_info['backends']:
                 if 'client' in self.service[backend]:
                     service = self.service[backend]['client']
-                    service.restart_service(containers, entry_point, self.docker)
+                    output = service.restart_service(containers, entry_point, self.docker)
+                    if output:
+                        all_output = dict(all_output.items() + output.items())
+            return all_output
 
     def _stop_service(self,
                       uuid,

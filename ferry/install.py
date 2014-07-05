@@ -51,6 +51,12 @@ def _get_ferry_home():
     else:
         return os.path.dirname(__file__)
 
+def _get_docker_registry():
+    if 'DOCKER_REGISTRY' in os.environ:
+        return os.environ['DOCKER_REGISTRY']
+    else:
+        return None
+
 def _get_ferry_dir(server):
     """
     Get the Ferry data directory. 
@@ -157,6 +163,7 @@ DEFAULT_DOCKER_LOGIN=os.environ['HOME'] + '/.ferry.docker'
 DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'
+DOCKER_REGISTRY=_get_docker_registry()
 DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_PID='/var/run/ferry.pid'
