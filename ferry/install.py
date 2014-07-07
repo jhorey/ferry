@@ -24,7 +24,6 @@ import os
 import os.path
 import pwd
 import re
-import sh
 import shutil
 import stat
 import struct
@@ -80,7 +79,6 @@ def _get_ferry_scratch():
         scratch_dir = os.path.join(_get_ferry_dir(server=True), 'scratch')
 
     if not os.path.isdir(scratch_dir):
-        logging.warning("CREATING SCRATCH DIR: " + scratch_dir)
         os.makedirs(scratch_dir)
 
     return scratch_dir
@@ -212,12 +210,15 @@ class Installer(object):
             # if this is the first time an application from this user
             # is downloaded. 
             file_name = os.path.join(DEFAULT_FERRY_APPS, app + ext)
-            sh.mkdir('-p', os.path.dirname(file_name))
+            os.makedirs(os.path.dirname(file_name))
             with open(file_name, "w") as f:
                 f.write(content)
             return file_name
         except IOError as e:
             logging.error(e)
+            return None
+        except OSError as os:
+            logging.error(os)
             return None
 
     def _clean_rules(self):
