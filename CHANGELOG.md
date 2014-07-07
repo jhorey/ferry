@@ -4,7 +4,7 @@
 
 ### 0.2.0 (2014-05-15)
 
-- Spark support 
+- Spark support
 - Pig support in Hadoop client
 - Various bug fixes
 
@@ -22,6 +22,13 @@
 - Support for multiple storage backends
 - Support for multiple compute backends
 
+### 0.2.3 (2014-07-07)
+
+- Various bugfixes
+- Ability to use OpenMPI client without compute
+- Print out status messages when starting service
+- Better custom key support
+	
 ## 0.1 series
 
 ### 0.1.23 (2014-03-24)
