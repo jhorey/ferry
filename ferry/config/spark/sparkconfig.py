@@ -42,22 +42,25 @@ class SparkInitializer(object):
     Start the service on the containers. 
     """
     def _execute_service(self, containers, entry_point, fabric, cmd):
+        all_output = {}
         master = entry_point['master']
         for c in containers:
             if c.host_name == master:
-                fabric.cmd([c], '/service/sbin/startnode %s master' % cmd)
+                output = fabric.cmd([c], '/service/sbin/startnode %s master' % cmd)
             else:
-                fabric.cmd([c], '/service/sbin/startnode %s slave' % cmd)
+                output = fabric.cmd([c], '/service/sbin/startnode %s slave' % cmd)
+            all_output = dict(all_output.items() + output.items())
 
         # Now wait a couple seconds to make sure
         # everything has started.
-        time.sleep(5)
+        time.sleep(4)
+        return all_output
     def start_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "start")
+        return self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "restart")
+        return self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):        
-        self._execute_service(containers, entry_point, fabric, "stop")
+        return self._execute_service(containers, entry_point, fabric, "stop")
     """
     Generate a new configuration.
     """

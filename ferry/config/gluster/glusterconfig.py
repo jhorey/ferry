@@ -51,19 +51,23 @@ class GlusterInitializer(object):
         slave nodes before the master, since the master assumes everything is
         waiting for it to start. 
         """
+        all_output = {}
         master_ip = entry_point['gluster']
         for c in containers:
             if c.internal_ip != master_ip:
                 output = fabric.cmd([c], '/service/sbin/startnode %s slave' % cmd)
+                all_output = dict(all_output.items() + output.items())
         for c in containers:
             if c.internal_ip == master_ip:
                 output = fabric.cmd([c], '/service/sbin/startnode %s master' % cmd)
+                all_output = dict(all_output.items() + output.items())
+        return all_output
     def start_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "start")
+        return self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "restart")
+        return self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "stop")
+        return self._execute_service(containers, entry_point, fabric, "stop")
 
     """
     Generate a new Gluster configuration repo for a new

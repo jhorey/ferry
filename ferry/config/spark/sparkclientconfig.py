@@ -55,11 +55,11 @@ class SparkClientInitializer(object):
     Start the service on the containers. 
     """
     def start_service(self, containers, entry_point, fabric):
-        self.spark.start_service(containers, entry_point, fabric)
+        return self.spark.start_service(containers, entry_point, fabric)
     def restart_service(self, containers, entry_point, fabric):
-        self.spark.restart_service(containers, entry_point, fabric)
+        return self.spark.restart_service(containers, entry_point, fabric)
     def stop_service(self, containers, entry_point, fabric):        
-        self.spark.stop_service(containers, entry_point, fabric)
+        return self.spark.stop_service(containers, entry_point, fabric)
 
     """
     Get the ports necessary.

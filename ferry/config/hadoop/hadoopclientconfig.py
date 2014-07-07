@@ -54,12 +54,13 @@ class HadoopClientInitializer(object):
             mount_url = entry_point['gluster_url']
             output = fabric.cmd(containers, 
                                 '/service/sbin/startnode %s gluster %s' % (cmd, mount_url))
+        return output
     def start_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "start")
+        return self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "restart")
+        return self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):        
-        self._execute_service(containers, entry_point, fabric, "stop")
+        return self._execute_service(containers, entry_point, fabric, "stop")
 
     """
     Generate a new configuration.

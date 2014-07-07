@@ -43,22 +43,25 @@ class MongoInitializer(object):
         """
         Start the service on the containers. 
         """
+        all_output = {}
         for c in containers:
             if c.args:
                 args = c.args
             else:
                 args = 'notrust'
-            fabric.cmd([c], '/service/sbin/startnode %s %s' % (cmd, args))
-
+            output = fabric.cmd([c], '/service/sbin/startnode %s %s' % (cmd, args))
+            all_output = dict(all_output.items() + output.items())
+            
         # Now wait a couple seconds to make sure
         # everything has started.
         time.sleep(2)
+        return all_output
     def start_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "start")
+        return self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "restart")
+        return self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):        
-        self._execute_service(containers, entry_point, fabric, "stop")
+        return self._execute_service(containers, entry_point, fabric, "stop")
 
     def _generate_config_dir(self, uuid):
         """

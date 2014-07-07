@@ -62,8 +62,7 @@ class DockerFabric(object):
         Read the location of the directory containing the keys
         used to communicate with the containers. 
         """
-        keydir = ferry.install._get_key_dir(root=True, server=True)
-        # logging.warning("FABRIC KEYDIR: " + keydir)
+        keydir = ferry.install._get_key_dir(root=self.bootstrap, server=True)
         with open(keydir, 'r') as f: 
             k = f.read().strip().split("://")
             return k[1], k[0]

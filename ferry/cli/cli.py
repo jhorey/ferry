@@ -620,54 +620,63 @@ class CLI(object):
         keydir, tmp = self._read_key_dir(root=True, server=True)
         return tmp == "tmp"
 
+    def _copy_ssh_key(self, keydir):
+        try:
+            os.makedirs(keydir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                logging.error("Could not create ssh directory %s" % keydir)
+                exit(1)
+        try:
+            shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa', keydir + '/id_rsa')
+            shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa.pub', keydir + '/id_rsa.pub')
+                            
+            uid = pwd.getpwnam(os.environ['USER']).pw_uid
+            gid = grp.getgrnam(os.environ['USER']).gr_gid
+            os.chown(keydir + '/id_rsa', uid, gid)
+            os.chmod(keydir + '/id_rsa', 0600)
+            os.chown(keydir + '/id_rsa.pub', uid, gid)
+            os.chmod(keydir + '/id_rsa.pub', 0644)
+        except OSError as e:
+            logging.error("Could not copy ssh keys (%s)" % str(e))
+            exit(1)
+        except IOError as e:
+            if e.errno == errno.EACCES:
+                logging.error("Could not override keys in %s, please delete those keys and try again." % keydir)
+                exit(1)
+
     def _check_ssh_key(self, options=None, root=False, server=False):
         """
-        Check if the user has supplied a custom key
-        directory. If not copies over a temporary key. 
+        Make sure that we pick the right ssh key and copy it over
+        if necessary. 
         """
-        keydir, _ = self._read_key_dir(options=options,
-                                       root=root)
-        if keydir == ferry.install.DEFAULT_KEY_DIR:
+        
+        if options and '-k' in options:
+            # The user wants to use a custom key. Just need
+            # to record the location of that key. 
             if root:
-                keydir = os.environ['HOME'] + '/.ssh/tmp-root'
-                ferry.install.GLOBAL_ROOT_DIR = 'tmp://' + keydir
-            else:
-                keydir = os.environ['HOME'] + '/.ssh/tmp-ferry'
-                ferry.install.GLOBAL_KEY_DIR = 'tmp://' + keydir
-
-            try:
-                os.makedirs(keydir)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    logging.error("Could not create ssh directory %s" % keydir)
-                    exit(1)
-            try:
-                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa', keydir + '/id_rsa')
-                shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa.pub', keydir + '/id_rsa.pub')
-                            
-                uid = pwd.getpwnam(os.environ['USER']).pw_uid
-                gid = grp.getgrnam(os.environ['USER']).gr_gid
-                os.chown(keydir + '/id_rsa', uid, gid)
-                os.chmod(keydir + '/id_rsa', 0600)
-                os.chown(keydir + '/id_rsa.pub', uid, gid)
-                os.chmod(keydir + '/id_rsa.pub', 0644)
-            except OSError as e:
-                logging.error("Could not copy ssh keys (%s)" % str(e))
-                exit(1)
-            except IOError as e:
-                if e.errno == errno.EACCES:
-                    logging.error("Could not override keys in %s, please delete those keys and try again." % keydir)
-                exit(1)
-
-            if root:
+                ferry.install.GLOBAL_ROOT_DIR = 'user://' + options['-k'][0]
                 ferry.install._touch_file(ferry.install._get_key_dir(root=True, server=server), 
                                           ferry.install.GLOBAL_ROOT_DIR)
-                logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_ROOT_DIR)
             else:
+                ferry.install.GLOBAL_KEY_DIR = 'user://' + options['-k'][0]
                 ferry.install._touch_file(ferry.install._get_key_dir(root=False, server=server), 
                                           ferry.install.GLOBAL_KEY_DIR)
-                logging.warning("Copied ssh keys to " + ferry.install.GLOBAL_KEY_DIR)
-
+        else:
+            # The user wants to use the default key.  
+            keydir, proto = self._read_key_dir(options=options, root=root)
+            if proto == "user" or keydir == ferry.install.DEFAULT_KEY_DIR:
+                if root:
+                    keydir = os.environ['HOME'] + '/.ssh/tmp-root'
+                    ferry.install.GLOBAL_ROOT_DIR = 'tmp://' + keydir
+                    ferry.install._touch_file(ferry.install._get_key_dir(root=True, server=server), 
+                                              ferry.install.GLOBAL_ROOT_DIR)
+                else:
+                    keydir = os.environ['HOME'] + '/.ssh/tmp-ferry'
+                    ferry.install.GLOBAL_KEY_DIR = 'tmp://' + keydir
+                    ferry.install._touch_file(ferry.install._get_key_dir(root=False, server=server), 
+                                              ferry.install.GLOBAL_KEY_DIR)
+                self._copy_ssh_key(keydir)
 
     def _find_installed_app(self, app):
         """
@@ -800,6 +809,9 @@ class CLI(object):
         elif(cmd == 'help'):
             return self._print_help()
         else:
+            # The user wants to perform some management function
+            # over the stack. 
+            self._check_ssh_key(options=options)
             stack_info = {'uuid' : args[0],
                           'action' : cmd}
             return self._manage_stacks(stack_info)

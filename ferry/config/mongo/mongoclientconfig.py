@@ -62,11 +62,11 @@ class MongoClientInitializer(object):
     Start the service on the containers. 
     """
     def start_service(self, containers, entry_point, fabric):
-        self.mongo.start_service(containers, entry_point, fabric)
+        return self.mongo.start_service(containers, entry_point, fabric)
     def restart_service(self, containers, entry_point, fabric):
-        self.mongo.restart_service(containers, entry_point, fabric)
+        return self.mongo.restart_service(containers, entry_point, fabric)
     def stop_service(self, containers, entry_point, fabric):        
-        self.mongo.stop_service(containers, entry_point, fabric)
+        return self.mongo.stop_service(containers, entry_point, fabric)
 
     """
     Get the ports necessary.

@@ -40,14 +40,14 @@ class CassandraClientInitializer(object):
     Start the service on the containers. 
     """
     def _execute_service(self, containers, entry_point, fabric, cmd):
-        output = fabric.cmd(containers, 
-                            '/service/sbin/startnode %s %s' % (cmd, entry_point['cassandra_url']))
+        return fabric.cmd(containers, 
+                          '/service/sbin/startnode %s %s' % (cmd, entry_point['cassandra_url']))
     def start_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "start")
+        return self._execute_service(containers, entry_point, fabric, "start")
     def restart_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "restart")
+        return self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):
-        self._execute_service(containers, entry_point, fabric, "stop")
+        return self._execute_service(containers, entry_point, fabric, "stop")
 
     def _generate_config_dir(self, uuid):
         return 'cassandra_client' + str(uuid)

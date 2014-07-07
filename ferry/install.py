@@ -766,10 +766,11 @@ class Installer(object):
         logging.warning("checking for btrfs")
         cmd = 'cat /etc/mtab | grep btrfs | awk \'{print $2}\''
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        dirs = output.strip().split("\n")
-        for d in dirs:
-            if self._is_parent_dir(d, DOCKER_DIR):
-                return True
+        if output.strip() != "":
+            dirs = output.strip().split("\n")
+            for d in dirs:
+                if self._is_parent_dir(d, DOCKER_DIR):
+                    return True
         return False
         
     def _start_docker_daemon(self, options=None):
