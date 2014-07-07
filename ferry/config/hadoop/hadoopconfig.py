@@ -118,7 +118,9 @@ class HadoopInitializer(object):
         ports.append(HadoopConfig.YARN_HTTP)
         ports.append(HadoopConfig.YARN_HTTPS)
         ports.append(HadoopConfig.YARN_JOB_HISTORY)
+        ports.append(HadoopConfig.YARN_JOB_HISTORY_HTTP)
         ports.append(HadoopConfig.HDFS_MASTER)
+        ports.append(HadoopConfig.HDFS_HTTP)
         ports.append(HadoopConfig.YARN_RPC_PORTS)
         ports.append(HadoopConfig.HIVE_META)
         ports.append(HadoopConfig.HIVE_SERVER)
@@ -495,7 +497,9 @@ class HadoopConfig(object):
     YARN_HTTP = 8088
     YARN_HTTPS = 8090
     YARN_JOB_HISTORY = 10020
+    YARN_JOB_HISTORY_HTTP = 19888
     HDFS_MASTER = 9000
+    HDFS_HTTP = 50070
     YARN_RPC_PORTS = '50100-50200'
     HIVE_META = 9083
     HIVE_SERVER = 10000

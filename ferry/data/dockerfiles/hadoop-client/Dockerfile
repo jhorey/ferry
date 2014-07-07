@@ -16,11 +16,15 @@ ENV PIG_HOME /service/packages/pig
 ENV PIG_CLASSPATH /service/conf/hadoop
 RUN echo export PIG_HOME=/service/packages/pig >> /etc/profile;echo export PIG_CLASSPATH=/service/conf/hadoop >> /etc/profile;
 
+# Install dependencies for reverse proxy. 
+RUN apt-get --yes install python-twisted
+
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
 ADD ./createtable.sql /service/scripts/
 ADD ./count.pig /service/scripts/
 ADD ./mounthelper.py /service/scripts/
+ADD ./proxy.py /service/scripts/
 ADD ./start01.sh /service/runscripts/start/
 ADD ./restart01.sh /service/runscripts/restart/
 ADD ./stop10.sh /service/runscripts/stop/
