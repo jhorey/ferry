@@ -11,3 +11,4 @@ backend:
            - "hive"
 connectors:
    - personality: "ferry/hadoop-client"
+     ports: ["19888:19888","8088:8088","50070:50070"]

@@ -113,6 +113,7 @@ class HadoopInitializer(object):
         ports = []
         ports.append(HadoopConfig.YARN_SCHEDULER)
         ports.append(HadoopConfig.YARN_ADMIN)
+        ports.append(HadoopConfig.YARN_IPC)
         ports.append(HadoopConfig.YARN_RESOURCE)
         ports.append(HadoopConfig.YARN_TRACKER)
         ports.append(HadoopConfig.YARN_HTTP)
@@ -491,6 +492,7 @@ class HadoopConfig(object):
     config_directory = '/service/conf/hadoop'
 
     YARN_SCHEDULER = 8030
+    YARN_IPC = 8032
     YARN_ADMIN = 8033
     YARN_RESOURCE = 8041
     YARN_TRACKER = 8025

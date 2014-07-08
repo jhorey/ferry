@@ -98,9 +98,6 @@ class NAT(object):
         if rule:
             return rule['src_ip'], rule['src_port']
         else:
-            rules = self.nat_collection.find( {'ip' : dest_ip} )
-            for r in rules:
-                logging.warning("r: " + str(r))
             return None, None
 
     def delete_rule(self, dest_ip, dest_port):

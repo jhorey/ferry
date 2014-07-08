@@ -17,9 +17,11 @@ elif [ $1 == "start" ]; then
         # Now create the Hive metastore
 	su postgres -c 'psql -f /service/sbin/createstore.sql'
 
-        # Finally start the metastore service. Give it a couple seconds to start 
-	# before stopping the script otherwise sometimes it doesn't start. 
+        # Sstart the metastore service and Hiveserver2.
 	su ferry -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
+	su ferry -c 'nohup /service/packages/hive/bin/hive --service hiveserver2 > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
+
+	# Give everything a couple seconds to start
 	sleep 2
     fi
 elif [ $1 == "restart" ]; then 
@@ -30,6 +32,7 @@ elif [ $1 == "restart" ]; then
         # Start the metastore service. Give it a couple seconds to start 
 	# before stopping the script otherwise sometimes it doesn't start. 
 	su ferry -c 'nohup /service/packages/hive/bin/hive --service metastore > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
+	su ferry -c 'nohup /service/packages/hive/bin/hive --service hiveserver2 > /service/data/logs/hive.out 2> /service/data/logs/hive.err &'
 	sleep 2
     fi
 elif [ $1 == "stop" ]; then 
