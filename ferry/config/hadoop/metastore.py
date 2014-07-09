@@ -59,7 +59,8 @@ class MetaStoreInitializer(object):
     """
     def get_necessary_ports(self, num_instances):
         return [MetaStoreConfig.POSTGRES_PORT, 
-                MetaStoreConfig.THRIFT_PORT]
+                MetaStoreConfig.METASTORE_PORT,
+                MetaStoreConfig.SERVER_PORT]
 
     """
     Get the internal ports. 
@@ -173,12 +174,13 @@ class MetaStoreConfig(object):
     data_directory = '/service/data/main'
     log_directory = '/service/data/logs'
     tmp_directory = '/service/data/tmp'
-    config_directory = '/etc/postgresql/9.1/main/'
+    config_directory = '/etc/postgresql/9.3/main/'
     hive_config = '/service/packages/hive/conf'
     hadoop_config = '/service/packages/hadoop/etc/hadoop'
 
     POSTGRES_PORT = 5432
-    THRIFT_PORT = 9083
+    METASTORE_PORT = 9083
+    SERVER_PORT = 10000
 
     def __init__(self, num):
         self.data_directory = MetaStoreConfig.data_directory

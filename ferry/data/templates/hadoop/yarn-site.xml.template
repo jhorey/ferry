@@ -66,4 +66,10 @@
     <name>yarn.resourcemanager.address</name>
     <value>$YARN_MASTER:8041</value>
   </property>
+  <property>
+    <name>yarn.nodemanager.vmem-check-enabled</name>
+    <value>false</value>
+    <description>Prevent YARN from killing containers that use too much VMEM </description>
+  </property>
+
 </configuration>

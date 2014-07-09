@@ -63,8 +63,13 @@
   </property>
 
   <property>
-    <name>mapred.child.java.opts</name>
-    <value>-Xmx2048m</value>
+    <name>mapreduce.map.java.opts</name>
+    <value>-Xmx3072m</value>
+  </property>
+
+  <property>
+    <name>mapreduce.reduce.java.opts</name>
+    <value>-Xmx6144m</value>
   </property>
 
   <property>
