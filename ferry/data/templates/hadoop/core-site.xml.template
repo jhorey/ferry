@@ -17,25 +17,25 @@
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
-  <!-- <property> -->
-  <!--   <name>hadoop.proxyuser.hue.hosts</name> -->
-  <!--   <value>*</value> -->
-  <!-- </property> -->
+  <property>
+    <name>hadoop.proxyuser.hue.hosts</name>
+    <value>*</value>
+  </property>
 
-  <!-- <property> -->
-  <!--   <name>hadoop.proxyuser.hue.groups</name> -->
-  <!--   <value>*</value> -->
-  <!-- </property> -->
+  <property>
+    <name>hadoop.proxyuser.hue.groups</name>
+    <value>*</value>
+  </property>
 
-  <!-- <property> -->
-  <!--   <name>hadoop.proxyuser.hcat.groups</name> -->
-  <!--   <value>*</value> -->
-  <!-- </property> -->
+  <property>
+    <name>hadoop.proxyuser.hcat.groups</name>
+    <value>*</value>
+  </property>
 
-  <!-- <property> -->
-  <!--   <name>hadoop.proxyuser.hcat.hosts</name> -->
-  <!--   <value>*</value> -->
-  <!-- </property> -->
+  <property>
+    <name>hadoop.proxyuser.hcat.hosts</name>
+    <value>*</value>
+  </property>
 
   <property>
     <name>fs.defaultFS</name>

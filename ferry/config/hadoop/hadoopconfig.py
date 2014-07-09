@@ -122,6 +122,8 @@ class HadoopInitializer(object):
         ports.append(HadoopConfig.YARN_JOB_HISTORY_HTTP)
         ports.append(HadoopConfig.HDFS_MASTER)
         ports.append(HadoopConfig.HDFS_HTTP)
+        ports.append(HadoopConfig.DATA_HTTP)
+        ports.append(HadoopConfig.SECOND_HTTP)
         ports.append(HadoopConfig.YARN_RPC_PORTS)
         ports.append(HadoopConfig.HIVE_META)
         ports.append(HadoopConfig.HIVE_SERVER)
@@ -208,6 +210,21 @@ class HadoopInitializer(object):
 
         hdfs_in_file.close()
         hdfs_out_file.close()
+
+    def _generate_httpfs_site(self, config, new_config_dir):
+        """
+        Generate the hdfs-site configuration. 
+        """
+        in_file = open(self.template_dir + '/httpfs-site.xml.template', 'r')
+        out_file = open(new_config_dir + '/httpfs-site.xml', 'w+')
+
+        changes = {}
+        for line in in_file:
+            s = Template(line).substitute(changes)
+            out_file.write(s)
+
+        in_file.close()
+        out_file.close()
 
     def _generate_yarn_site(self, yarn_master, new_config_dir, container=None):
         """
@@ -357,6 +374,9 @@ class HadoopInitializer(object):
             # Now generate the HDFS config
             self._generate_hdfs_site(config, hdfs_master, new_config_dir)
 
+            # Now generate the HDFS config
+            self._generate_httpfs_site(config, new_config_dir)
+
             # Generate the log4j config
             self._generate_log4j(new_config_dir)
 
@@ -502,6 +522,8 @@ class HadoopConfig(object):
     YARN_JOB_HISTORY_HTTP = 19888
     HDFS_MASTER = 9000
     HDFS_HTTP = 50070
+    DATA_HTTP = 50075
+    SECOND_HTTP = 50090
     YARN_RPC_PORTS = '50100-50200'
     HIVE_META = 9083
     HIVE_SERVER = 10000
