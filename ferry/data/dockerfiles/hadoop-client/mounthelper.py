@@ -15,11 +15,18 @@ def mount(entry_point, mount_point):
     # mount -t glusterfs entry_point mount_point
     cmd = 'mount -t glusterfs %s %s' % (entry_point,
                                         mount_point)
-    Popen(cmd, shell=True)
+    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+    logging.info(cmd)
+    logging.info(output)
 
 def umount(mount_point):
-    cmd = 'umount %s' % mount_point
-    Popen(cmd, shell=True)
+    cmd = 'cat /etc/mtab | grep /service/data | awk \'{print $2}\''
+    output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+    if output.strip() != "":
+        cmd = 'umount %s' % mount_point
+        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        logging.info(cmd)
+        logging.info(output)
 
 cmd = sys.argv[1]
 if cmd == "mount":
