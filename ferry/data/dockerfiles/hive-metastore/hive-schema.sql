@@ -80,7 +80,9 @@ CREATE TABLE "DBS" (
     "DB_ID" bigint NOT NULL,
     "DESC" character varying(4000) DEFAULT NULL::character varying,
     "DB_LOCATION_URI" character varying(4000) NOT NULL,
-    "NAME" character varying(128) DEFAULT NULL::character varying
+    "NAME" character varying(128) DEFAULT NULL::character varying,
+    "OWNER_NAME" character varying(128) DEFAULT NULL::character varying,
+    "OWNER_TYPE" character varying(10) DEFAULT NULL::character varying
 );
 
 
@@ -549,6 +551,32 @@ CREATE TABLE "PART_COL_STATS" (
  "NUM_TRUES" bigint,
  "NUM_FALSES" bigint,
  "LAST_ANALYZED" bigint NOT NULL
+);
+
+--
+-- Table structure for FUNCS
+--
+CREATE TABLE "FUNCS" (
+  "FUNC_ID" BIGINT NOT NULL,
+  "CLASS_NAME" VARCHAR(4000),
+  "CREATE_TIME" INTEGER NOT NULL,
+  "DB_ID" BIGINT,
+  "FUNC_NAME" VARCHAR(128),
+  "FUNC_TYPE" INTEGER NOT NULL,
+  "OWNER_NAME" VARCHAR(128),
+  "OWNER_TYPE" VARCHAR(10),
+  PRIMARY KEY ("FUNC_ID")
+);
+
+--
+-- Table structure for FUNC_RU
+--
+CREATE TABLE "FUNC_RU" (
+  "FUNC_ID" BIGINT NOT NULL,
+  "RESOURCE_TYPE" INTEGER NOT NULL,
+  "RESOURCE_URI" VARCHAR(4000),
+  "INTEGER_IDX" INTEGER NOT NULL,
+  PRIMARY KEY ("FUNC_ID", "INTEGER_IDX")
 );
 
 --
@@ -1132,6 +1160,24 @@ CREATE INDEX "TAB_COL_STATS_N49" ON "TAB_COL_STATS" USING btree ("TBL_ID");
 
 CREATE INDEX "PART_COL_STATS_N49" ON "PART_COL_STATS" USING btree ("PART_ID");
 
+--
+-- Name: UNIQUEFUNCTION; Type: INDEX; Schema: public; Owner: hiveuser; Tablespace:
+--
+
+CREATE UNIQUE INDEX "UNIQUEFUNCTION" ON "FUNCS" ("FUNC_NAME", "DB_ID");
+
+--
+-- Name: FUNCS_N49; Type: INDEX; Schema: public; Owner: hiveuser; Tablespace:
+--
+
+CREATE INDEX "FUNCS_N49" ON "FUNCS" ("DB_ID");
+
+--
+-- Name: FUNC_RU_N49; Type: INDEX; Schema: public; Owner: hiveuser; Tablespace:
+--
+
+CREATE INDEX "FUNC_RU_N49" ON "FUNC_RU" ("FUNC_ID");
+
 
 ALTER TABLE ONLY "SKEWED_STRING_LIST_VALUES"
     ADD CONSTRAINT "SKEWED_STRING_LIST_VALUES_fkey" FOREIGN KEY ("STRING_LIST_ID") REFERENCES "SKEWED_STRING_LIST"("STRING_LIST_ID") DEFERRABLE;
@@ -1391,6 +1437,14 @@ ALTER TABLE ONLY "PART_COL_STATS" ADD CONSTRAINT "PART_COL_STATS_fkey" FOREIGN K
 
 ALTER TABLE ONLY "VERSION" ADD CONSTRAINT "VERSION_pkey" PRIMARY KEY ("VER_ID");
 
+-- Name: FUNCS_FK1; Type: FK CONSTRAINT; Schema: public; Owner: hiveuser
+ALTER TABLE ONLY "FUNCS"
+    ADD CONSTRAINT "FUNCS_FK1" FOREIGN KEY ("DB_ID") REFERENCES "DBS" ("DB_ID") DEFERRABLE;
+
+-- Name: FUNC_RU_FK1; Type: FK CONSTRAINT; Schema: public; Owner: hiveuser
+ALTER TABLE ONLY "FUNC_RU"
+    ADD CONSTRAINT "FUNC_RU_FK1" FOREIGN KEY ("FUNC_ID") REFERENCES "FUNCS" ("FUNC_ID") DEFERRABLE;
+
 --
 -- Name: public; Type: ACL; Schema: -; Owner: hiveuser
 --
@@ -1399,8 +1453,86 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
-INSERT INTO "VERSION" ("VER_ID", "SCHEMA_VERSION", "VERSION_COMMENT") VALUES (1, '0.12.0', 'Hive release version 0.12.0');
 --
 -- PostgreSQL database dump complete
 --
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------
+-- Transaction and lock tables
+-- These are not part of package jdo, so if you are going to regenerate this file you need to manually add the following section back to the file.
+-- -----------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE TABLE TXNS (
+  TXN_ID bigint PRIMARY KEY,
+  TXN_STATE char(1) NOT NULL,
+  TXN_STARTED bigint NOT NULL,
+  TXN_LAST_HEARTBEAT bigint NOT NULL,
+  TXN_USER varchar(128) NOT NULL,
+  TXN_HOST varchar(128) NOT NULL
+);
+
+CREATE TABLE TXN_COMPONENTS (
+  TC_TXNID bigint REFERENCES TXNS (TXN_ID),
+  TC_DATABASE varchar(128) NOT NULL,
+  TC_TABLE varchar(128),
+  TC_PARTITION varchar(767) DEFAULT NULL
+);
+
+CREATE TABLE COMPLETED_TXN_COMPONENTS (
+  CTC_TXNID bigint,
+  CTC_DATABASE varchar(128) NOT NULL,
+  CTC_TABLE varchar(128),
+  CTC_PARTITION varchar(767)
+);
+
+CREATE TABLE NEXT_TXN_ID (
+  NTXN_NEXT bigint NOT NULL
+);
+INSERT INTO NEXT_TXN_ID VALUES(1);
+
+CREATE TABLE HIVE_LOCKS (
+  HL_LOCK_EXT_ID bigint NOT NULL,
+  HL_LOCK_INT_ID bigint NOT NULL,
+  HL_TXNID bigint,
+  HL_DB varchar(128) NOT NULL,
+  HL_TABLE varchar(128),
+  HL_PARTITION varchar(767) DEFAULT NULL,
+  HL_LOCK_STATE char(1) NOT NULL,
+  HL_LOCK_TYPE char(1) NOT NULL,
+  HL_LAST_HEARTBEAT bigint NOT NULL,
+  HL_ACQUIRED_AT bigint,
+  HL_USER varchar(128) NOT NULL,
+  HL_HOST varchar(128) NOT NULL,
+  PRIMARY KEY(HL_LOCK_EXT_ID, HL_LOCK_INT_ID)
+); 
+
+CREATE INDEX HL_TXNID_INDEX ON HIVE_LOCKS USING hash (HL_TXNID);
+
+CREATE TABLE NEXT_LOCK_ID (
+  NL_NEXT bigint NOT NULL
+);
+INSERT INTO NEXT_LOCK_ID VALUES(1);
+
+CREATE TABLE COMPACTION_QUEUE (
+  CQ_ID bigint PRIMARY KEY,
+  CQ_DATABASE varchar(128) NOT NULL,
+  CQ_TABLE varchar(128) NOT NULL,
+  CQ_PARTITION varchar(767),
+  CQ_STATE char(1) NOT NULL,
+  CQ_TYPE char(1) NOT NULL,
+  CQ_WORKER_ID varchar(128),
+  CQ_START bigint,
+  CQ_RUN_AS varchar(128)
+);
+
+CREATE TABLE NEXT_COMPACTION_QUEUE_ID (
+  NCQ_NEXT bigint NOT NULL
+);
+INSERT INTO NEXT_COMPACTION_QUEUE_ID VALUES(1);
+
+
+-- -----------------------------------------------------------------
+-- Record schema version. Should be the last step in the init script
+-- -----------------------------------------------------------------
+INSERT INTO "VERSION" ("VER_ID", "SCHEMA_VERSION", "VERSION_COMMENT") VALUES (1, '0.13.0', 'Hive release version 0.13.0');
 

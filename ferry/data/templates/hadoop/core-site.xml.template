@@ -17,6 +17,27 @@
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
+
+  <property>
+    <name>hadoop.proxyuser.ferry.groups</name>
+    <value>*</value>
+  </property>
+
+  <property>
+    <name>hadoop.proxyuser.ferry.hosts</name>
+    <value>*</value>
+  </property>
+
+  <property>
+    <name>hadoop.proxyuser.oozie.groups</name>
+    <value>*</value>
+  </property>
+
+  <property>
+    <name>hadoop.proxyuser.oozie.hosts</name>
+    <value>*</value>
+  </property>
+           
   <property>
     <name>hadoop.proxyuser.hue.hosts</name>
     <value>*</value>
