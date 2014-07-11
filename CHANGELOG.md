@@ -28,6 +28,10 @@
 - Ability to use OpenMPI client without compute
 - Print out status messages when starting service
 - Better custom key support
+
+### 0.2.3.1 (2014-07-11)
+
+- Fix PostGreSQL 9.3 upgrade
 	
 ## 0.1 series
 

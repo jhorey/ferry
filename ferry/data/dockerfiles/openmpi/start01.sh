@@ -12,10 +12,10 @@ source /etc/profile
 if [[ $2 == "glustermaster" ]] || [[ $2 == "glusterslave" ]]; then
     # First we should unmount previous filesystems. This might happen
     # if we started a snapshotted image.
-    python /service/sbin/mounthelper.py umount
+    python /service/sbin/mounthelper.py umount >> /tmp/gluster.out 2>> /tmp/gluster.err
 
     # Mount GlusterFS and set the owner as 'ferry' user. 
-    python /service/sbin/mounthelper.py mount $1
+    python /service/sbin/mounthelper.py mount $1 >> /tmp/gluster.out 2>> /tmp/gluster.err
     chown -R ferry:docker /service/data
 
     # Make a copy of the communication keys to a

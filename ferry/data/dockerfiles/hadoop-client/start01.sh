@@ -17,7 +17,7 @@ elif [ $1 == "gluster" ]; then
     # This Hadoop cluster is using the GlusterFS backend. That means
     # we need to mount the volume.
     #
-    python /service/scripts/mounthelper.py umount
-    python /service/scripts/mounthelper.py mount $2
+    python /service/scripts/mounthelper.py umount >> /tmp/gluster.log 2>> /tmp/gluster.err
+    python /service/scripts/mounthelper.py mount $2  >> /tmp/gluster.log 2>> /tmp/gluster.err
     chown -R ferry:docker /service/data
 fi

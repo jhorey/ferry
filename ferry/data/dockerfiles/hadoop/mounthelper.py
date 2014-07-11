@@ -22,10 +22,13 @@ def mount(entry_point, mount_point):
     logging.info(output)
 
 def umount(mount_point):
-    cmd = 'umount %s' % mount_point
+    cmd = 'cat /etc/mtab | grep /service/data | awk \'{print $2}\''
     output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-    logging.info(cmd)
-    logging.info(output)
+    if output.strip() != "":
+        cmd = 'umount %s' % mount_point
+        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        logging.info(cmd)
+        logging.info(output)
 
 cmd = sys.argv[1]
 if cmd == "mount":
