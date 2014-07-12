@@ -63,13 +63,27 @@
   </property>
 
   <property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>256</value>
+    <description>memory for maps (set to mem-per-container)</description>
+  </property>
+
+  <property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>512</value>
+    <description>memory for reduce (set to 2x map)</description>
+  </property>
+
+  <property>
     <name>mapreduce.map.java.opts</name>
-    <value>-Xmx3072m</value>
+    <value>-Xmx204m</value>
+    <description>set to 0.8x map</description>
   </property>
 
   <property>
     <name>mapreduce.reduce.java.opts</name>
-    <value>-Xmx6144m</value>
+    <value>-Xmx408m</value>
+    <description>set to 0.8x reduce</description>
   </property>
 
   <property>
@@ -84,7 +98,7 @@
 
   <property>
     <name>mapreduce.reduce.shuffle.parallelcopies</name>
-    <value>15</value>
+    <value>8</value>
   </property>
 
   <property>

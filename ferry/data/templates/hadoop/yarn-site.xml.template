@@ -16,6 +16,36 @@
 
   <!-- Site specific YARN configuration properties -->
   <property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>2048</value>
+    <description>total available memory</description>
+  </property>
+
+  <property>
+    <name>yarn.scheduler.maximum-allocation-mb</name>
+    <value>2048</value>
+    <description>max that yarn can use</description>
+  </property>
+
+  <property>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>256</value>
+    <description>memory per container</description>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>512</value>
+    <description>set to 2x mem-per-container</description>
+  </property>
+
+  <property>
+    <name>yarn.app.mapreduce.am.command-opts</name>
+    <value>410</value>
+    <description>set to 0.8x to above option</description>
+  </property>
+
+  <property>
     <name>yarn.app.mapreduce.am.staging-dir</name>
     <value>$DATA_STAGING</value>
   </property>
