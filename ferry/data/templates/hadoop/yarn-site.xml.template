@@ -15,44 +15,43 @@
 <configuration>
 
   <property>
-    <name>yarn.application.classpath</name>
-    <value>
-      /service/package/hadoop/etc/hadoop,
-      /service/package/hadoop/share/hadoop/common/*,/service/package/hadoop/share/hadoop/common/lib/*,
-      /service/package/hadoop/share/hadoop/hdfs/*,/service/package/hadoop/share/hadoop/hdfs/lib/*,
-      /service/package/hadoop/share/hadoop/mapreduce/*,/service/package/hadoop/share/hadoop/mapreduce/lib/*,
-      /service/package/hadoop/share/hadoop/tools/*,/service/package/hadoop/share/hadoop/tools/lib/*,
-      /service/package/hadoop/share/hadoop/yarn/*,/service/package/hadoop/share/hadoop/yarn/lib/*
-    </value>
+    <name>yarn.log-aggregation-enable</name>
+    <value>true</value>
   </property>
 
   <property>
+    <name>yarn.nodemanager.remote-app-log-dir</name>
+    <value>/service/data/logs/yarn/apps</value>
+  </property>
+
+
+  <property>
     <name>yarn.nodemanager.resource.memory-mb</name>
-    <value>4096</value>
+    <value>$MEM</value>
     <description>total available memory</description>
   </property>
 
   <property>
     <name>yarn.scheduler.maximum-allocation-mb</name>
-    <value>4096</value>
+    <value>$MEM</value>
     <description>max that yarn can use</description>
   </property>
 
   <property>
     <name>yarn.scheduler.minimum-allocation-mb</name>
-    <value>512</value>
+    <value>$CMEM</value>
     <description>memory per container</description>
   </property>
 
   <property>
     <name>yarn.app.mapreduce.am.resource.mb</name>
-    <value>1024</value>
+    <value>$RMEM</value>
     <description>set to 2x mem-per-container</description>
   </property>
 
   <property>
     <name>yarn.app.mapreduce.am.command-opts</name>
-    <value>819</value>
+    <value>$ROPTS</value>
     <description>set to 0.8x to above option</description>
   </property>
 

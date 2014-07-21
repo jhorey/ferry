@@ -22,6 +22,7 @@ from ferry.install import FERRY_HOME
 from ferry.docker.fabric import DockerFabric
 from ferry.config.hadoop.hiveconfig import *
 from ferry.config.hadoop.metastore  import *
+from ferry.config.system.info import *
 
 class HadoopInitializer(object):
 
@@ -150,17 +151,6 @@ class HadoopInitializer(object):
         """
         return HadoopConfig(num)
 
-    def _estimate_mem_size(self, config):
-        """
-        Need to estimate the amount of memory available on
-        one of the containers. 
-        """
-        if config.system_info != None:
-            return config.system_info['mem']
-        else:
-            # Estimate 2GB of available memory. 
-            return 2
-
     def _generate_gluster_core_site(self, new_config_dir, container):
         """
         Generate the core-site configuration for a local filesystem. 
@@ -235,6 +225,12 @@ class HadoopInitializer(object):
 
         changes = { "YARN_MASTER":yarn_master['data_ip'] } 
 
+        # Get memory information.
+        changes['MEM'] = get_total_memory()
+        changes['CMEM'] = max(get_total_memory() / 8, 512)
+        changes['RMEM'] = 2 * changes['CMEM']
+        changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
+        
         # Generate the staging table. This differs depending on whether
         # we need to be container specific or not. 
         if container:
@@ -291,19 +287,19 @@ class HadoopInitializer(object):
         """
         mapred_in_file = open(self.template_dir + '/mapred-site.xml.template', 'r')
         mapred_out_file = open(new_config_dir + '/mapred-site.xml', 'w+')
+        changes = {"HISTORY_SERVER":yarn_master['data_ip']}
+
+        # Get memory information.
+        changes['MMEM'] = max(get_total_memory() / 8, 512)
+        changes['RMEM'] = 2 * changes['MMEM']
+        changes['MOPTS'] = '-Xmx' + str(int(0.8 * changes['MMEM'])) + 'm'
+        changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
 
         # These are the mapred variables. 
-        mem_size = self._estimate_mem_size(config)
-        reduce_per_node = (mem_size / len(containers) - 2) / 2
-        map_per_node = reduce_per_node * 4
-        job_maps = map_per_node * ( len(containers) - 2 )
-        job_reduces = reduce_per_node * ( len(containers) - 2 )
-
-        changes = { "NODE_REDUCES":reduce_per_node, 
-                    "NODE_MAPS":map_per_node,
-                    "JOB_REDUCES":job_reduces,
-                    "JOB_MAPS":job_maps,
-                    "HISTORY_SERVER":yarn_master['data_ip']}
+        changes['NODE_REDUCES'] = get_total_memory() / ( len(containers) - 2 ) / 2
+        changes['NODE_MAPS'] = changes['NODE_REDUCES'] * 4
+        changes['JOB_MAPS'] = changes['NODE_MAPS'] * ( len(containers) - 2 )
+        changes['JOB_REDUCES'] = changes['NODE_REDUCES'] * ( len(containers) - 2 )
 
         # Generate the temp area. This differs depending on whether
         # we need to be container specific or not. 

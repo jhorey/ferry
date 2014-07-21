@@ -20,6 +20,7 @@ from string import Template
 from ferry.install import FERRY_HOME
 from ferry.docker.fabric import DockerFabric
 from ferry.config.hadoop.hiveconfig import *
+from ferry.config.system.info import *
 
 class HadoopClientInitializer(object):
     """
@@ -140,6 +141,13 @@ class HadoopClientInitializer(object):
 
         changes = { "YARN_MASTER":yarn_master,
                     "DATA_STAGING":"/service/data/client/staging" }
+
+        # Get memory information.
+        changes['MEM'] = get_total_memory()
+        changes['CMEM'] = max(get_total_memory() / 8, 512)
+        changes['RMEM'] = 2 * changes['CMEM']
+        changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
+
         for line in yarn_in_file:
             s = Template(line).substitute(changes)
             yarn_out_file.write(s)
@@ -163,6 +171,13 @@ class HadoopClientInitializer(object):
                     "JOB_MAPS":1,
                     "HISTORY_SERVER":config.yarn_master, 
                     "DATA_TMP":"/service/data/client/tmp" }
+
+        # Get memory information.
+        changes['MMEM'] = max(get_total_memory() / 8, 512)
+        changes['RMEM'] = 2 * changes['MMEM']
+        changes['MOPTS'] = '-Xmx' + str(int(0.8 * changes['MMEM'])) + 'm'
+        changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
+
         for line in mapred_in_file:
             s = Template(line).substitute(changes)
             mapred_out_file.write(s)

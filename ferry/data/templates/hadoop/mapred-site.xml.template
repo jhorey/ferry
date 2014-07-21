@@ -27,6 +27,11 @@
     <value>/service/data/logs/mapred/jobhistory</value>
   </property>
 
+  <property>
+    <name>mapreduce.jobtracker.jobhistory.completed.location</name>
+    <value>/service/data/logs/mapred/completed</value>
+  </property>
+
   <!-- <property> -->
   <!--   <name>mapreduce.jobtracker.system.dir</name> -->
   <!--   <value>/service/data/tmp/mapred/system</value> -->
@@ -64,25 +69,25 @@
 
   <property>
     <name>mapreduce.map.memory.mb</name>
-    <value>512</value>
+    <value>$MMEM</value>
     <description>memory for maps (set to mem-per-container)</description>
   </property>
 
   <property>
     <name>mapreduce.reduce.memory.mb</name>
-    <value>1024</value>
+    <value>$RMEM</value>
     <description>memory for reduce (set to 2x map)</description>
   </property>
 
   <property>
     <name>mapreduce.map.java.opts</name>
-    <value>-Xmx409m</value>
+    <value>$MOPTS</value>
     <description>set to 0.8x map</description>
   </property>
 
   <property>
     <name>mapreduce.reduce.java.opts</name>
-    <value>-Xmx818m</value>
+    <value>$ROPTS</value>
     <description>set to 0.8x reduce</description>
   </property>
 

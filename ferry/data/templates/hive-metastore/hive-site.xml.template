@@ -52,14 +52,12 @@
 
 <property>
   <name>hive.exec.scratchdir</name>
-  <!-- <value>/service/data/tmp/hive/hive-ferry</value> -->
   <value>/service/data/tmp/hive/ferry-$USER</value>
   <description>Scratch space for Hive jobs</description>
 </property>
 
 <property>
   <name>hive.exec.local.scratchdir</name>
-  <!-- <value>/service/data/tmp/hive/ferry</value> -->
   <value>/tmp/ferry/hive/ferry-$USER</value>
   <description>Local scratch space for Hive jobs</description>
 </property>
@@ -108,21 +106,6 @@
 <property>
   <name>datanucleus.fixedDatastore</name>
   <value>true</value>
-</property>
-
-<property>
-  <name>hive.stats.dbclass</name>
-  <value>jdbc:postgresql</value>
-</property>
-
-<property>
-  <name>hive.stats.dbconnectionstring</name>
-  <value>jdbc:postgresql://$DB/hive_stats?user=hiveuser&amp;password=1hiveuser2</value>
-</property>
-
-<property>
-  <name>hive.stats.jdbcdriver</name>
-  <value>org.postgresql.Driver</value>
 </property>
 
 </configuration>
