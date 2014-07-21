@@ -64,42 +64,42 @@
 
   <property>
     <name>mapreduce.map.memory.mb</name>
-    <value>256</value>
+    <value>512</value>
     <description>memory for maps (set to mem-per-container)</description>
   </property>
 
   <property>
     <name>mapreduce.reduce.memory.mb</name>
-    <value>512</value>
+    <value>1024</value>
     <description>memory for reduce (set to 2x map)</description>
   </property>
 
   <property>
     <name>mapreduce.map.java.opts</name>
-    <value>-Xmx204m</value>
+    <value>-Xmx409m</value>
     <description>set to 0.8x map</description>
   </property>
 
   <property>
     <name>mapreduce.reduce.java.opts</name>
-    <value>-Xmx408m</value>
+    <value>-Xmx818m</value>
     <description>set to 0.8x reduce</description>
   </property>
 
-  <property>
-    <name>mapreduce.task.io.sort.factor</name>
-    <value>50</value>
-  </property>
+  <!-- <property> -->
+  <!--   <name>mapreduce.task.io.sort.factor</name> -->
+  <!--   <value>50</value> -->
+  <!-- </property> -->
 
-  <property>
-    <name>mapreduce.task.io.sort.mb</name>
-    <value>500</value>
-  </property>
+  <!-- <property> -->
+  <!--   <name>mapreduce.task.io.sort.mb</name> -->
+  <!--   <value>500</value> -->
+  <!-- </property> -->
 
-  <property>
-    <name>mapreduce.reduce.shuffle.parallelcopies</name>
-    <value>8</value>
-  </property>
+  <!-- <property> -->
+  <!--   <name>mapreduce.reduce.shuffle.parallelcopies</name> -->
+  <!--   <value>8</value> -->
+  <!-- </property> -->
 
   <property>
     <name>mapreduce.jobhistory.address</name>

@@ -102,10 +102,20 @@ class HadoopClientInitializer(object):
         core_in_file.close()
         core_out_file.close()
 
-    """
-    Generate the core-site configuration. 
-    """
+    def _generate_log4j(self, new_config_dir):
+        in_file = open(self.template_dir + '/log4j.properties', 'r')
+        out_file = open(new_config_dir + '/log4j.properties', 'w+')
+
+        for line in in_file:
+            out_file.write(line)
+
+        in_file.close()
+        out_file.close()
+
     def _generate_core_site(self, hdfs_master, new_config_dir):
+        """
+        Generate the core-site configuration. 
+        """
         core_in_file = open(self.template_dir + '/core-site.xml.template', 'r')
         core_out_file = open(new_config_dir + '/core-site.xml', 'w+')
 
@@ -212,6 +222,7 @@ class HadoopClientInitializer(object):
 
         # Generate the Hadoop conf files.
         if config.yarn_master:
+            self._generate_log4j(new_config_dir)
             self._generate_mapred_site(config, containers, new_config_dir)
             self._generate_yarn_site(config.yarn_master, new_config_dir)
 

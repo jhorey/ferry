@@ -20,15 +20,47 @@
 <configuration>
 
 <!-- Hive Execution Parameters -->
+
+<property>
+  <name>mapred.reduce.tasks</name>
+  <value>1</value>
+  <description>reduce tasks per job</description>
+</property>
+
+<property>
+  <name>hive.exec.reducers.bytes.per.reducer</name>
+  <value>100000000</value>
+  <description>input size per reducer (100MB)</description>
+</property>
+
+<property>
+  <name>hive.exec.reducers.max</name>
+  <value>9</value>
+  <description>max number of reducers</description>
+</property>
+
+<property>
+  <name>hive.cli.print.header</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>datanucleus.cache.level2</name>
+  <value>true</value>
+  <description>Use a level 2 cache. Turn this off if metadata is changed independently of Hive metastore server</description>
+</property>
+
 <property>
   <name>hive.exec.scratchdir</name>
-  <value>/service/data/tmp/hive/hive-ferry</value>
+  <!-- <value>/service/data/tmp/hive/hive-ferry</value> -->
+  <value>/service/data/tmp/hive/ferry-$USER</value>
   <description>Scratch space for Hive jobs</description>
 </property>
 
 <property>
   <name>hive.exec.local.scratchdir</name>
-  <value>/service/data/tmp/hive/ferry</value>
+  <!-- <value>/service/data/tmp/hive/ferry</value> -->
+  <value>/tmp/ferry/hive/ferry-$USER</value>
   <description>Local scratch space for Hive jobs</description>
 </property>
 

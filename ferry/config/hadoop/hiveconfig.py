@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import os
 import sh
 import sys
 from string import Template
@@ -73,7 +74,8 @@ class HiveClientInitializer(object):
         in_file = open(self.template_dir + '/hive-site.xml.template', 'r')
         out_file = open(new_config_dir + '/hive-site.xml', 'w+')
         
-        changes = { "DB":config.metastore }
+        changes = { "DB":config.metastore,
+                    "USER": os.environ['USER'] }
         for line in in_file:
             s = Template(line).substitute(changes)
             out_file.write(s)
