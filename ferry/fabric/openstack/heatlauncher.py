@@ -140,11 +140,28 @@ class OpenStackLauncherHeat(object):
                                                       "port_id": port }}}
         return desc
 
-    def _create_security_group(self, server_name, ports):
+    def _create_security_group(self, group_name, server_name, ports):
         """
         Create and assign a security group to the supplied server. 
         """
-        return {}
+
+        # Create the basic security group. 
+        # This only includes SSH. We can later update the group
+        # to include additional ports. 
+        desc = { group_name : { "Type" : "OS::Neutron::SecurityGroup",
+                                "Properties" : { "name" : group_name,
+                                                 "rules" : [ { "protocol" : "icmp" },
+                                                             { "protocol" : "tcp",
+                                                               "port_range_min" : 22,
+                                                               "port_range_max" : 22 ]}}}
+        # Additional ports for the security group. 
+        for p in ports:
+            min_port = p[0]
+            max_port = p[0]
+            desc[group_name]["Properties"]["rules"].append({ "protocol" : "tcp",
+                                                             "port_range_min" : min_port,
+                                                             "port_range_max" : max_port })
+        return desc
 
     def _create_storage_volume(self, volume_name, server_name, size_gb):
         """
