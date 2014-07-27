@@ -22,7 +22,7 @@ from subprocess import Popen, PIPE
 import time
 import yaml
 
-class DockerFabric(object):
+class LocalFabric(object):
     def __init__(self, bootstrap=False):
         self.repo = 'public'
         self.docker_user = 'root'

@@ -30,16 +30,16 @@ from pymongo import MongoClient
 from sets import Set
 from ferry.install import *
 from ferry.docker.docker        import DockerInstance
-from ferry.docker.fabric        import DockerFabric
 from ferry.docker.configfactory import ConfigFactory
 from ferry.docker.deploy        import DeployEngine
+from ferry.fabric.local         import LocalFabric
 
 class DockerManager(object):
     SSH_PORT = 22
 
     def __init__(self):
         # Generate configuration.
-        self.docker = DockerFabric()
+        self.docker = LocalFabric()
         self.config = ConfigFactory()
 
         # Service mappings

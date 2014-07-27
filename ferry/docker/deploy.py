@@ -21,7 +21,7 @@ import logging
 import importlib
 import inspect
 from pymongo import MongoClient
-from ferry.docker.fabric import DockerFabric
+from ferry.fabric.local import LocalFabric
 from ferry.docker.docker import DockerInstance
 
 class DeployEngine(object):
