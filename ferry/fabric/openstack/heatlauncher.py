@@ -33,7 +33,7 @@ class OpenStackLauncherHeat(object):
         self.openstack_key = None
 
         self.networks = {}
-        self.stacks = {}
+        self.stacks = []
         self.num_network_hosts = 128
         self.num_subnet_hosts = 32
 
@@ -51,8 +51,11 @@ class OpenStackLauncherHeat(object):
             self.manage_router = args['router']
             self.ssh_key = args['ssh']
             self.heat_server = os.environ['HEAT_URL']
+            self.openstack_user = os.environ['OS_USERNAME']
+            self.openstack_pass = os.environ['OS_PASSWORD']
             self.tenant_id = os.environ['OS_TENANT_ID']
-            self.auth_tok = os.environ['OS_TOKEN']
+            self.tenant_name = os.environ['OS_TENANT_NAME']
+            self.auth_tok = os.environ['OS_AUTH_TOKEN']
 
             self._init_heat_server()
 
@@ -63,8 +66,13 @@ class OpenStackLauncherHeat(object):
         else:
             heat_api_version = '1'
         kwargs = {
+            'username' : self.openstack_user,
+            'password' : self.openstack_pass,
+            'tenant_id': self.tenant_id,
+            'tenant_name': self.tenant_name,
             'token': self.auth_tok
         }
+        print self.auth_tok
         self.heat = heat_client.Client(heat_api_version, 
                                        self.heat_server, 
                                        **kwargs)
@@ -91,7 +99,7 @@ class OpenStackLauncherHeat(object):
 
         # Define the allocation pool. 
         start_pool = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], 2)
-        end_pool = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], 254)
+        end_pool = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], num_hosts - 2)
 
         return cidr, gw, start_pool, end_pool
 
@@ -123,10 +131,11 @@ class OpenStackLauncherHeat(object):
                                            "cidr" : cidr,
                                            "gateway_ip" : gateway,
                                            "enable_dhcp" : "True",
+                                           "ip_version" : 4,
                                            "dns_nameservers" : ["8.8.8.7", "8.8.8.8"],
                                            "allocation_pools" : [{ "start" : pool_start,
                                                                    "end" : pool_end }],
-                                           "network" : { "Ref" : network}}}}
+                                           "network_id" : { "Ref" : network}}}}
         return desc
 
     def _create_floating_ip(self, name, port):
@@ -140,7 +149,7 @@ class OpenStackLauncherHeat(object):
                                                       "port_id": port }}}
         return desc
 
-    def _create_security_group(self, group_name, server_name, ports):
+    def _create_security_group(self, group_name, ports):
         """
         Create and assign a security group to the supplied server. 
         """
@@ -153,7 +162,7 @@ class OpenStackLauncherHeat(object):
                                                  "rules" : [ { "protocol" : "icmp" },
                                                              { "protocol" : "tcp",
                                                                "port_range_min" : 22,
-                                                               "port_range_max" : 22 ]}}}
+                                                               "port_range_max" : 22 }]}}}
         # Additional ports for the security group. 
         for p in ports:
             min_port = p[0]
@@ -162,7 +171,7 @@ class OpenStackLauncherHeat(object):
                                                              "port_range_min" : min_port,
                                                              "port_range_max" : max_port })
         return desc
-
+        
     def _create_storage_volume(self, volume_name, server_name, size_gb):
         """
         Create and attach a storage volume to the supplied server. 
@@ -218,6 +227,27 @@ class OpenStackLauncherHeat(object):
         }}
         return desc
 
+    def _create_heat_network(self, num_instances, image, size): 
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated Heat plan",
+                 "Resources" : {} }
+
+        network_name = "ferry-network-%d" % len(self.networks)
+        network = self._create_network(network_name)
+
+        subnet_name = "ferry-subnet-%d" % len(self.networks[network_name]["subnets"])
+        public_subnet = self._create_subnet(subnet_name, network_name)
+
+        # Creating an interface between the public router and
+        # the new subnet will make this network public. 
+        router = self._create_router_interface(self.manage_router, subnet_name)
+
+        plan["Resources"] = dict(plan["Resources"].items() + network.items())
+        plan["Resources"] = dict(plan["Resources"].items() + public_subnet.items())
+        plan["Resources"] = dict(plan["Resources"].items() + router.items())
+
+        return plan
+
     def _create_heat_plan(self, num_instances, image, size): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
@@ -237,6 +267,11 @@ class OpenStackLauncherHeat(object):
         plan["Resources"] = dict(plan["Resources"].items() + public_subnet.items())
         plan["Resources"] = dict(plan["Resources"].items() + router.items())
 
+        # Create an empty security group for this application.
+        # We'll update the rules later. 
+        sec_group = self._create_security_group("ferry-secgroup-%d" % len(self.networks), [])
+        plan["Resources"] = dict(plan["Resources"].items() + sec_group.items())
+
         for i in range(0, num_instances):
             instance_name = "instance-%d" % i
             instance = self._create_instance(instance_name, image, size, [self.manage_network, network_name])
@@ -244,17 +279,19 @@ class OpenStackLauncherHeat(object):
 
         return plan
 
-    def launch_heat_plan(self, heat_plan):
+    def launch_heat_plan(self, stack_name, heat_plan):
         """
         Launch the cluster plan.  
         """
         logging.info("launching HEAT plan: " + str(heat_plan)) 
         resp = self.heat.stacks.create(stack_name=stack_name, template=heat_plan)
         print resp
+        # self.stacks.append(json.load(resp))
 
 def main():
     fabric = OpenStackLauncherHeat(sys.argv[1])
-    plan = fabric._create_heat_plan(1, fabric.default_image, fabric.default_personality)
+    plan = fabric._create_heat_network(1, fabric.default_image, fabric.default_personality)
+    fabric.launch_heat_plan("test_stack", plan)
     print json.dumps(plan,
                      sort_keys = True,
                      indent = 2,
