@@ -137,7 +137,7 @@ class CLI(object):
             image = s[0]
 
         if proto == "image":
-            return self._pull_image(image, registry)
+            return self._pull_image(image)
         else:
             return self._pull_app(image)
 

@@ -104,14 +104,36 @@ class DockerCLI(object):
         self.env_flag = ' -e'
         self.registry = registry
 
-    """
-    Get the backend driver docker is using. 
-    """
+    def _execute_cmd(self, cmd, server, read_output=True):
+        """
+        Execute the command on the server via ssh. 
+        """
+        if not server:
+            # The server is not supplied, so just execute
+            # the command locally. 
+            proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        else:
+            # Wrap the command around an ssh command. 
+            ip = self.docker_user + '@' + server
+            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + self.key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
+
+        if read_output:
+            # Read both the standard out and error. 
+            return proc.stdout.read(), proc.stderr.read()
+        else:
+            # The user does not want to read right now,
+            # so just pass the child reference back. 
+            return proc
+        
     def get_fs_type(self, server=None):
+        """
+        Get the backend driver docker is using. 
+        """
         cmd = self.docker + ' ' + self.info_cmd + ' | grep Driver | awk \'{print $2}\''
         logging.warning(cmd)
 
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd)
         return output.strip()
         
     """
@@ -121,7 +143,7 @@ class DockerCLI(object):
         cmd = self.docker + ' ' + self.version_cmd + ' | grep Client | awk \'{print $3}\''
         logging.warning(cmd)
 
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd)
         return output.strip()
         
     """
@@ -131,7 +153,7 @@ class DockerCLI(object):
         cmd = self.docker + ' ' + self.ps_cmd + ' -q' 
         logging.warning(cmd)
 
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd)
         output = output.strip()
 
         # There is a container ID for each line
@@ -141,13 +163,11 @@ class DockerCLI(object):
     List all images that match the image name
     """
     def images(self, image_name=None, server=None):
-        if not image_name:
-            cmd = self.docker + ' ' + self.images_cmd + ' | awk \'{print $1}\''
-            output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-        else:
-            cmd = self.docker + ' ' + self.images_cmd + ' | awk \'{print $1}\'' + ' | grep ' + image_name
-            output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        cmd = self.docker + ' ' + self.images_cmd + ' | awk \'{print $1}\''
+        if image_name:
+            cmd = cmd  + ' | grep ' + image_name
 
+        output, _ = self._execute_cmd(cmd)
         logging.warning(cmd)
         return output.strip()
 
@@ -161,13 +181,13 @@ class DockerCLI(object):
 
         cmd = self.docker + ' ' + self.build_cmd + ' -t %s %s' % (image, path)
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd)
 
     def _get_default_run(self, container):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container.container
         logging.warning(cmd)
 
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd)
         data = json.loads(output.strip())
         
         cmd = data[0]['Config']['Cmd']
@@ -179,7 +199,7 @@ class DockerCLI(object):
         """
         cmd = self.docker + ' ' + self.login_cmd + ' -u %s -p %s -e %s %s' % (user, password, email, registry)
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd)
         if output.strip() == "Login Succeeded":
             return True
         else:
@@ -217,12 +237,12 @@ class DockerCLI(object):
             new_image = "%s/%s" % (registry, raw_image_name)
             tag = self.docker + ' ' + self.tag_cmd + ' ' + image + ' ' + new_image
             logging.warning(tag)
-            Popen(tag, shell=True)
+            self._execute_cmd(tag, server, read_output=False)
         else:
             new_image = image
         push = self.docker + ' ' + self.push_cmd + ' ' + new_image
         logging.warning(push)
-        child = Popen(push, stdout=PIPE, stderr=PIPE, shell=True)
+        child = self._execute_cmd(push, server, read_output=False)
         return self._continuous_print(child, "uploading image...")
 
     def pull(self, image, server=None):
@@ -231,7 +251,7 @@ class DockerCLI(object):
         """
         pull = self.docker + ' ' + self.pull_cmd + ' ' + image
         logging.warning(pull)
-        child = Popen(pull, stdout=PIPE, stderr=PIPE, shell=True)
+        child = self._execute_cmd(pull, server, read_output=False)
         return self._continuous_print(child, "downloading image...")
 
     def commit(self, container, snapshot_name, server=None):
@@ -244,7 +264,7 @@ class DockerCLI(object):
         # Construct a new container using the given snapshot name. 
         cmd = self.docker + ' ' + self.commit_cmd + ' ' + run_cmd + ' ' + container.container + ' ' + snapshot_name
         logging.warning(cmd)
-        Popen(cmd, shell=True)
+        self._execute_cmd(cmd, server)
 
     """
     Stop a running container
@@ -252,7 +272,7 @@ class DockerCLI(object):
     def stop(self, container, server=None):
         cmd = self.docker + ' ' + self.stop_cmd + ' ' + container
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        self._execute_cmd(cmd, server)
 
     """
     Remove a container
@@ -260,7 +280,7 @@ class DockerCLI(object):
     def remove(self, container, server=None):
         cmd = self.docker + ' ' + self.rm_cmd + ' ' + container
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        self._execute_cmd(cmd, server)
 
     """
     Start a stopped container. 
@@ -268,7 +288,7 @@ class DockerCLI(object):
     def start(self, container, service_type, keys, volumes, args, server=None):
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd, server)
 
         # Now parse the output to get the IP and port
         container = output.strip()
@@ -331,9 +351,9 @@ class DockerCLI(object):
         # Now construct the final docker command. 
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
-        child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        output, error = self._execute_cmd(cmd, server)
 
-        err = child.stderr.read().strip()
+        err = error.strip()
         if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
             logging.error("Ferry docker daemon does not appear to be running")
             return None
@@ -341,7 +361,7 @@ class DockerCLI(object):
             logging.error("%s not present" % image)
             return None
 
-        container = child.stdout.read().strip()
+        container = output.strip()
         return self.inspect(container, keys, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
@@ -358,8 +378,7 @@ class DockerCLI(object):
     def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
         logging.warning(cmd)
-
-        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        output, _ = self._execute_cmd(cmd, server)
 
         data = json.loads(output.strip())
         instance = DockerInstance()

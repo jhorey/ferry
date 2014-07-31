@@ -28,6 +28,8 @@ class OpenStackFabric(object):
         self.apps = {}
         self.heat = OpenStackLauncherHeat()
         self.cli = DockerCLI()
+        self.cli.docker_user = "ubuntu"
+        self.cli.key = "ferry.pem"
 
     def version(self):
         """
