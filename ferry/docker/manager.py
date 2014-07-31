@@ -758,11 +758,13 @@ class DockerManager(object):
             self.docker.cmd(containers, 
                             "echo export %s=%s >> /etc/profile" % (k, env_vars[k]))
 
-    def _start_containers(self, plan):
+    def _start_containers(self, cluster_uuid, plan, ctype):
         """
         Start the containers on the specified environment
         """
-        return self.docker.alloc(plan['localhost']['containers']);
+        return self.docker.alloc(cluster_uuid = cluster_uuid,
+                                 container_info = plan['localhost']['containers'], 
+                                 ctype = ctype);
 
     def _restart_containers(self, containers):
         """
@@ -792,15 +794,16 @@ class DockerManager(object):
                 for c in s['containers']:
                     self.docker.stop([c])
 
-    def register_stack(self, backends, connectors, base, uuid=None):
+    def reserve_stack(self):
+        """
+        Reserve a UUID. 
+        """
+        return self._new_stack_uuid()
+
+    def register_stack(self, backends, connectors, base, cluster_uuid, new_stack=True):
         """
         Register the set of services under a single cluster identifier. 
         """
-        if not uuid:
-            cluster_uuid = self._new_stack_uuid()
-        else:
-            cluster_uuid = uuid
-
         ts = datetime.datetime.now()
         cluster = { 'uuid' : cluster_uuid,
                     'backends':backends,
@@ -812,12 +815,10 @@ class DockerManager(object):
                     'status': 'running',
                     'ts':ts }
 
-        if not uuid:
+        if new_stack:
             self.cluster_collection.insert( cluster )
         else:
             self._update_stack(uuid, cluster)
-
-        return cluster_uuid
 
     def _update_stack(self, cluster_uuid, state):
         """
@@ -952,6 +953,7 @@ class DockerManager(object):
         return self._start_service(uuid, containers, service_info)
 
     def allocate_compute(self,
+                         cluster_uuid, 
                          compute_type, 
                          storage_uuid,
                          args, 
@@ -972,7 +974,7 @@ class DockerManager(object):
         storage_entry = self._get_service_configuration(storage_uuid)
 
         # Allocate all the containers. 
-        containers = self._start_containers(plan)
+        containers = self._start_containers(cluster_uuid, plan, ctype="compute")
 
         # Generate a configuration dir.
         config_dirs, entry_point = self.config.generate_compute_configuration(service_uuid, 
@@ -1065,6 +1067,7 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service)
                         
     def allocate_storage(self, 
+                         cluster_uuid, 
                          storage_type, 
                          num_instances=1,
                          layers=[], 
@@ -1083,7 +1086,7 @@ class DockerManager(object):
         plan = self._prepare_storage_environment(service_uuid, num_instances, storage_type, layers, args, replace)
 
         # Allocate all the containers. 
-        containers = self._start_containers(plan)
+        containers = self._start_containers(cluster_uuid, plan, ctype="storage")
 
         # Generate a configuration dir.
         config_dirs, entry_point = self.config.generate_storage_configuration(service_uuid, 
@@ -1252,6 +1255,7 @@ class DockerManager(object):
         return connector_info, connector_plan
 
     def allocate_deployed_connectors(self, 
+                                     cluster_uuid, 
                                      app_uuid, 
                                      backend_info,
                                      conf = None):
@@ -1265,7 +1269,8 @@ class DockerManager(object):
                                 conf = conf)
         if app:
             for c in app['connectors']:
-                uuid, containers = self.allocate_connector(connector_type = c['type'],
+                uuid, containers = self.allocate_connector(cluster_uuid = cluster_uuid,
+                                                           connector_type = c['type'],
                                                            backend = backend_info,
                                                            name = c['name'], 
                                                            args = c['args'],
@@ -1279,6 +1284,7 @@ class DockerManager(object):
         return connector_info, connector_plan
                 
     def allocate_snapshot_connectors(self, 
+                                     cluster_uuid, 
                                      snapshot_uuid, 
                                      backend_info):
         """
@@ -1289,7 +1295,8 @@ class DockerManager(object):
         snapshot = self.snapshot_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if snapshot:
             for s in snapshot['snapshot_cs']:
-                uuid, containers = self.allocate_connector(connector_type = s['type'],
+                uuid, containers = self.allocate_connector(cluster_uuid = cluster_uuid,
+                                                           connector_type = s['type'],
                                                            backend = backend_info,
                                                            name = s['name'], 
                                                            args = s['args'],
@@ -1351,6 +1358,7 @@ class DockerManager(object):
         self._update_service_configuration(service_uuid, service)
                 
     def allocate_connector(self,
+                           cluster_uuid, 
                            connector_type, 
                            backend=None,
                            name=None, 
@@ -1384,7 +1392,7 @@ class DockerManager(object):
                                                    name = name,
                                                    ports = ports, 
                                                    args = args)
-        containers = self._start_containers(plan)
+        containers = self._start_containers(cluster_uuid, plan, ctype="connector")
 
         # Now generate the configuration files that will be
         # transferred to the containers. 

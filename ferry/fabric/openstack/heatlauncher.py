@@ -147,7 +147,7 @@ class OpenStackLauncherHeat(object):
                                                              'gw' : gateway }} )
 
         # Create the HEAT description. 
-        desc = { name : { "Type" : "OS::Neutron::Subnet",
+        plan = { name : { "Type" : "OS::Neutron::Subnet",
                           "Properties" : { "name" : name,
                                            "cidr" : cidr,
                                            "gateway_ip" : gateway,
@@ -157,18 +157,22 @@ class OpenStackLauncherHeat(object):
                                            "allocation_pools" : [{ "start" : pool_start,
                                                                    "end" : pool_end }],
                                            "network_id" : { "Ref" : network}}}}
-        return desc
+        desc = { "type" : "OS::Neutron::Subnet",
+                 "cidr" : cidr,
+                 "gateway" : gateway }
+        return plan, desc
 
     def _create_floating_ip(self, name, port):
         """
         Create and attach a floating IP to the supplied port. 
         """
-        desc =  { name : { "Type": "OS::Neutron::FloatingIP",
+        plan =  { name : { "Type": "OS::Neutron::FloatingIP",
                            "Properties": { "floating_network_id": self.external_network }},
                   name + "_assoc" : { "Type": "OS::Neutron::FloatingIPAssociation",
                                       "Properties": { "floatingip_id": { "Ref" : name },
-                                                      "port_id": port }}}
-        return desc
+                                                      "port_id": { "Ref" : port }}}}
+        desc = { "type" : "OS::Neutron::FloatingIP" }
+        return plan, desc
 
     def _create_security_group(self, group_name, ports):
         """
@@ -223,17 +227,39 @@ class OpenStackLauncherHeat(object):
         return desc
 
     def _create_server_init(self, instance_name, network_name):
+        """
+        Create the server init process. These commands are run on the
+        host after the host has booted up. 
+        """
+
         user_data = {
             "Fn::Base64": {
               "Fn::Join": [
                 "",
                   [
                     "#!/bin/bash -v\n",
-                    "echo hello > /tmp/foo.txt\n"
+                    "umount /mnt", 
+                    "parted --script /dev/vdb mklabel gpt\n", 
+                    "parted --script /dev/vdb mkpart primary xfs 0% 100%\n", 
+                    "mkfs.xfs /dev/vdb1\n", 
+                    "mkdir /ferry\n",
+                    "mount -o noatime /dev/vdb1 /ferry\n",
+                    "mkdir /ferry/master\n", 
+                    "export FERRY_DIR=/ferry/master\n", 
+                    "chown -R ferry:ferry /ferry\n", 
+                    "ferry server &\n"
                   ]
               ]
           }}
         return user_data
+
+    def _create_router_interface(self, iface_name, router, subnet):
+        plan = { iface_name: { "Type": "OS::Neutron::RouterInterface",
+                               "Properties": { "router_id": router,
+                                               "subnet_id": { "Ref" : subnet }}}}
+        desc = { "type" : "OS::Neutron::RouterInterface",
+                 "router" : router }
+        return plan, desc
 
     def _create_instance(self, name, image, size, manage_network, data_networks, sec_group):
         """
@@ -246,8 +272,8 @@ class OpenStackLauncherHeat(object):
                                            "flavor" : size,
                                            "availability_zone" : self.default_zone, 
                                            "networks" : []}}} 
-        desc = { 'name' : name,
-                 'OS::Neutron::Port' : [] }
+        desc = { name : { "type" : "OS::Nova::Server",
+                          "ports" : [] }}
 
         # Create a port in each data network. 
         port_descs = []
@@ -255,13 +281,15 @@ class OpenStackLauncherHeat(object):
             port_name = "ferry-port-%s-%s" % (name, n)
             port_descs.append(self._create_port(port_name, n, sec_group, ref=True))
             plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }})
-            desc['OS::Neutron::Port'].append( { 'name' : port_name } )
+            desc[name]["ports"].append( port_name )
+            desc[port_name] = { "type" : "OS::Neutron::Port" }
 
         # Create a port for the manage network.
         port_name = "ferry-port-%s-manage" % name
         port_descs.append(self._create_port(port_name, manage_network, sec_group, ref=False))
         plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }}) 
-        desc['OS::Neutron::Port'].append( { 'name' : port_name } )
+        desc[name]["ports"].append(port_name)
+        desc[port_name] = { "type" : "OS::Neutron::Port" }
 
         # Combine all the port descriptions. 
         for d in port_descs:
@@ -273,108 +301,115 @@ class OpenStackLauncherHeat(object):
 
         return plan, desc
 
-    def _create_router_interface(self, iface_name, router, subnet):
-        desc = { iface_name: { "Type": "OS::Neutron::RouterInterface",
-                               "Properties": { "router_id": router,
-                                               "subnet_id": { "Ref" : subnet }}}}
-        return desc
-
     def _output_instance_info(self, info_name, server_name):
         desc = {info_name : { "Value" : { "Fn::GetAtt" : [server_name, "PrivateIp"]}}}
         return desc
 
-    def _update_floating_ips(self, ifaces):
+    def _create_floatingip_plan(self, cluster_uuid, ifaces):
         """
         Assign floating IPs to the supplied interfaces/ports. 
         """
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {} }
-        desc = { "OS::Neutron::FloatingIP" : [] }
-
-        for i in ifaces:
-            ip_name = "ferry-ip-%s" % str(i)
-            ip_plan = self._create_floating_ip(ip_name, i)
+        desc = {}
+        for i in range(0, len(ifaces)):
+            iface = ifaces[i]
+            ip_name = "ferry-ip-%s-%d" % (cluster_uuid, i)
+            ip_plan, desc[ip_name] = self._create_floating_ip(ip_name, i)
             plan["Resources"] = dict(plan["Resources"].items() + ip_plan.items())
-            desc["OS::Neutron::FloatingIP"].append( { "name" : ip_name } )
 
         return plan, desc
 
-    def _update_security_plan(self, group_name, ports):
+    def _create_security_plan(self, cluster_uuid, ports):
         """
         Update the security group. 
         """
-        return { "AWSTemplateFormatVersion" : "2010-09-09",
+        sec_group_name = "ferry-sec-%s" % cluster_uuid
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
-                 "Resources" : self._create_security_group(group_name, ports) }
+                 "Resources" : self._create_security_group(sec_group_name, ports) }
+        desc = { sec_group_name : { "type" : "OS::Neutron::SecurityGroup" }}
+        return plan, desc
 
-    def _create_heat_plan(self, num_instances, image, size): 
+    def _create_network_plan(self, cluster_uuid):
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
                  "Outputs" : {} }
-
-        network_name = "ferry-network-%d" % len(self.networks)
+        
+        network_name = "ferry-net-%s" % cluster_uuid
         network = self._create_network(network_name)
 
-        subnet_name = "ferry-subnet-%d" % len(self.networks)
-        public_subnet = self._create_subnet(subnet_name, network_name)
+        subnet_name = "ferry-sub-%s" % cluster_uuid
+        public_subnet, subnet_desc = self._create_subnet(subnet_name, network_name)
 
         # Creating an interface between the public router and
         # the new subnet will make this network public. 
-        iface_name = "ferry-iface-%d" %  len(self.networks)
-        router = self._create_router_interface(iface_name, self.manage_router, subnet_name)
+        iface_name = "ferry-iface-%s" %  cluster_uuid
+        router, router_desc = self._create_router_interface(iface_name, self.manage_router, subnet_name)
 
         plan["Resources"] = dict(plan["Resources"].items() + network.items())
         plan["Resources"] = dict(plan["Resources"].items() + public_subnet.items())
         plan["Resources"] = dict(plan["Resources"].items() + router.items())
-
-        # Create an empty security group for this application.
-        # We'll update the rules later. 
-        sec_group_name = "ferry-secgroup-%d" % len(self.networks)
-        sec_group = self._create_security_group(sec_group_name, [])
-        plan["Resources"] = dict(plan["Resources"].items() + sec_group.items())
-
-        desc = { "OS::Neutron::Network" : { "name" : network_name },
-                 "OS::Neutron::Subnet" : { "name" : subnet_name } ,
-                 "OS::Neutron::RouterInterface" : { "name" : iface_name },
-                 "OS::Neutron::SecurityGroup" : { "name" : sec_group_name },
-                 "OS::Nova::Server" : []
-        }
-        for i in range(0, num_instances):
-            instance_name = "ferry-instance-%d" % i
-            info_name = "info-" + instance_name
-            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network_name], sec_group_name)
-            plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
-            desc["OS::Nova::Server"].append(instance_desc)
+        desc = { network_name : { "type" : "OS::Neutron::Net" },
+                 subnet_name : subnet_desc,
+                 iface_name : router_desc }
 
         return plan, desc
 
-    def launch_heat_plan(self, stack_name, heat_plan):
+    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network): 
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated Heat plan",
+                 "Resources" : {},
+                 "Outputs" : {} }
+        desc = {}
+
+        for i in range(0, num_instances):
+            instance_name = "ferry-instance-%s-%s-%d" % (cluster_uuid, ctype, i)
+            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network_name], sec_group_name)
+            plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
+            desc = dict(desc.items() + instance_desc.items())
+
+        return plan, desc
+
+    def _launch_heat_plan(self, stack_name, heat_plan, stack_desc):
         """
         Launch the cluster plan.  
         """
+        
+        # Instruct Heat to create the stack, and wait 
+        # for it to complete. 
         resp = self.heat.stacks.create(stack_name=stack_name, template=heat_plan)
-        return resp
+        if not self._wait_for_stack(resp["stack"]["id"]):
+            logging.warning("Network stack %s CREATE_FAILED" % resp["stack"]["id"])
+            return None
 
-    def update_heat_plan(self, stack_id, stack_plan, updated_resources):
+        # Now find the physical IDs of all the resources. 
+        resources = self._collect_resources(resp["stack"]["id"])
+        for r in resources:
+            if r["logical_resource_id"] in stack_desc:
+                stack_desc[r["logical_resource_id"]]["id"] = r["physical_resource_id"]
+
+        # Now find all the IP addresses of the various
+        # machines. 
+        ports = self._collect_network_info()
+        for p in ports:
+            port_desc = stack_desc[p['name']]
+            port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
+            port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
+            port_desc["mac_address"] = p['fixed_ips'][0]['mac_address']
+
+        # Record the Stack ID in the description so that
+        # we can refer back to it later. 
+        stack_desc["stack_id"] = resp["stack"]["id"]
+        return stack_desc
+
+    def _update_heat_plan(self, stack_id, stack_plan):
         """
         Update the cluster plan. 
         """
-        if updated_resources:
-            resources_plan = dict(stack_plan["Resources"].items() + updated_resources.items())
-            heat_plan = { "AWSTemplateFormatVersion" : "2010-09-09",
-                          "Description" : "Ferry generated Heat plan",
-                          "Resources" : resources_plan,
-                          "Outputs" : {} }
-        else:
-            heat_plan = stack_plan
-
-        print json.dumps(heat_plan,
-                         sort_keys = True,
-                         indent = 2,
-                         separators=(',',':'))
-        self.heat.stacks.update(stack_id, template=heat_plan)
+        self.heat.stacks.update(stack_id, template=stack_plan)
 
     def release_ip_plan(self, ips):
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
@@ -413,39 +448,61 @@ class OpenStackLauncherHeat(object):
         descs = [r.to_dict() for r in resources]
         return descs
 
-    def _create_stack(self, num_instances):
-        print "Creating stack"
-        stack_plan, stack_desc = self._create_heat_plan(1, self.default_image, self.default_personality)
-        resp = self.launch_heat_plan("test_stack", stack_plan)
-        if not self._wait_for_stack(resp["stack"]["id"]):
-            logging.warning("Stack %s CREATE_FAILED" % resp["stack"]["id"])
+    def _collect_network_info(self):
+        """
+        Collect all the ports. 
+        """
+        ports = self.neutron.list_ports()
+        return ports['ports']
 
-        # Now collect all the resource IDs. 
-        print "Collecting resources"
-        resources = self._collect_resources(resp["stack"]["id"])
-        resource_description = {}
-        for r in resources:
-            resource_description[r["logical_resource_id"]] = r["physical_resource_id"]
-    
-        # Update the security groups and floating IPs.
-        print "Updating security group and floating IPs"
-        pid = []
-        for s in stack_desc["OS::Nova::Server"]:
-            for p in s["OS::Neutron::Port"]:
-                pid.append(resource_description[p["name"]])
-        ip_plan, ip_desc = self._update_floating_ips(pid)
-        secgroup_plan = self._update_security_plan(stack_desc["OS::Neutron::SecurityGroup"]["name"], [(8000, 8001),(5000,5014)])
-        updated_resources = dict(secgroup_plan["Resources"].items() + ip_plan["Resources"].items())
-        stack_desc = dict(stack_desc.items() + ip_desc.items())
+    def create_app_network(self, cluster_uuid):
+        """
+        Create a network for a new application. 
+        """
+        logging.info("creating network for %s" % cluster_uuid)
+        stack_plan, stack_desc = self._create_network_plan(cluster_uuid)
+        return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
 
-        self.update_heat_plan(resp["stack"]["id"], stack_plan, updated_resources)
-        self._wait_for_stack(resp["stack"]["id"])
-        if not self._wait_for_stack(resp["stack"]["id"]):
-            logging.warning("Stack %s UPDATE_FAILED" % resp["stack"]["id"])
+    def create_app_stack(self, cluster_uuid, num_instances, network, security_group_ports, assign_floating_ip, ctype):
+        """
+        Create an empty application stack. This includes the instances, 
+        security groups, and floating IPs. 
+        """
+        logging.info("creating instances for %s" % cluster_uuid)
+        stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
+                                                            num_instances = num_instances, 
+                                                            image = self.default_image,
+                                                            size = self.default_personality, 
+                                                            network = network)
 
-        self.stacks[resp["stack"]["id"]] = { "desc" : stack_desc,
-                                             "resources" : resource_description }
-        return resp["stack"]["id"]
+        logging.info("creating security group for %s" % cluster_uuid)
+        sec_group_plan, stack_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
+                                                                      ports = security_group_ports)
+
+        # See if we need to assign any floating IPs 
+        # for this stack. We need the references to the neutron
+        # port which is contained in the description. 
+        if assign_floating_ip:
+            logging.info("creating floating IPs for %s" % cluster_uuid)
+            ifaces = []
+            for k in stack_desc.keys():
+                if stack_desc[k]["type"] == "OS::Neutron::Port":
+                    ifaces.append(k)
+            ip_plan, ip_desc = self._create_floatingip_plan(cluster_uuid = cluster_uuid,
+                                                            ifaces = ifaces)
+        else:
+            ip_plan = { "Resources" : {}}
+            ip_desc = {}
+
+        # Now we need to combine all these plans and
+        # launch the cluster. 
+        stack_plan["Resources"] = dict(sec_group_plan["Resources"].items() + 
+                                       ip_plan["Resources"].items() + 
+                                       stack_plan["Resources"].items())
+        stack_desc = dict(stack_desc.items() + 
+                          sec_group_desc.items() +
+                          ip_desc.items())
+        return self._launch_heat_plan("ferry-app-%s-%s" % (ctype, cluster_uuid), stack_plan, stack_desc)
 
     def _delete_stack(self, stack_id):
         # To delete the stack properly, we first need to disassociate
@@ -459,13 +516,9 @@ class OpenStackLauncherHeat(object):
         # Now delete the stack. 
         self.heat.stacks.delete(stack_id)
 
-def main():
-    fabric = OpenStackLauncherHeat(sys.argv[2])
-    if sys.argv[1] == "create":
-        stack_id = fabric._create_stack(1)
-        logging.info("Stack %s complete" % stack_id)
-    else:
-        fabric._delete_stack(sys.argv[3])
+# def main():
+#     fabric = OpenStackLauncherHeat(sys.argv[1])
+#     fabric.test_neutron()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

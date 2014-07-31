@@ -40,16 +40,17 @@ class CLI(object):
         self.cmds.description = "Development environment for big data applications"
         self.cmds.version = ferry.__version__
         self.cmds.usage = "ferry COMMAND [arg...]"
-        self.cmds.add_option("-c", "--conf", "Deployment configuration")
-        self.cmds.add_option("-n", "--dns", "Use custom DNS")
-        self.cmds.add_option("-l", "--log", "Log configuration file")
-        self.cmds.add_option("-k", "--key", "Specify key directory")
-        self.cmds.add_option("-m", "--mode", "Deployment mode")
-        self.cmds.add_option("-u", "--upgrade", "Upgrade Ferry")
         self.cmds.add_option("-b", "--build", "Build Ferry default images")
+        self.cmds.add_option("-c", "--conf", "Deployment configuration")
+        self.cmds.add_option("-k", "--key", "Specify key directory")
+        self.cmds.add_option("-l", "--log", "Log configuration file")
+        self.cmds.add_option("-m", "--mode", "Deployment mode")
+        self.cmds.add_option("-n", "--dns", "Use custom DNS")
+        self.cmds.add_option("-t", "--net", "Use host network device")
+        self.cmds.add_option("-u", "--upgrade", "Upgrade Ferry")
+        self.cmds.add_option("-v", "--volume", "Mount host volume")
         self.cmds.add_cmd("build", "Build a Dockerfile")
         self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
-        self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("deploy", "Deploy a service to the cloud")
         self.cmds.add_cmd("help", "Print this help message")
         self.cmds.add_cmd("info", "Print version information")
@@ -62,6 +63,7 @@ class CLI(object):
         self.cmds.add_cmd("pull", "Pull a remote image")
         self.cmds.add_cmd("push", "Push an image to a remote registry")
         self.cmds.add_cmd("rm", "Remove a service or snapshot")
+        self.cmds.add_cmd("server", "Start all the servers")
         self.cmds.add_cmd("snapshot", "Take a snapshot")
         self.cmds.add_cmd("snapshots", "List all snapshots")
         self.cmds.add_cmd("ssh", "Connect to a client/connector")
@@ -707,19 +709,19 @@ class CLI(object):
         """
         if(cmd == 'start'):
             self._check_ssh_key(options=options)
+            arg = args.pop(0)
 
             # Check if we need to build the image before running. 
             if '-b' in options:
                 build_dir = options['-b'][0]
                 self._build(build_dir + '/Dockerfile')
-
-            arg = args.pop(0)
-            json_arg = {}
+            
             if not os.path.exists(arg):
                 file_path = self._find_installed_app(arg)
             else:
                 file_path = arg
 
+            json_arg = {}
             if file_path and os.path.exists(file_path):
                 file_path = os.path.abspath(file_path)
                 json_arg = self._read_app_content(file_path)

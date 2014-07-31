@@ -107,7 +107,7 @@ class DockerCLI(object):
     """
     Get the backend driver docker is using. 
     """
-    def get_fs_type(self):
+    def get_fs_type(self, server=None):
         cmd = self.docker + ' ' + self.info_cmd + ' | grep Driver | awk \'{print $2}\''
         logging.warning(cmd)
 
@@ -117,7 +117,7 @@ class DockerCLI(object):
     """
     Fetch the current docker version.
     """
-    def version(self):
+    def version(self, server=None):
         cmd = self.docker + ' ' + self.version_cmd + ' | grep Client | awk \'{print $3}\''
         logging.warning(cmd)
 
@@ -127,7 +127,7 @@ class DockerCLI(object):
     """
     List all the containers. 
     """
-    def list(self):
+    def list(self, server=None):
         cmd = self.docker + ' ' + self.ps_cmd + ' -q' 
         logging.warning(cmd)
 
@@ -140,7 +140,7 @@ class DockerCLI(object):
     """
     List all images that match the image name
     """
-    def images(self, image_name=None):
+    def images(self, image_name=None, server=None):
         if not image_name:
             cmd = self.docker + ' ' + self.images_cmd + ' | awk \'{print $1}\''
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -150,10 +150,11 @@ class DockerCLI(object):
 
         logging.warning(cmd)
         return output.strip()
+
     """
     Build a new image from a Dockerfile
     """
-    def build(self, image, docker_file=None):
+    def build(self, image, docker_file=None, server=None):
         path = '.'
         if docker_file != None:
             path = docker_file
@@ -172,7 +173,7 @@ class DockerCLI(object):
         cmd = data[0]['Config']['Cmd']
         return json.dumps( {'Cmd' : cmd} )
 
-    def login(self, user, password, email, registry):
+    def login(self, user, password, email, registry, server=None):
         """
         Login to a remote registry. 
         """
@@ -207,7 +208,7 @@ class DockerCLI(object):
             pass
         return True
 
-    def push(self, image, registry=None):
+    def push(self, image, registry=None, server=None):
         """
         Push an image to a remote registry.
         """
@@ -224,7 +225,7 @@ class DockerCLI(object):
         child = Popen(push, stdout=PIPE, stderr=PIPE, shell=True)
         return self._continuous_print(child, "uploading image...")
 
-    def pull(self, image):
+    def pull(self, image, server=None):
         """
         Pull a remote image to the local registry. 
         """
@@ -233,7 +234,7 @@ class DockerCLI(object):
         child = Popen(pull, stdout=PIPE, stderr=PIPE, shell=True)
         return self._continuous_print(child, "downloading image...")
 
-    def commit(self, container, snapshot_name):
+    def commit(self, container, snapshot_name, server=None):
         """
         Commit a container
         """
@@ -248,7 +249,7 @@ class DockerCLI(object):
     """
     Stop a running container
     """
-    def stop(self, container):
+    def stop(self, container, server=None):
         cmd = self.docker + ' ' + self.stop_cmd + ' ' + container
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -256,7 +257,7 @@ class DockerCLI(object):
     """
     Remove a container
     """
-    def remove(self, container):
+    def remove(self, container, server=None):
         cmd = self.docker + ' ' + self.rm_cmd + ' ' + container
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -264,7 +265,7 @@ class DockerCLI(object):
     """
     Start a stopped container. 
     """
-    def start(self, container, service_type, keys, volumes, args):
+    def start(self, container, service_type, keys, volumes, args, server=None):
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -282,7 +283,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None):
+    def run(self, service_type, image, volumes, keys, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None):
         flags = self.daemon 
 
         # Specify the hostname (this is optional)
@@ -341,7 +342,7 @@ class DockerCLI(object):
             return None
 
         container = child.stdout.read().strip()
-        return self.inspect(container, keys, volumes, hostname, open_ports, host_map, service_type, args)
+        return self.inspect(container, keys, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -354,7 +355,7 @@ class DockerCLI(object):
     Inspect a container and return information on how
     to connect to the container. 
     """
-    def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None):
+    def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
         logging.warning(cmd)
 

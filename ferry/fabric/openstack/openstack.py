@@ -13,11 +13,21 @@
 # limitations under the License.
 #
 
+from ferry.docker.docker import DockerCLI
+import json
+import logging
+from subprocess import Popen, PIPE
+import time
+import yaml
+
 class OpenStackFabric(object):
 
     def __init__(self, bootstrap=False):
         self.repo = 'public'
+        self.networks = {}
+        self.apps = {}
         self.heat = OpenStackLauncherHeat()
+        self.cli = DockerCLI()
 
     def version(self):
         """
@@ -37,11 +47,156 @@ class OpenStackFabric(object):
         """
         return []
 
-    def alloc(self, container_info):
+    def _fetch_network(self, cluster_uuid):
+        """
+        Check if this is a new cluster. If so, create
+        a new application network. Otherwise, return
+        the existing network. 
+        """
+        if not cluster_uuid in self.applications:
+            self.networks[cluster_uuid] = self.heat.create_app_network(cluster_uuid)
+        return self.networks[cluster_uuid]
+
+    def _execute_docker_containers(self, container, lxc_opts, server):
+        host_map = None
+        host_map_keys = []
+        mounts = {}
+        container['default_cmd'] = "/service/sbin/startnode init"
+        container = self.cli.run(service_type = container['type'], 
+                                 image = container['image'], 
+                                 volumes = container['volumes'],
+                                 keys = container['keys'], 
+                                 open_ports = host_map_keys,
+                                 host_map = host_map, 
+                                 expose_group = container['exposed'], 
+                                 hostname = container['hostname'],
+                                 default_cmd = container['default_cmd'],
+                                 args= container['args'],
+                                 lxc_opts = lxc_opts,
+                                 server = server)
+        if container:
+            container.default_user = self.docker_user
+            containers.append(container)
+            if not 'netenable' in c:
+                container.internal_ip = ip
+                self.network.set_owner(ip, container.container)
+
+            if 'name' in c:
+                container.name = container['name']
+
+            if 'volume_user' in c:
+                mounts[container] = {'user':container['volume_user'],
+                                     'vols':container['volumes'].items()}
+
+            # We should wait for a second to let the ssh server start
+            # on the containers (otherwise sometimes we get a connection refused)
+            time.sleep(2)
+            return container, mounts
+
+    def _get_net_ip(self, server, subnet_id, resources):
+        """
+        Get the IP address associated with the supplied server. 
+        """
+        for port_name in server["ports"]:
+            port_desc = resources[port_name]
+            if port_desc["subnet"] == subnet_id:
+                return port_desc["ip_address"]
+
+    def _get_subnet(self, network_info):
+        """
+        Get the subnet information. 
+        """
+        for r in network_info: 
+            if r["type"] == "OS::Neutron::Subnet":
+                return r
+
+    def _get_servers(self, resources):
+        servers = []
+        for r in resources: 
+            if r["type"] == "OS::Nova::Server":
+                servers.append(r)
+        return servers
+
+    def _get_net_info(self, server_info, network_info, resources):
+        """
+        Look up the IP address, gateway, and subnet range. 
+        """
+        subnet = self._get_subnet(network_info)
+        server = self._get_server(server_info)
+        cidr = subnet["cidr"].split("/")[1]
+        ip = self._get_net_ip(server, subnet["id"], resources)
+
+        # We want to use the host NIC, so modify LXC to use phys networking, and
+        # then start the docker containers on the server. 
+        lxc_opts = ["lxc.network.type = phys",
+                    "lxc.network.mtu = 1500", 
+                    "lxc.network.ipv4 = %s/%s" % (ip, cidr) 
+                    "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
+                    "lxc.network.link = eth1",
+                    "lxc.network.name = eth0"
+                    "lxc.network.flags = up"]
+        return lxc_opts
+
+    def alloc(self, cluster_uuid, container_info, ctype):
         """
         Allocate several instances.
         """
-        return []
+
+        # Check if this is a new cluster. If so, we'll need to create
+        # a new application network. 
+        network = self._fetch_network(cluster_uuid)
+
+        # Now take the cluster and create the security group
+        # to expose all the right ports. 
+        sec_group_ports = []
+        if ctype == "connector": 
+            # Since this is a connector, we need to expose
+            # the public ports. For now, we ignore the host port. 
+            floating_ip = True
+            for c in container_info:
+                for p in c['ports']:
+                    s = str(p).split(":")
+                    if len(s) > 1:
+                        sec_group_ports.append(s[1])
+                    else:
+                        sec_group_ports.append(s[0])
+        else:
+            # Since this is a backend type, we need to 
+            # look at the internally exposed ports. 
+            floating_ip = False
+            sec_group_ports = container_info[0]['exposed']
+
+        # Tell OpenStack to allocate the cluster. 
+        resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
+                                               num_instances = len(container_info), 
+                                               network = network, 
+                                               security_group_ports = sec_group_ports,
+                                               assign_floating_ip = floating_ip,
+                                               ctype = ctype)
+        self.apps[cluster_uuid] = resources
+
+        # Now we need to ask the cluster to start the 
+        # Docker containers.
+        containers = []
+        mounts = {}
+        servers = self._get_servers(resources)
+        for i in range(0, len(container_info)):
+            # Fetch a server to run the Docker commands. 
+            server = servers[i]
+
+            # Get the LXC networking options
+            lxc_opts = self._get_net_info(server, network, resources)
+            container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, server)
+            containers.append(container)
+            mounts = dict(mounts.items() + cmounts.items())
+
+        # Check if we need to set the file permissions
+        # for the mounted volumes. 
+        for c, i in mounts.items():
+            for _, v in i['vols']:
+                self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+
+        return containers
 
     def stop(self, containers):
         """

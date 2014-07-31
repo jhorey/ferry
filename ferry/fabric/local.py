@@ -98,7 +98,7 @@ class LocalFabric(object):
         time.sleep(2)
         return new_containers
 
-    def alloc(self, cluster_uuid, container_info, ctype):
+    def alloc(self, container_info):
         """
         Allocate several instances.
         """
