@@ -290,7 +290,7 @@ class OpenStackLauncherHeat(object):
         port_descs = []
         for n in data_networks:
             port_name = "ferry-port-%s-%s" % (name, n)
-            port_descs.append(self._create_port(port_name, n, sec_group, ref=True))
+            port_descs.append(self._create_port(port_name, n, sec_group, ref=False))
             plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }})
             desc[name]["ports"].append( port_name )
             desc[port_name] = { "type" : "OS::Neutron::Port" }
@@ -370,7 +370,7 @@ class OpenStackLauncherHeat(object):
         logging.info("create Heat network: " + str(desc))
         return plan, desc
 
-    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network): 
+    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
@@ -380,7 +380,7 @@ class OpenStackLauncherHeat(object):
         for i in range(0, num_instances):
             # Create the actual instances. 
             instance_name = "ferry-instance-%s-%s-%d" % (cluster_uuid, ctype, i)
-            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network_name], sec_group_name)
+            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network], sec_group_name)
 
             # Attach the Ferry image volume to the instance. 
             attach_name = "ferry-attach-%s-%s-%d" % (cluster_uuid, ctype, i)
@@ -398,6 +398,7 @@ class OpenStackLauncherHeat(object):
         """
         Launch the cluster plan.  
         """
+        logging.info("launching heat plan: " + str(heat_plan))
         
         # Instruct Heat to create the stack, and wait 
         # for it to complete. 
@@ -411,15 +412,6 @@ class OpenStackLauncherHeat(object):
         for r in resources:
             if r["logical_resource_id"] in stack_desc:
                 stack_desc[r["logical_resource_id"]]["id"] = r["physical_resource_id"]
-
-        # Now find all the IP addresses of the various
-        # machines. 
-        ports = self._collect_network_info()
-        for p in ports:
-            port_desc = stack_desc[p['name']]
-            port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
-            port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
-            port_desc["mac_address"] = p['fixed_ips'][0]['mac_address']
 
         # Record the Stack ID in the description so that
         # we can refer back to it later. 
@@ -469,12 +461,17 @@ class OpenStackLauncherHeat(object):
         descs = [r.to_dict() for r in resources]
         return descs
 
-    def _collect_network_info(self):
+    def _collect_network_info(self, stack_desc):
         """
         Collect all the ports. 
         """
-        ports = self.neutron.list_ports()
-        return ports['ports']
+        ports = self.neutron.list_ports()['ports']
+        for p in ports:
+            port_desc = stack_desc[p['name']]
+            port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
+            port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
+            port_desc["mac_address"] = p['fixed_ips'][0]['mac_address']
+        return stack_desc
 
     def create_app_network(self, cluster_uuid):
         """
@@ -482,7 +479,8 @@ class OpenStackLauncherHeat(object):
         """
         logging.info("creating network for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_network_plan(cluster_uuid)
-        # return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
+        return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
+
 
     def create_app_stack(self, cluster_uuid, num_instances, network, security_group_ports, assign_floating_ip, ctype):
         """
@@ -494,7 +492,8 @@ class OpenStackLauncherHeat(object):
                                                             num_instances = num_instances, 
                                                             image = self.default_image,
                                                             size = self.default_personality, 
-                                                            network = network)
+                                                            network = network,
+                                                            ctype = ctype)
 
         logging.info("creating security group for %s" % cluster_uuid)
         sec_group_plan, stack_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
@@ -523,7 +522,11 @@ class OpenStackLauncherHeat(object):
         stack_desc = dict(stack_desc.items() + 
                           sec_group_desc.items() +
                           ip_desc.items())
-        return self._launch_heat_plan("ferry-app-%s-%s" % (ctype, cluster_uuid), stack_plan, stack_desc)
+        stack_desc = self._launch_heat_plan("ferry-app-%s-%s" % (ctype, cluster_uuid), stack_plan, stack_desc)
+
+        # Now find all the IP addresses of the various
+        # machines. 
+        return self._collect_network_info(stack_desc)
 
     def _delete_stack(self, stack_id):
         # To delete the stack properly, we first need to disassociate

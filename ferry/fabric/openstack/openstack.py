@@ -65,7 +65,12 @@ class OpenStackFabric(object):
         """
         if not cluster_uuid in self.networks:
             self.networks[cluster_uuid] = self.heat.create_app_network(cluster_uuid)
-        return self.networks[cluster_uuid]
+
+        # Go through the network resources and find the network ID. 
+        resources = self.networks[cluster_uuid]
+        for r in resources: 
+            if r["type"] == "OS::Neutron::Net":
+                return r["id"]
 
     def _execute_docker_containers(self, container, lxc_opts, server):
         host_map = None
@@ -176,14 +181,14 @@ class OpenStackFabric(object):
         # a new application network. 
         network = self._fetch_network(cluster_uuid)
 
-        # # Tell OpenStack to allocate the cluster. 
-        # resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
-        #                                        num_instances = len(container_info), 
-        #                                        network = network, 
-        #                                        security_group_ports = sec_group_ports,
-        #                                        assign_floating_ip = floating_ip,
-        #                                        ctype = ctype)
-        # self.apps[cluster_uuid] = resources
+        # Tell OpenStack to allocate the cluster. 
+        resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
+                                               num_instances = len(container_info), 
+                                               network = network, 
+                                               security_group_ports = sec_group_ports,
+                                               assign_floating_ip = floating_ip,
+                                               ctype = ctype)
+        self.apps[cluster_uuid] = resources
 
         # Now we need to ask the cluster to start the 
         # Docker containers.
