@@ -23,7 +23,8 @@ import time
 import yaml
 
 class LocalFabric(object):
-    def __init__(self, bootstrap=False):
+    def __init__(self, config=None, bootstrap=False):
+        self.name = "local"
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI(ferry.install.DOCKER_REGISTRY)

@@ -14,6 +14,7 @@
 #
 
 from ferry.docker.docker import DockerCLI
+from ferry.fabric.openstack.heatlauncher import OpenStackLauncherHeat
 import json
 import logging
 from subprocess import Popen, PIPE
@@ -22,14 +23,21 @@ import yaml
 
 class OpenStackFabric(object):
 
-    def __init__(self, bootstrap=False):
+    def __init__(self, config=None, bootstrap=False):
+        self.name = "openstack"
         self.repo = 'public'
         self.networks = {}
         self.apps = {}
-        self.heat = OpenStackLauncherHeat()
+
+        self.config = config
+        self.heat = OpenStackLauncherHeat(self.config)
+
         self.cli = DockerCLI()
-        self.cli.docker_user = "ubuntu"
-        self.cli.key = "ferry.pem"
+        self.cli.docker_user = self.heat.ssh_user
+        self.cli.key = self._get_private_key(self.heat.ssh_key)
+
+    def _get_private_key(self, public_key):
+        return "/ferry/keys/" + public_key + ".pem"
 
     def version(self):
         """
@@ -132,7 +140,7 @@ class OpenStackFabric(object):
         # then start the docker containers on the server. 
         lxc_opts = ["lxc.network.type = phys",
                     "lxc.network.mtu = 1500", 
-                    "lxc.network.ipv4 = %s/%s" % (ip, cidr) 
+                    "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
                     "lxc.network.link = eth1",
                     "lxc.network.name = eth0"

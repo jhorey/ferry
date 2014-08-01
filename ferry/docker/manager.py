@@ -14,6 +14,8 @@
 #
 import datetime
 import grp
+import importlib
+import inspect
 import json
 import logging
 import os
@@ -32,14 +34,12 @@ from ferry.install import *
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.configfactory import ConfigFactory
 from ferry.docker.deploy        import DeployEngine
-from ferry.fabric.local         import LocalFabric
 
 class DockerManager(object):
     SSH_PORT = 22
 
     def __init__(self):
         # Generate configuration.
-        self.docker = LocalFabric()
         self.config = ConfigFactory()
 
         # Service mappings
@@ -74,9 +74,11 @@ class DockerManager(object):
             }
 
         # Initialize the state. 
+        self.docker = self._get_system_backend()
         self.deploy = DeployEngine(self.docker)
         self._init_state_db()
         self._clean_state_db()
+        logging.warning("using backend %s ver:%s " %(self.name,  self.docker.version()))
 
     def _init_state_db(self):
         """
@@ -93,6 +95,32 @@ class DockerManager(object):
         Remove all the services that are "terminated". 
         """
         self.cluster_collection.remove( {'status':'removed'} )
+
+    def _load_class(self, class_name):
+        """
+        Dynamically load a class
+        """
+        # Construct the full module path. This lets us filter out only
+        # the deployment engines and ignore all the other imported packages. 
+        s = class_name.split("/")
+        module_path = s[0]
+        clazz_name = s[1]
+        module = importlib.import_module(module_path)
+        for n, o in inspect.getmembers(module):
+            if inspect.isclass(o):
+                if o.__module__ == module_path and o.__name__ == clazz_name:
+                    return o(config = ferry.install.DEFAULT_DOCKER_LOGIN,
+                             bootstrap = False)
+        return None
+
+    def _get_system_backend(self):
+        """
+        Return backend information 
+        """
+        with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
+            args = yaml.load(f)
+            backend = args['system']['backend']
+            return self._load_class(backend)
 
     def _serialize_containers(self, containers):
         info = []

@@ -34,7 +34,7 @@ import yaml
 from distutils import spawn
 from ferry.ip.client import DHCPClient
 from ferry.config.mongo.mongoconfig import *
-from ferry.docker.fabric import DockerFabric
+from ferry.fabric.local import LocalFabric
 from string import Template
 from subprocess import Popen, PIPE
 
@@ -177,7 +177,7 @@ DEFAULT_DOCKER_LOG=DOCKER_DIR + '/docker.log'
 class Installer(object):
     def __init__(self, cli=None):
         self.network = DHCPClient()
-        self.fabric = DockerFabric(bootstrap=True)
+        self.fabric = LocalFabric(bootstrap=True)
         self.mongo = MongoInitializer()
         self.mongo.fabric = self.fabric
         self.mongo.template_dir = DEFAULT_TEMPLATE_DIR + '/mongo/'

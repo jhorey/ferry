@@ -47,6 +47,7 @@ class OpenStackLauncherHeat(object):
             args = yaml.load(f)
             args = args['hp']
             self.default_image = args['image']
+            self.ferry_volume = args['image-volume']
             self.default_personality = args['personality']
             self.default_storage = None
             self.default_zone = "az3"
@@ -55,14 +56,22 @@ class OpenStackLauncherHeat(object):
             self.external_network = args['extnet']
             self.manage_router = args['router']
             self.ssh_key = args['ssh']
+            self.ssh_user = args['ssh-user']
             self.keystone_server = args['keystone']
             self.neutron_server = args['neutron']
-            self.heat_server = os.environ['HEAT_URL']
             self.openstack_user = os.environ['OS_USERNAME']
             self.openstack_pass = os.environ['OS_PASSWORD']
             self.tenant_id = os.environ['OS_TENANT_ID']
             self.tenant_name = os.environ['OS_TENANT_NAME']
             self.auth_tok = os.environ['OS_AUTH_TOKEN']
+
+            # Not all OpenStack providers include Heat yet,
+            # so make it simple to pass in the Heat URL
+            # via the environment. 
+            if 'HEAT_URL' in os.environ:
+                self.heat_server = os.environ['HEAT_URL']
+            else:
+                self.heat_server = args['heat']
 
             self._init_heat_server()
 
@@ -78,23 +87,15 @@ class OpenStackLauncherHeat(object):
             'include_pass' : True,
             'tenant_id': self.tenant_id,
             'tenant_name': self.tenant_name,
-            'token': self.auth_tok
+            'token': self.auth_tok,
+            'auth_url' : self.keystone_server
         }
         self.heat = heat_client.Client(heat_api_version, 
                                        self.heat_server, 
                                        **kwargs)
 
         neutron_api_version = "2.0"
-        kwargs = {
-            'username' : self.openstack_user,
-            'password' : self.openstack_pass,
-            'include_pass' : True,
-            'tenant_id': self.tenant_id,
-            'tenant_name': self.tenant_name,
-            'token': self.auth_tok,
-            'endpoint_url' : self.neutron_server,
-            'auth_url' : self.keystone_server
-        }
+        kwargs['endpoint_url'] = self.neutron_server
         self.neutron = neutron_client.Client(neutron_api_version, 
                                              **kwargs)
 
@@ -242,11 +243,11 @@ class OpenStackLauncherHeat(object):
                     "parted --script /dev/vdb mklabel gpt\n", 
                     "parted --script /dev/vdb mkpart primary xfs 0% 100%\n", 
                     "mkfs.xfs /dev/vdb1\n", 
-                    "mkdir /ferry\n",
-                    "mount -o noatime /dev/vdb1 /ferry\n",
-                    "mkdir /ferry/master\n", 
+                    "mkdir /ferrydata\n",
+                    "mount -o noatime /dev/vdb1 /ferrydata\n",
+                    "export FERRY_SCRATCH=/ferrydata\n", 
+                    "chown -R ferry:ferry /ferrydata\n", 
                     "export FERRY_DIR=/ferry/master\n", 
-                    "chown -R ferry:ferry /ferry\n", 
                     "ferry server &\n"
                   ]
               ]
@@ -261,6 +262,14 @@ class OpenStackLauncherHeat(object):
                  "router" : router }
         return plan, desc
 
+    def _create_volume_attachment(self, name, instance, volume_id):
+        plan = { iface_name: { "Type": "OS::Cinder::VolumeAttachment",
+                               "Properties": { "instance_uuid": { "Ref" : instance },
+                                               "mountpoint": "/dev/vdc", 
+                                               "volume_id": volume_id}}}
+        desc = { "type" : "OS::Cinder::VolumeAttachment" }
+        return plan, desc
+
     def _create_instance(self, name, image, size, manage_network, data_networks, sec_group):
         """
         Create a new instance
@@ -273,7 +282,8 @@ class OpenStackLauncherHeat(object):
                                            "availability_zone" : self.default_zone, 
                                            "networks" : []}}} 
         desc = { name : { "type" : "OS::Nova::Server",
-                          "ports" : [] }}
+                          "ports" : [],
+                          "volumes" : [] }}
 
         # Create a port in each data network. 
         port_descs = []
@@ -366,10 +376,19 @@ class OpenStackLauncherHeat(object):
         desc = {}
 
         for i in range(0, num_instances):
+            # Create the actual instances. 
             instance_name = "ferry-instance-%s-%s-%d" % (cluster_uuid, ctype, i)
             instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network_name], sec_group_name)
+
+            # Attach the Ferry image volume to the instance. 
+            attach_name = "ferry-attach-%s-%s-%d" % (cluster_uuid, ctype, i)
+            vol_plan, vol_desc = self._create_volume_attachment(attach_name, name, self.ferry_volume)
+
+            # Consolidate the plan and descriptions. 
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
+            plan["Resources"] = dict(plan["Resources"].items() + vol_plan.items())
             desc = dict(desc.items() + instance_desc.items())
+            desc = dict(desc.items() + vol_desc.items())
 
         return plan, desc
 
