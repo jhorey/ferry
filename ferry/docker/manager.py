@@ -78,7 +78,7 @@ class DockerManager(object):
         self.deploy = DeployEngine(self.docker)
         self._init_state_db()
         self._clean_state_db()
-        logging.warning("using backend %s ver:%s " %(self.name,  self.docker.version()))
+        logging.warning("using backend %s ver:%s " %(self.docker.name, self.docker.version()))
 
     def _init_state_db(self):
         """
@@ -193,7 +193,7 @@ class DockerManager(object):
             service.fabric = self.docker
             return service
         else:
-            logging.error("unknown service " + service_type)
+            logging.error("unknown service " + str(service_type))
             return None
 
     def _get_client_services(self, storage_entry, compute_entry):
@@ -865,7 +865,8 @@ class DockerManager(object):
             connector_uuids = cluster['connectors']
             for c in connector_uuids:
                 connectors = {'uuid' : c,
-                              'instances' : []}
+                              'instances' : [],
+                              'type' : None }
                 connector_info = self._get_service_configuration(c, detailed=True)
                 if connector_info:
                     for connector in connector_info['containers']:
@@ -879,7 +880,8 @@ class DockerManager(object):
             for b in backends['uuids']:
                 if b['storage'] != None:
                     storage = {'uuid' : b['storage'],
-                               'instances' : []}
+                               'instances' : [],
+                               'type' : None }
                     storage_info = self._get_service_configuration(b['storage'], detailed=True)
                     if storage_info:
                         for s in storage_info['containers']:
@@ -891,7 +893,8 @@ class DockerManager(object):
                 if b['compute'] != None:
                     for c in b['compute']:
                         compute = {'uuid' : c,
-                                   'instances' : []}
+                                   'instances' : [],
+                                   'type' : None}
                         compute_info = self._get_service_configuration(c, detailed=True)
                         if compute_info:
                             for container in compute_info['containers']:
@@ -977,8 +980,11 @@ class DockerManager(object):
         """
         Start the service.
         """
-        service_info = self._get_service_configuration(uuid, detailed=True)
-        return self._start_service(uuid, containers, service_info)
+        if len(containers) > 0:
+            service_info = self._get_service_configuration(uuid, detailed=True)
+            return self._start_service(uuid, containers, service_info)
+        else:
+            return {}
 
     def allocate_compute(self,
                          cluster_uuid, 
@@ -1005,16 +1011,19 @@ class DockerManager(object):
         containers = self._start_containers(cluster_uuid, plan, ctype="compute")
 
         # Generate a configuration dir.
-        config_dirs, entry_point = self.config.generate_compute_configuration(service_uuid, 
-                                                                              containers, 
-                                                                              service, 
-                                                                              args, 
-                                                                              [storage_entry])
+        if len(containers) > 0:
+            config_dirs, entry_point = self.config.generate_compute_configuration(service_uuid, 
+                                                                                  containers, 
+                                                                                  service, 
+                                                                                  args, 
+                                                                                  [storage_entry])
 
-        # Now copy over the configuration.
-        self._transfer_config(config_dirs)
-        for k in self._read_key_dir().keys():
-            keydir = k
+            # Now copy over the configuration.
+            self._transfer_config(config_dirs)
+            for k in self._read_key_dir().keys():
+                keydir = k
+        else:
+            entry_point = {}
 
         container_info = self._serialize_containers(containers)
         service = {'uuid':service_uuid, 
@@ -1050,35 +1059,39 @@ class DockerManager(object):
                          uuid,
                          containers,
                          service_type):
-        service_info = self._get_service_configuration(uuid, detailed=True)
-        entry_point = service_info['entry']        
-        if service_info['class'] != 'connector':
-            service = self._get_service(service_type)
-            return service.restart_service(containers, entry_point, self.docker)
+        if len(containers) > 0:
+            service_info = self._get_service_configuration(uuid, detailed=True)
+            entry_point = service_info['entry']        
+            if service_info['class'] != 'connector':
+                service = self._get_service(service_type)
+                return service.restart_service(containers, entry_point, self.docker)
+            else:
+                all_output = {}
+                for backend in service_info['backends']:
+                    if 'client' in self.service[backend]:
+                        service = self.service[backend]['client']
+                        output = service.restart_service(containers, entry_point, self.docker)
+                        if output:
+                            all_output = dict(all_output.items() + output.items())
+                return all_output
         else:
-            all_output = {}
-            for backend in service_info['backends']:
-                if 'client' in self.service[backend]:
-                    service = self.service[backend]['client']
-                    output = service.restart_service(containers, entry_point, self.docker)
-                    if output:
-                        all_output = dict(all_output.items() + output.items())
-            return all_output
+            return {}
 
     def _stop_service(self,
                       uuid,
                       containers,
                       service_type):
-        service_info = self._get_service_configuration(uuid, detailed=True)
-        entry_point = service_info['entry']        
-        if service_info['class'] != 'connector':
-            service = self._get_service(service_type)
-            service.stop_service(containers, entry_point, self.docker)
-        else:
-            for backend in service_info['backends']:
-                if 'client' in self.service[backend]:
-                    service = self.service[backend]['client']
-                    service.stop_service(containers, entry_point, self.docker)
+        if len(containers) > 0:
+            service_info = self._get_service_configuration(uuid, detailed=True)
+            entry_point = service_info['entry']        
+            if service_info['class'] != 'connector':
+                service = self._get_service(service_type)
+                service.stop_service(containers, entry_point, self.docker)
+            else:
+                for backend in service_info['backends']:
+                    if 'client' in self.service[backend]:
+                        service = self.service[backend]['client']
+                        service.stop_service(containers, entry_point, self.docker)
         
     def restart_containers(self, service_uuid, containers):
         """
@@ -1117,13 +1130,16 @@ class DockerManager(object):
         containers = self._start_containers(cluster_uuid, plan, ctype="storage")
 
         # Generate a configuration dir.
-        config_dirs, entry_point = self.config.generate_storage_configuration(service_uuid, 
-                                                                              containers, 
-                                                                              service, 
-                                                                              args)
+        if len(containers) > 0:
+            config_dirs, entry_point = self.config.generate_storage_configuration(service_uuid, 
+                                                                                  containers, 
+                                                                                  service, 
+                                                                                  args)
 
-        # Now copy over the configuration.
-        self._transfer_config(config_dirs)
+            # Now copy over the configuration.
+            self._transfer_config(config_dirs)
+        else:
+            entry_point = {}
 
         container_info = self._serialize_containers(containers)
         service = {'uuid':service_uuid, 
@@ -1425,20 +1441,22 @@ class DockerManager(object):
         # Now generate the configuration files that will be
         # transferred to the containers. 
         entry_points = {}
-        services, backend_names = self._get_client_services(storage_entry, compute_entry)
-        for service in services:
-            config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-                                                                                    containers, 
-                                                                                    service,
-                                                                                    storage_entry,
-                                                                                    compute_entry,
-                                                                                    args)
-            # Merge all the entry points. 
-            entry_points = dict(entry_point.items() + entry_points.items())
+        backend_names = []
+        if len(containers) > 0:
+            services, backend_names = self._get_client_services(storage_entry, compute_entry)
+            for service in services:
+                config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+                                                                                        containers, 
+                                                                                        service,
+                                                                                        storage_entry,
+                                                                                        compute_entry,
+                                                                                        args)
+                # Merge all the entry points. 
+                entry_points = dict(entry_point.items() + entry_points.items())
 
-            # Now copy over the configuration.
-            self._transfer_config(config_dirs)
-            self._transfer_env_vars(containers, env_vars)
+                # Now copy over the configuration.
+                self._transfer_config(config_dirs)
+                self._transfer_env_vars(containers, env_vars)
 
         # Update the connector state. 
         container_info = self._serialize_containers(containers)

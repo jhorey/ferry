@@ -247,6 +247,7 @@ class OpenStackLauncherHeat(object):
                     "mount -o noatime /dev/vdb1 /ferrydata\n",
                     "export FERRY_SCRATCH=/ferrydata\n", 
                     "chown -R ferry:ferry /ferrydata\n", 
+                    "mount -o noatime /dev/vdc1 /ferry", 
                     "export FERRY_DIR=/ferry/master\n", 
                     "ferry server &\n"
                   ]
@@ -366,6 +367,7 @@ class OpenStackLauncherHeat(object):
                  subnet_name : subnet_desc,
                  iface_name : router_desc }
 
+        logging.info("create Heat network: " + str(desc))
         return plan, desc
 
     def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network): 
@@ -480,7 +482,7 @@ class OpenStackLauncherHeat(object):
         """
         logging.info("creating network for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_network_plan(cluster_uuid)
-        return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
+        # return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
 
     def create_app_stack(self, cluster_uuid, num_instances, network, security_group_ports, assign_floating_ip, ctype):
         """

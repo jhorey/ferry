@@ -63,7 +63,7 @@ class OpenStackFabric(object):
         a new application network. Otherwise, return
         the existing network. 
         """
-        if not cluster_uuid in self.applications:
+        if not cluster_uuid in self.networks:
             self.networks[cluster_uuid] = self.heat.create_app_network(cluster_uuid)
         return self.networks[cluster_uuid]
 
@@ -152,10 +152,6 @@ class OpenStackFabric(object):
         Allocate several instances.
         """
 
-        # Check if this is a new cluster. If so, we'll need to create
-        # a new application network. 
-        network = self._fetch_network(cluster_uuid)
-
         # Now take the cluster and create the security group
         # to expose all the right ports. 
         sec_group_ports = []
@@ -176,35 +172,39 @@ class OpenStackFabric(object):
             floating_ip = False
             sec_group_ports = container_info[0]['exposed']
 
-        # Tell OpenStack to allocate the cluster. 
-        resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
-                                               num_instances = len(container_info), 
-                                               network = network, 
-                                               security_group_ports = sec_group_ports,
-                                               assign_floating_ip = floating_ip,
-                                               ctype = ctype)
-        self.apps[cluster_uuid] = resources
+        # Check if this is a new cluster. If so, we'll need to create
+        # a new application network. 
+        network = self._fetch_network(cluster_uuid)
+
+        # # Tell OpenStack to allocate the cluster. 
+        # resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
+        #                                        num_instances = len(container_info), 
+        #                                        network = network, 
+        #                                        security_group_ports = sec_group_ports,
+        #                                        assign_floating_ip = floating_ip,
+        #                                        ctype = ctype)
+        # self.apps[cluster_uuid] = resources
 
         # Now we need to ask the cluster to start the 
         # Docker containers.
         containers = []
         mounts = {}
-        servers = self._get_servers(resources)
-        for i in range(0, len(container_info)):
-            # Fetch a server to run the Docker commands. 
-            server = servers[i]
+        # servers = self._get_servers(resources)
+        # for i in range(0, len(container_info)):
+        #     # Fetch a server to run the Docker commands. 
+        #     server = servers[i]
 
-            # Get the LXC networking options
-            lxc_opts = self._get_net_info(server, network, resources)
-            container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, server)
-            containers.append(container)
-            mounts = dict(mounts.items() + cmounts.items())
+        #     # Get the LXC networking options
+        #     lxc_opts = self._get_net_info(server, network, resources)
+        #     container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, server)
+        #     containers.append(container)
+        #     mounts = dict(mounts.items() + cmounts.items())
 
-        # Check if we need to set the file permissions
-        # for the mounted volumes. 
-        for c, i in mounts.items():
-            for _, v in i['vols']:
-                self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+        # # Check if we need to set the file permissions
+        # # for the mounted volumes. 
+        # for c, i in mounts.items():
+        #     for _, v in i['vols']:
+        #         self.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
         return containers
 
@@ -213,6 +213,13 @@ class OpenStackFabric(object):
         Forceably stop the running containers
         """
         logging.warning("stopping " + str(containers))
+
+    def halt(self, containers):
+        """
+        Safe stop the containers. 
+        """
+        cmd = '/service/sbin/startnode halt'
+        logging.warning("halting " + str(containers))
 
     def remove(self, containers):
         """
