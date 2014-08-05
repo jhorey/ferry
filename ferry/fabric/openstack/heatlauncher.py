@@ -227,29 +227,39 @@ class OpenStackLauncherHeat(object):
 
         return desc
 
-    def _create_server_init(self, instance_name, network_name):
+    def _create_server_init(self, instance_name, networks):
         """
         Create the server init process. These commands are run on the
         host after the host has booted up. 
         """
-
+        # user_data = {
+        #     "Fn::Base64": {
+        #       "Fn::Join": [
+        #         "",
+        #           [
+        #             "#!/bin/bash -v\n",
+        #             "umount /mnt\n", 
+        #             "parted --script /dev/vdb mklabel gpt\n", 
+        #             "parted --script /dev/vdb mkpart primary xfs 0% 100%\n", 
+        #             "mkfs.xfs /dev/vdb1\n", 
+        #             "mkdir /ferrydata\n",
+        #             "mount -o noatime /dev/vdb1 /ferrydata\n",
+        #             "chown -R ferry:ferry /ferrydata\n", 
+        #             "export FERRY_SCRATCH=/ferrydata\n", 
+        #             "export FERRY_DIR=/ferry/master\n", 
+        #             "export HOME=/root\n", 
+        #             "ferry server &\n"
+        #           ]
+        #       ]
+        #   }}
         user_data = {
             "Fn::Base64": {
               "Fn::Join": [
                 "",
                   [
                     "#!/bin/bash -v\n",
-                    "umount /mnt", 
-                    "parted --script /dev/vdb mklabel gpt\n", 
-                    "parted --script /dev/vdb mkpart primary xfs 0% 100%\n", 
-                    "mkfs.xfs /dev/vdb1\n", 
-                    "mkdir /ferrydata\n",
-                    "mount -o noatime /dev/vdb1 /ferrydata\n",
                     "export FERRY_SCRATCH=/ferrydata\n", 
-                    "chown -R ferry:ferry /ferrydata\n", 
-                    "mount -o noatime /dev/vdc1 /ferry", 
-                    "export FERRY_DIR=/ferry/master\n", 
-                    "ferry server &\n"
+                    "export FERRY_DIR=/ferry/master\n" 
                   ]
               ]
           }}
@@ -263,11 +273,11 @@ class OpenStackLauncherHeat(object):
                  "router" : router }
         return plan, desc
 
-    def _create_volume_attachment(self, name, instance, volume_id):
-        plan = { iface_name: { "Type": "OS::Cinder::VolumeAttachment",
-                               "Properties": { "instance_uuid": { "Ref" : instance },
-                                               "mountpoint": "/dev/vdc", 
-                                               "volume_id": volume_id}}}
+    def _create_volume_attachment(self, iface, instance, volume_id):
+        plan = { iface: { "Type": "OS::Cinder::VolumeAttachment",
+                          "Properties": { "instance_uuid": { "Ref" : instance },
+                                          "mountpoint": "/dev/vdc", 
+                                          "volume_id": volume_id}}}
         desc = { "type" : "OS::Cinder::VolumeAttachment" }
         return plan, desc
 
@@ -289,8 +299,10 @@ class OpenStackLauncherHeat(object):
         # Create a port in each data network. 
         port_descs = []
         for n in data_networks:
-            port_name = "ferry-port-%s-%s" % (name, n)
-            port_descs.append(self._create_port(port_name, n, sec_group, ref=False))
+            network = n[0]
+            subnet = n[1]
+            port_name = "ferry-port-%s-%s" % (name, network)
+            port_descs.append(self._create_port(port_name, network, sec_group, ref=False))
             plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }})
             desc[name]["ports"].append( port_name )
             desc[port_name] = { "type" : "OS::Neutron::Port" }
@@ -307,7 +319,7 @@ class OpenStackLauncherHeat(object):
             plan = dict(plan.items() + d.items())
 
         # Now add the user script.
-        user_data = self._create_server_init(name, data_networks[0])
+        user_data = self._create_server_init(name, data_networks)
         plan[name]["Properties"]["user_data"] = user_data
 
         return plan, desc
@@ -325,9 +337,8 @@ class OpenStackLauncherHeat(object):
                  "Resources" : {} }
         desc = {}
         for i in range(0, len(ifaces)):
-            iface = ifaces[i]
             ip_name = "ferry-ip-%s-%d" % (cluster_uuid, i)
-            ip_plan, desc[ip_name] = self._create_floating_ip(ip_name, i)
+            ip_plan, desc[ip_name] = self._create_floating_ip(ip_name, ifaces[i])
             plan["Resources"] = dict(plan["Resources"].items() + ip_plan.items())
 
         return plan, desc
@@ -370,7 +381,7 @@ class OpenStackLauncherHeat(object):
         logging.info("create Heat network: " + str(desc))
         return plan, desc
 
-    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network, ctype): 
+    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
@@ -381,16 +392,14 @@ class OpenStackLauncherHeat(object):
             # Create the actual instances. 
             instance_name = "ferry-instance-%s-%s-%d" % (cluster_uuid, ctype, i)
             instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network], sec_group_name)
-
-            # Attach the Ferry image volume to the instance. 
-            attach_name = "ferry-attach-%s-%s-%d" % (cluster_uuid, ctype, i)
-            vol_plan, vol_desc = self._create_volume_attachment(attach_name, name, self.ferry_volume)
-
-            # Consolidate the plan and descriptions. 
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
-            plan["Resources"] = dict(plan["Resources"].items() + vol_plan.items())
             desc = dict(desc.items() + instance_desc.items())
-            desc = dict(desc.items() + vol_desc.items())
+
+            # # Attach the Ferry image volume to the instance. 
+            # attach_name = "ferry-attach-%s-%s-%d" % (cluster_uuid, ctype, i)
+            # vol_plan, vol_desc = self._create_volume_attachment(attach_name, instance_name, self.ferry_volume)
+            # plan["Resources"] = dict(plan["Resources"].items() + vol_plan.items())
+            # desc = dict(desc.items() + vol_desc.items())
 
         return plan, desc
 
@@ -415,7 +424,8 @@ class OpenStackLauncherHeat(object):
 
         # Record the Stack ID in the description so that
         # we can refer back to it later. 
-        stack_desc["stack_id"] = resp["stack"]["id"]
+        stack_desc[stack_name] = { "id" : resp["stack"]["id"],
+                                   "type": "OS::Heat::Stack" }
         return stack_desc
 
     def _update_heat_plan(self, stack_id, stack_plan):
@@ -465,12 +475,12 @@ class OpenStackLauncherHeat(object):
         """
         Collect all the ports. 
         """
-        ports = self.neutron.list_ports()['ports']
-        for p in ports:
-            port_desc = stack_desc[p['name']]
-            port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
-            port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
-            port_desc["mac_address"] = p['fixed_ips'][0]['mac_address']
+        ports = self.neutron.list_ports()
+        for p in ports['ports']:
+            if p['name'] != "":
+                port_desc = stack_desc[p['name']]
+                port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
+                port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
         return stack_desc
 
     def create_app_network(self, cluster_uuid):
@@ -487,17 +497,19 @@ class OpenStackLauncherHeat(object):
         Create an empty application stack. This includes the instances, 
         security groups, and floating IPs. 
         """
+
+        logging.info("creating security group for %s" % cluster_uuid)
+        sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
+                                                                      ports = security_group_ports)
+
         logging.info("creating instances for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
                                                             num_instances = num_instances, 
                                                             image = self.default_image,
                                                             size = self.default_personality, 
                                                             network = network,
+                                                            sec_group_name = sec_group_desc.keys()[0], 
                                                             ctype = ctype)
-
-        logging.info("creating security group for %s" % cluster_uuid)
-        sec_group_plan, stack_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
-                                                                      ports = security_group_ports)
 
         # See if we need to assign any floating IPs 
         # for this stack. We need the references to the neutron
@@ -522,7 +534,7 @@ class OpenStackLauncherHeat(object):
         stack_desc = dict(stack_desc.items() + 
                           sec_group_desc.items() +
                           ip_desc.items())
-        stack_desc = self._launch_heat_plan("ferry-app-%s-%s" % (ctype, cluster_uuid), stack_plan, stack_desc)
+        stack_desc = self._launch_heat_plan("ferry-app-%s-%s" % (ctype.upper(), cluster_uuid), stack_plan, stack_desc)
 
         # Now find all the IP addresses of the various
         # machines. 

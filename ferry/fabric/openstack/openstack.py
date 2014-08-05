@@ -68,9 +68,19 @@ class OpenStackFabric(object):
 
         # Go through the network resources and find the network ID. 
         resources = self.networks[cluster_uuid]
-        for r in resources: 
+        for r in resources.values(): 
             if r["type"] == "OS::Neutron::Net":
                 return r["id"]
+
+    def _fetch_subnet(self, cluster_uuid):
+        """
+        Fetch the subnet information. 
+        """
+
+        resources = self.networks[cluster_uuid]
+        for r in resources.values(): 
+            if r["type"] == "OS::Neutron::Subnet":
+                return r
 
     def _execute_docker_containers(self, container, lxc_opts, server):
         host_map = None
@@ -168,23 +178,32 @@ class OpenStackFabric(object):
                 for p in c['ports']:
                     s = str(p).split(":")
                     if len(s) > 1:
-                        sec_group_ports.append(s[1])
+                        sec_group_ports.append( (s[1], s[1]) )
                     else:
-                        sec_group_ports.append(s[0])
+                        sec_group_ports.append( (s[0], s[0]) )
         else:
             # Since this is a backend type, we need to 
             # look at the internally exposed ports. 
             floating_ip = False
-            sec_group_ports = container_info[0]['exposed']
+            
+            # We need to create a range tuple, so check if 
+            # the exposed port is a range.
+            for p in container_info[0]['exposed']:
+                s = p.split("-")
+                if len(s) == 1:
+                    sec_group_ports.append( (s[0], s[0]) )
+                else:
+                    sec_group_ports.append( (s[0], s[1]) )
 
         # Check if this is a new cluster. If so, we'll need to create
         # a new application network. 
         network = self._fetch_network(cluster_uuid)
+        subnet = self._fetch_subnet(cluster_uuid)
 
         # Tell OpenStack to allocate the cluster. 
         resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
                                                num_instances = len(container_info), 
-                                               network = network, 
+                                               network = (network, subnet), 
                                                security_group_ports = sec_group_ports,
                                                assign_floating_ip = floating_ip,
                                                ctype = ctype)

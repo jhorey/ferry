@@ -168,7 +168,7 @@ class MongoConfig(object):
     log_directory = '/service/logs/'
     config_directory = '/service/conf/mongodb/'
     data_directory = '/service/data/'
-    MONGO_PORT = 27017
+    MONGO_PORT = '27017'
 
     def __init__(self, num):
         self.num = num

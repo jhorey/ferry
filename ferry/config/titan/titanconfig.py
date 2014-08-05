@@ -132,10 +132,10 @@ class TitanConfig(object):
     log_directory = '/service/data/logs/'
     config_directory = '/service/conf/titan/'
 
-    REXSTER_PORT = 8182
-    REXPRO_PORT = 8184
-    THRIFT_COM_PORT  = 9160
-    NATIVE_COM_PORT  = 9042
+    REXSTER_PORT = '8182'
+    REXPRO_PORT = '8184'
+    THRIFT_COM_PORT  = '9160'
+    NATIVE_COM_PORT  = '9042'
 
     def __init__(self, num):
         self.num = num

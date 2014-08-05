@@ -507,22 +507,22 @@ class HadoopConfig(object):
     tmp_directory = '/service/data/tmp'
     config_directory = '/service/conf/hadoop'
 
-    YARN_SCHEDULER = 8030
-    YARN_IPC = 8032
-    YARN_ADMIN = 8033
-    YARN_RESOURCE = 8041
-    YARN_TRACKER = 8025
-    YARN_HTTP = 8088
-    YARN_HTTPS = 8090
-    YARN_JOB_HISTORY = 10020
-    YARN_JOB_HISTORY_HTTP = 19888
-    HDFS_MASTER = 9000
-    HDFS_HTTP = 50070
-    DATA_HTTP = 50075
-    SECOND_HTTP = 50090
+    YARN_SCHEDULER = '8030'
+    YARN_IPC = '8032'
+    YARN_ADMIN = '8033'
+    YARN_RESOURCE = '8041'
+    YARN_TRACKER = '8025'
+    YARN_HTTP = '8088'
+    YARN_HTTPS = '8090'
+    YARN_JOB_HISTORY = '10020'
+    YARN_JOB_HISTORY_HTTP = '19888'
+    HDFS_MASTER = '9000'
+    HDFS_HTTP = '50070'
+    DATA_HTTP = '50075'
+    SECOND_HTTP = '50090'
     YARN_RPC_PORTS = '50100-50200'
-    HIVE_META = 9083
-    HIVE_SERVER = 10000
+    HIVE_META = '9083'
+    HIVE_SERVER = '10000'
 
     def __init__(self, num):
         self.num = num

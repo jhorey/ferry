@@ -50,6 +50,12 @@ def _get_ferry_home():
     else:
         return os.path.dirname(__file__)
 
+def _get_conf_dir():
+    if 'HOME' in os.environ:
+        return os.environ['HOME']
+    else:
+        return "/root"
+
 def _get_docker_registry():
     if 'DOCKER_REGISTRY' in os.environ:
         return os.environ['DOCKER_REGISTRY']
@@ -157,7 +163,7 @@ DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
 GLOBAL_ROOT_DIR=FERRY_HOME + '/data/key'
-DEFAULT_DOCKER_LOGIN=os.environ['HOME'] + '/.ferry.docker'
+DEFAULT_DOCKER_LOGIN=_get_conf_dir() + '/.ferry.docker'
 DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'

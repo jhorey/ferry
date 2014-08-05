@@ -18,7 +18,6 @@ import os
 import stat
 import logging
 from string import Template
-from ferry.docker.fabric import DockerFabric
 
 """
 Create Gluster configurations and apply them to a set of instances
@@ -88,9 +87,9 @@ class GlusterInitializer(object):
     def get_exposed_ports(self, num_instances):
         ports = []
         
-        ports.append(GlusterConfig.MANAGEMENT_PORT)
+        ports.append(str(GlusterConfig.MANAGEMENT_PORT))
         for i in range(0, num_instances):
-            ports.append(GlusterConfig.BRICK_PORT + i)
+            ports.append(str(GlusterConfig.BRICK_PORT + i))
 
         return ports
 

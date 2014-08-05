@@ -203,12 +203,12 @@ class CassandraConfig(object):
     cache_directory = '/service/data/cache'
     config_directory = '/service/conf/cassandra'
 
-    CLUSTER_COM_PORT = 7000
-    CLUSTER_SSL_PORT = 7001
-    THRIFT_COM_PORT  = 9160
-    NATIVE_COM_PORT  = 9042
-    JMX_PORT         = 7199
-    RMI_PORT         = 7200
+    CLUSTER_COM_PORT = '7000'
+    CLUSTER_SSL_PORT = '7001'
+    THRIFT_COM_PORT  = '9160'
+    NATIVE_COM_PORT  = '9042'
+    JMX_PORT         = '7199'
+    RMI_PORT         = '7200'
 
     def __init__(self, num):
         self.num = num

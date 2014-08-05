@@ -165,10 +165,10 @@ class SparkConfig(object):
     log_directory = '/service/packages/spark/logs/'
     config_directory = '/service/conf/spark/'
 
-    MASTER_PORT = 7077
-    SLAVE_PORT = 7078
-    WEBUI_MASTER = 8080
-    WEBUI_SLAVE = 8081
+    MASTER_PORT = '7077'
+    SLAVE_PORT = '7078'
+    WEBUI_MASTER = '8080'
+    WEBUI_SLAVE = '8081'
 
     def __init__(self, num):
         self.num = num

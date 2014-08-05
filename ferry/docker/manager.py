@@ -36,7 +36,7 @@ from ferry.docker.configfactory import ConfigFactory
 from ferry.docker.deploy        import DeployEngine
 
 class DockerManager(object):
-    SSH_PORT = 22
+    SSH_PORT = '22'
 
     def __init__(self):
         # Generate configuration.
