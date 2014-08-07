@@ -45,25 +45,17 @@ class OpenStackLauncherHeat(object):
     def _init_open_stack(self, conf_file):
         with open(conf_file, 'r') as f:
             args = yaml.load(f)
-            args = args['hp']
-            self.default_image = args['image']
-            self.ferry_volume = args['image-volume']
-            self.default_personality = args['personality']
-            self.default_storage = None
-            self.default_zone = "az3"
-            self.default_security = args['security']
-            self.manage_network = args['network']
-            self.external_network = args['extnet']
-            self.manage_router = args['router']
-            self.ssh_key = args['ssh']
-            self.ssh_user = args['ssh-user']
-            self.keystone_server = args['keystone']
-            self.neutron_server = args['neutron']
-            self.openstack_user = os.environ['OS_USERNAME']
-            self.openstack_pass = os.environ['OS_PASSWORD']
-            self.tenant_id = os.environ['OS_TENANT_ID']
-            self.tenant_name = os.environ['OS_TENANT_NAME']
-            self.auth_tok = os.environ['OS_AUTH_TOKEN']
+
+            params = args['hp']['params']
+            self.default_dc = params['dc']
+            self.default_zone = params['zone']
+
+            servers = args['hp'][self.default_dc]
+            self.manage_network = servers['network']
+            self.external_network = servers['extnet']
+            self.manage_router = servers['router']
+            self.keystone_server = servers['keystone']
+            self.neutron_server = servers['neutron']
 
             # Not all OpenStack providers include Heat yet,
             # so make it simple to pass in the Heat URL
@@ -72,6 +64,19 @@ class OpenStackLauncherHeat(object):
                 self.heat_server = os.environ['HEAT_URL']
             else:
                 self.heat_server = args['heat']
+
+            deploy = args['hp']['deploy']
+            self.default_image = deploy['image']
+            self.ferry_volume = deploy['image-volume']
+            self.default_personality = deploy['personality']
+            self.ssh_key = deploy['ssh']
+            self.ssh_user = deploy['ssh-user']
+
+            self.openstack_user = os.environ['OS_USERNAME']
+            self.openstack_pass = os.environ['OS_PASSWORD']
+            self.tenant_id = os.environ['OS_TENANT_ID']
+            self.tenant_name = os.environ['OS_TENANT_NAME']
+            self.auth_tok = os.environ['OS_TOKEN']
 
             self._init_heat_server()
 
@@ -131,8 +136,6 @@ class OpenStackLauncherHeat(object):
         Create a network (equivalent to VPC). 
         """
         cidr, _, _, _ = self._define_address_range(self.num_network_hosts)
-        self.networks[name] = { 'cidr' : cidr,
-                                'subnets' : [] }
         desc = { name : { "Type" : "OS::Neutron::Net",
                           "Properties" : { "name" : name }}}
         return desc
@@ -248,7 +251,12 @@ class OpenStackLauncherHeat(object):
                     "mount -o noatime /dev/vdb1 /ferry/data\n",
                     "export FERRY_SCRATCH=/ferry/data\n", 
                     "export FERRY_DIR=/ferry/master\n",
-                    "dhclient eth1\n"
+                    "export HOME=/root\n",
+                    "mkdir /home/ferry/.ssh\n",
+                    "cp /home/ubuntu/.ssh/authorized_keys /home/ferry/.ssh/\n",
+                    "chown -R ferry:ferry /home/ferry/.ssh\n",
+                    "dhclient eth1\n",
+                    "ferry server\n"
                   ]
               ]
           }}
@@ -464,14 +472,32 @@ class OpenStackLauncherHeat(object):
 
     def _collect_network_info(self, stack_desc):
         """
-        Collect all the ports. 
+        Collect all the networking information. 
         """
+
+        # First get the floating IP information. 
+        ip_map = {}
+        floatingips = self.neutron.list_floatingips()
+        for f in floatingips['floatingips']:
+            if f['fixed_ip_address']:
+                ip_map[f['fixed_ip_address']] = f['floating_ip_address']
+
+        logging.warning("IP MAP: " + str(ip_map))
+        # Then associate the Port IDs with the floating IP. 
         ports = self.neutron.list_ports()
         for p in ports['ports']:
             if p['name'] != "" and p['name'] in stack_desc:
                 port_desc = stack_desc[p['name']]
                 port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
                 port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
+
+                # Not all ports are associated with a floating IP, so
+                # we need to check first. 
+                if port_desc["ip_address"] in ip_map:
+                    port_desc["floating_ip"] = ip_map[port_desc["ip_address"]]
+                else:
+                    port_desc["floating_ip"] = ''
+
         return stack_desc
 
     def create_app_network(self, cluster_uuid):
@@ -529,7 +555,8 @@ class OpenStackLauncherHeat(object):
 
         # Now find all the IP addresses of the various
         # machines. 
-        return self._collect_network_info(stack_desc)
+        if stack_desc:
+            return self._collect_network_info(stack_desc)
 
     def _delete_stack(self, stack_id):
         # To delete the stack properly, we first need to disassociate
