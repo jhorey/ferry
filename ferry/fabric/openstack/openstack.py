@@ -184,8 +184,9 @@ class OpenStackFabric(object):
         else:
             # Since this is a backend type, we need to 
             # look at the internally exposed ports. 
-            floating_ip = False
-            
+            # floating_ip = False
+            floating_ip = True
+
             # We need to create a range tuple, so check if 
             # the exposed port is a range.
             for p in container_info[0]['exposed']:

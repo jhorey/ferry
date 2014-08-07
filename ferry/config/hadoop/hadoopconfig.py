@@ -19,7 +19,6 @@ import time
 import sh
 from string import Template
 from ferry.install import FERRY_HOME
-from ferry.docker.fabric import DockerFabric
 from ferry.config.hadoop.hiveconfig import *
 from ferry.config.hadoop.metastore  import *
 from ferry.config.system.info import *

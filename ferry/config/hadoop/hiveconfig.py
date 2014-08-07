@@ -17,7 +17,6 @@ import os
 import sh
 import sys
 from string import Template
-from ferry.docker.fabric import DockerFabric
 
 class HiveClientInitializer(object):
     """

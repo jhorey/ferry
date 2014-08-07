@@ -19,7 +19,6 @@ import uuid
 import datetime
 import time
 import logging
-from ferry.docker.fabric import DockerFabric
 from ferry.docker.docker import DockerInstance
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure

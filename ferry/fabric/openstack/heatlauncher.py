@@ -107,13 +107,14 @@ class OpenStackLauncherHeat(object):
         # First determine the cidr block. 
         exp = 32 - math.log(num_hosts, 2)
 
-        # Now figure out where to start counting. 
+        # Now figure out where to start counting. As a note
+        # we reserve one of the networks for management. 
         addr = [10, 0, 0, 0]
         if num_hosts < 256:
             slot = 1
         elif num_hosts < 65536:
             slot = 2
-        addr[slot] = len(self.networks)
+        addr[slot] = len(self.networks) + 1
 
         # Now set the gateway IP and address.
         gw = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], 1)
@@ -232,34 +233,22 @@ class OpenStackLauncherHeat(object):
         Create the server init process. These commands are run on the
         host after the host has booted up. 
         """
-        # user_data = {
-        #     "Fn::Base64": {
-        #       "Fn::Join": [
-        #         "",
-        #           [
-        #             "#!/bin/bash -v\n",
-        #             "umount /mnt\n", 
-        #             "parted --script /dev/vdb mklabel gpt\n", 
-        #             "parted --script /dev/vdb mkpart primary xfs 0% 100%\n", 
-        #             "mkfs.xfs /dev/vdb1\n", 
-        #             "mkdir /ferrydata\n",
-        #             "mount -o noatime /dev/vdb1 /ferrydata\n",
-        #             "chown -R ferry:ferry /ferrydata\n", 
-        #             "export FERRY_SCRATCH=/ferrydata\n", 
-        #             "export FERRY_DIR=/ferry/master\n", 
-        #             "export HOME=/root\n", 
-        #             "ferry server &\n"
-        #           ]
-        #       ]
-        #   }}
+
         user_data = {
             "Fn::Base64": {
               "Fn::Join": [
                 "",
                   [
                     "#!/bin/bash -v\n",
-                    "export FERRY_SCRATCH=/ferrydata\n", 
-                    "export FERRY_DIR=/ferry/master\n" 
+                    "umount /mnt\n", 
+                    "parted --script /dev/vdb mklabel gpt\n", 
+                    "parted --script /dev/vdb mkpart primary xfs 0% 100%\n",
+                    "mkfs.xfs /dev/vdb1\n", 
+                    "mkdir /ferry/data\n",
+                    "mount -o noatime /dev/vdb1 /ferry/data\n",
+                    "export FERRY_SCRATCH=/ferry/data\n", 
+                    "export FERRY_DIR=/ferry/master\n",
+                    "dhclient eth1\n"
                   ]
               ]
           }}
@@ -305,14 +294,16 @@ class OpenStackLauncherHeat(object):
             port_descs.append(self._create_port(port_name, network, sec_group, ref=False))
             plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }})
             desc[name]["ports"].append( port_name )
-            desc[port_name] = { "type" : "OS::Neutron::Port" }
+            desc[port_name] = { "type" : "OS::Neutron::Port",
+                                "role" : "data" }
 
         # Create a port for the manage network.
         port_name = "ferry-port-%s-manage" % name
         port_descs.append(self._create_port(port_name, manage_network, sec_group, ref=False))
         plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }}) 
         desc[name]["ports"].append(port_name)
-        desc[port_name] = { "type" : "OS::Neutron::Port" }
+        desc[port_name] = { "type" : "OS::Neutron::Port",
+                            "role" : "manage" }
 
         # Combine all the port descriptions. 
         for d in port_descs:
@@ -477,7 +468,7 @@ class OpenStackLauncherHeat(object):
         """
         ports = self.neutron.list_ports()
         for p in ports['ports']:
-            if p['name'] != "":
+            if p['name'] != "" and p['name'] in stack_desc:
                 port_desc = stack_desc[p['name']]
                 port_desc["subnet"] = p['fixed_ips'][0]['subnet_id']
                 port_desc["ip_address"] = p['fixed_ips'][0]['ip_address']
@@ -518,7 +509,7 @@ class OpenStackLauncherHeat(object):
             logging.info("creating floating IPs for %s" % cluster_uuid)
             ifaces = []
             for k in stack_desc.keys():
-                if stack_desc[k]["type"] == "OS::Neutron::Port":
+                if stack_desc[k]["type"] == "OS::Neutron::Port" and stack_desc[k]["role"] == "manage":
                     ifaces.append(k)
             ip_plan, ip_desc = self._create_floatingip_plan(cluster_uuid = cluster_uuid,
                                                             ifaces = ifaces)

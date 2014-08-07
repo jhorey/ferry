@@ -318,7 +318,6 @@ def _allocate_connectors(cluster_uuid, payload, backend_info):
             # Check if this connector type has already been pulled
             # into the local index. If not, manually pull it. 
             connector_type = c['personality']
-            logging.warning("allocating %d instances of %s" % (num_instances, connector_type))
             if not installer._check_and_pull_image(connector_type):
                 # We could not fetch this connetor. Instead of 
                 # finishing, just return an error.
