@@ -291,10 +291,6 @@ class DockerManager(object):
         Inspect a deployed stack. 
         """
         json_reply = {}
-
-        # Need to inspect the registry to make sure
-        # that all the images are available. 
-
         return json.dumps(json_reply, 
                           sort_keys=True,
                           indent=2,
@@ -316,7 +312,8 @@ class DockerManager(object):
         storage_uuids = []
         compute_uuids = []
         if cluster and 'backends' in cluster:
-            for b in cluster['backends']['uuids']:
+            backends = cluster['backends']
+            for b in backends['uuids']:
                 if b['storage'] != None:
                     storage_uuids.append(b['storage'])
 
@@ -437,11 +434,20 @@ class DockerManager(object):
             s = self.snapshot_collection.find_one( {'snapshot_uuid':v['snapshot_uuid']} )
             if s:
                 time = v['ts'].strftime("%m/%w/%Y (%I:%M %p)")
+
+            backends = []
+            if 'backends' in v:
+                backends = v['backends']['uuids']
+
+            connectors = []
+            if 'connectors' in v:
+                connectors = v['connectors']
+
             json_reply[v['uuid']] = { 'uuid' : v['uuid'],
                                       'base' : v['base'], 
                                       'ts' : time,
-                                      'backends' : v['backends']['uuids'],
-                                      'connectors': v['connectors'],
+                                      'backends' : backends,
+                                      'connectors': connectors,
                                       'status' : v['status']}
         return json.dumps(json_reply, 
                           sort_keys=True,
@@ -459,12 +465,13 @@ class DockerManager(object):
             for v in c:
                 time = v['ts'].strftime("%m/%w/%Y (%I:%M %p)")
                 c = self.cluster_collection.find_one( {'uuid':v['cluster_uuid']} )
-                
+                backends = c['backends']['uuids']
+                connectors = c['connectors']
                 json_reply[v['uuid']] = { 'uuid' : v['uuid'],
                                           'base' : c['base'], 
                                           'ts' : time,
-                                          'backends' : c['backends']['uuids'],
-                                          'connectors': c['connectors'],
+                                          'backends' : backends,
+                                          'connectors': connectors,
                                           'status': 'deployed' }
         return json.dumps(json_reply, 
                           sort_keys=True,
@@ -828,25 +835,26 @@ class DockerManager(object):
         """
         return self._new_stack_uuid()
 
-    def register_stack(self, backends, connectors, base, cluster_uuid, new_stack=True):
+    def register_stack(self, backends, connectors, base, cluster_uuid, status, new_stack=True):
         """
         Register the set of services under a single cluster identifier. 
         """
         ts = datetime.datetime.now()
         cluster = { 'uuid' : cluster_uuid,
-                    'backends':backends,
-                    'connectors':connectors,
                     'num_snapshots':0,
                     'snapshot_ts':'', 
                     'snapshot_uuid':base, 
                     'base':base,
-                    'status': 'running',
+                    'backends' : backends,
+                    'connectors' : connectors, 
+                    'status': status,
                     'ts':ts }
 
         if new_stack:
             self.cluster_collection.insert( cluster )
         else:
-            self._update_stack(uuid, cluster)
+            self.cluster_collection.remove( {'uuid' : cluster_uuid} )
+            self.cluster_collection.insert( cluster )
 
     def _update_stack(self, cluster_uuid, state):
         """
@@ -963,7 +971,7 @@ class DockerManager(object):
 
             # Register the snapshot in the snapshot state. 
             snapshot_uuid = self._new_snapshot_uuid(cluster_uuid)
-            snapshot_ts = datetime.datetime.now()
+            snapshot_ts = str(datetime.datetime.now())
             snapshot_state = { 'snapshot_ts' : snapshot_ts, 
                                'snapshot_uuid' : snapshot_uuid,
                                'snapshot_cs' : cs_snapshots,
@@ -1067,7 +1075,8 @@ class DockerManager(object):
                 return service.restart_service(containers, entry_point, self.docker)
             else:
                 all_output = {}
-                for backend in service_info['backends']:
+                backends = service_info['backends']
+                for backend in backends:
                     if 'client' in self.service[backend]:
                         service = self.service[backend]['client']
                         output = service.restart_service(containers, entry_point, self.docker)
@@ -1088,7 +1097,8 @@ class DockerManager(object):
                 service = self._get_service(service_type)
                 service.stop_service(containers, entry_point, self.docker)
             else:
-                for backend in service_info['backends']:
+                backends = service_info['backends']
+                for backend in backends:
                     if 'client' in self.service[backend]:
                         service = self.service[backend]['client']
                         service.stop_service(containers, entry_point, self.docker)
@@ -1237,7 +1247,8 @@ class DockerManager(object):
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
             backends = []
-            for i, uuid in enumerate(cluster['backends']['uuids']):
+            backends = cluster['backends']
+            for i, uuid in enumerate(backends):
                 storage_uuid = uuid['storage']
                 storage_conf = self._get_service_configuration(storage_uuid, 
                                                                detailed=True)
@@ -1259,7 +1270,7 @@ class DockerManager(object):
         """
         snapshot = self.cluster_collection.find_one( {'snapshot_uuid':snapshot_uuid} )
         if snapshot:
-            return snapshot['backends']['backend']
+            return snapshot['backends']
 
     def fetch_deployed_backend(self, app_uuid, conf=None):
         """
@@ -1270,7 +1281,7 @@ class DockerManager(object):
                                 conf = conf )
         stack = self.cluster_collection.find_one( {'uuid':app['cluster_uuid'] } )
         if stack:
-            return stack['backends']['backend']
+            return stack['backends']
 
     def allocate_stopped_connectors(self, 
                                      app_uuid, 
@@ -1283,7 +1294,8 @@ class DockerManager(object):
         connector_plan = []
         cluster = self.cluster_collection.find_one( {'uuid':app_uuid} )
         if cluster:
-            for cuid in cluster['connectors']:
+            connectors = cluster['connectors']
+            for cuid in connectors:
                 # Retrieve the actual service information. This will
                 # contain the container ID. 
                 s = self._get_service_configuration(cuid, detailed=True)

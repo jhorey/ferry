@@ -34,10 +34,24 @@ class OpenStackFabric(object):
 
         self.cli = DockerCLI()
         self.cli.docker_user = self.heat.ssh_user
-        self.cli.key = self._get_private_key(self.heat.ssh_key)
+        self.cli.key = self._get_host_key()
 
-    def _get_private_key(self, public_key):
-        return "/ferry/keys/" + public_key + ".pem"
+    def _read_key_dir(self):
+        """
+        Read the location of the directory containing the keys
+        used to communicate with the containers. 
+        """
+        keydir = ferry.install._get_key_dir(root=self.bootstrap, server=True)
+        with open(keydir, 'r') as f: 
+            k = f.read().strip().split("://")
+            return k[1], k[0]
+
+    def _get_host_key(self):
+        return "/ferry/keys/" + self.heat.ssh_key + ".pem"
+
+    def _get_container_key(self):
+        keydir, _ = self._read_key_dir()
+        return keydir + "/id_rsa.pub'
 
     def version(self):
         """
@@ -82,6 +96,13 @@ class OpenStackFabric(object):
             if r["type"] == "OS::Neutron::Subnet":
                 return r
 
+    def _copy_public_keys(self, server):
+        """
+        Copy over the ssh keys to the server so that we can start the
+        container correctly. 
+        """
+        self.copy_raw(server, self._get_container_key(), self._get_key_dir())
+
     def _execute_docker_containers(self, container, lxc_opts, server):
         host_map = None
         host_map_keys = []
@@ -100,8 +121,7 @@ class OpenStackFabric(object):
                                  lxc_opts = lxc_opts,
                                  server = server)
         if container:
-            container.default_user = self.docker_user
-            containers.append(container)
+            container.default_user = self.cli.docker_user
             if not 'netenable' in c:
                 container.internal_ip = ip
                 self.network.set_owner(ip, container.container)
@@ -129,15 +149,13 @@ class OpenStackFabric(object):
             if port_desc["subnet"] == subnet_id:
                 return port_desc["ip_address"]
 
-    def _get_public_ip(self, server, subnet, resources):
+    def _get_public_ip(self, server, resources):
         """
         Get the IP address associated with the supplied server. 
         """
-        ip = self._get_private_ip(server_info, subnet["id"], resources)
-
         for port_name in server["ports"]:
             port_desc = resources[port_name]
-            if port_desc["subnet"] == subnet["id"] and "floating_ip" in port_desc:
+            if "floating_ip" in port_desc:
                 return port_desc["floating_ip"]
 
     def _get_subnet(self, network_info):
@@ -168,9 +186,16 @@ class OpenStackFabric(object):
                     "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
                     "lxc.network.link = eth1",
-                    "lxc.network.name = eth1"
+                    "lxc.network.name = eth1", 
                     "lxc.network.flags = up"]
         return lxc_opts
+
+    def status(self, cluster_uuid):
+        """
+        Return the status of the cluster. The status can be 
+        BUILDING, READY, or FAILED
+        """
+        return "READY"
 
     def alloc(self, cluster_uuid, container_info, ctype):
         """
@@ -231,20 +256,19 @@ class OpenStackFabric(object):
             for i in range(0, len(container_info)):
                 # Fetch a server to run the Docker commands. 
                 server = servers[i]
-                logging.warning("USING SERVER: " + str(server))
 
                 # Get the LXC networking options
                 lxc_opts = self._get_net_info(server, subnet, resources)
-                logging.warning("USING LXC: " + str(lxc_opts))
 
-                public_ip = self._get_public_ip(server, subnet, resources)
-                logging.warning("USING PUBLIC IP: " + str(server))
+                # Now get an addressable IP address. Normally we would use
+                # a private IP address since we should be operating in the same VPC.
+                public_ip = self._get_public_ip(server, resources)
+                self._copy_public_keys(public_ip)
                 container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, public_ip)
                 
                 if container:
-                    logging.warning("GOT CONTAINER")
-                    containers.append(container)
                     mounts = dict(mounts.items() + cmounts.items())
+                    # containers.append(container)
 
         # # Check if we need to set the file permissions
         # # for the mounted volumes. 
@@ -277,10 +301,15 @@ class OpenStackFabric(object):
         """
         Copy over the contents to each container
         """
-        logging.warning("copy " + str(containers))
+        for c in containers:
+            self.copy_raw(c.internal_ip, from_dir, to_dir)
 
     def copy_raw(self, ip, from_dir, to_dir):
-        logging.warning("copy raw " + str(ip))
+        opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        key = '-i ' + self.cli.key
+        scp = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.cli.docker_user + '@' + ip + ':' + to_dir
+        logging.warning(scp)
+        output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
 
     def cmd(self, containers, cmd):
         """

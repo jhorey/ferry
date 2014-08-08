@@ -440,7 +440,9 @@ class Installer(object):
                      }
         mongoconf = self.mongo.generate(1)
         mongoconf.uuid = 'fdb-' + str(uuid.uuid4()).split('-')[0]
-        mongobox = self.fabric.alloc([mongoplan])[0]
+        mongobox = self.fabric.alloc(mongoconf.uuid,
+                                     [mongoplan], 
+                                     "MONGO")[0]
         if not mongobox:
             logging.error("Could not start MongoDB image")
             sys.exit(1)

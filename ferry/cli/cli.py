@@ -699,8 +699,9 @@ class CLI(object):
 
     def _format_output(self, reply):
         output = reply['text'] + "\n"
-        for c in reply['msgs'].keys():
-            output += "%s: %s\n" % (c, reply['msgs'][c])
+        if 'msgs' in reply:
+            for c in reply['msgs'].keys():
+                output += "%s: %s\n" % (c, reply['msgs'][c])
         return output
         
     def dispatch_cmd(self, cmd, args, options):

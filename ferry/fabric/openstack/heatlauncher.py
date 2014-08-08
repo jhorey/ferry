@@ -63,7 +63,7 @@ class OpenStackLauncherHeat(object):
             if 'HEAT_URL' in os.environ:
                 self.heat_server = os.environ['HEAT_URL']
             else:
-                self.heat_server = args['heat']
+                self.heat_server = servers['heat']
 
             deploy = args['hp']['deploy']
             self.default_image = deploy['image']
@@ -138,6 +138,7 @@ class OpenStackLauncherHeat(object):
         cidr, _, _, _ = self._define_address_range(self.num_network_hosts)
         desc = { name : { "Type" : "OS::Neutron::Net",
                           "Properties" : { "name" : name }}}
+        self.networks[name] = { 'subnets' : [] }
         return desc
 
     def _create_subnet(self, name, network):
@@ -248,10 +249,12 @@ class OpenStackLauncherHeat(object):
                     "parted --script /dev/vdb mkpart primary xfs 0% 100%\n",
                     "mkfs.xfs /dev/vdb1\n", 
                     "mkdir /ferry/data\n",
+                    "mkdir /ferry/keys\n",
                     "mount -o noatime /dev/vdb1 /ferry/data\n",
                     "export FERRY_SCRATCH=/ferry/data\n", 
                     "export FERRY_DIR=/ferry/master\n",
                     "export HOME=/root\n",
+                    "export USER=root\n",
                     "mkdir /home/ferry/.ssh\n",
                     "cp /home/ubuntu/.ssh/authorized_keys /home/ferry/.ssh/\n",
                     "chown -R ferry:ferry /home/ferry/.ssh\n",
@@ -482,8 +485,9 @@ class OpenStackLauncherHeat(object):
             if f['fixed_ip_address']:
                 ip_map[f['fixed_ip_address']] = f['floating_ip_address']
 
-        logging.warning("IP MAP: " + str(ip_map))
-        # Then associate the Port IDs with the floating IP. 
+        # Now fill in the various networking information, including
+        # subnet, IP address, and floating address. We should also
+        # probably collect MAC addresseses..
         ports = self.neutron.list_ports()
         for p in ports['ports']:
             if p['name'] != "" and p['name'] in stack_desc:
@@ -495,9 +499,7 @@ class OpenStackLauncherHeat(object):
                 # we need to check first. 
                 if port_desc["ip_address"] in ip_map:
                     port_desc["floating_ip"] = ip_map[port_desc["ip_address"]]
-                else:
-                    port_desc["floating_ip"] = ''
-
+                    logging.warning("FLOATING IP: " + str(port_desc["floating_ip"]))
         return stack_desc
 
     def create_app_network(self, cluster_uuid):

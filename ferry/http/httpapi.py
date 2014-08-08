@@ -27,6 +27,26 @@ app = Flask(__name__)
 installer = Installer()
 docker = DockerManager()
 
+import threading2
+import Queue
+import time
+
+
+
+"""
+Worker thread for starting new stacks. 
+"""
+def _alloc_new_stacks():
+    while(True):
+        payload = _new_queue.get()
+        reply = _allocate_new_worker(payload["_uuid"], payload)
+        time.sleep(2)
+
+_new_queue = Queue.Queue()
+_new_stack_worker = threading2.Thread(target=_alloc_new_stacks)
+_new_stack_worker.daemon = True
+_new_stack_worker.start()
+
 """
 Fetch the current information for a particular filesystem. 
 """
@@ -44,7 +64,6 @@ def query_storage():
 
     # Return the JSON reply.
     return status.json()
-
 
 """
 Fetch the current docker version
@@ -462,6 +481,24 @@ def _allocate_new(payload):
     """
     reply = {}
     uuid = docker.reserve_stack()
+    payload["_uuid"] = str(uuid)
+    _new_queue.put(payload)
+    docker.register_stack(backends = { 'uuids':[] }, 
+                          connectors = [], 
+                          base = payload['_file'], 
+                          cluster_uuid = uuid, 
+                          status='building',
+                          new_stack=True)
+
+    return json.dumps({ 'text' : str(uuid),
+                        'status' : 'building' })
+
+def _allocate_new_worker(uuid, payload):
+    """
+    Helper function to allocate and start a new stack. 
+    """
+    reply = {}
+    # uuid = docker.reserve_stack()
     backend_info, backend_plan = _allocate_backend(cluster_uuid = uuid,
                                                    payload = payload, 
                                                    replace=True,
@@ -478,12 +515,19 @@ def _allocate_new(payload):
                                   connectors = connector_info, 
                                   base = payload['_file'], 
                                   cluster_uuid = uuid, 
-                                  new_stack=True)
+                                  status='running', 
+                                  new_stack=False)
             reply['text'] = str(uuid)
             reply['msgs'] = output
         else:
             # One or more connectors was not instantiated properly. 
             docker.cancel_stack(backend_info, connector_info)
+            docker.register_stack(backends = { 'uuids':[] }, 
+                                  connectors =  = [], 
+                                  base = payload['_file'], 
+                                  cluster_uuid = uuid, 
+                                  status='failed', 
+                                  new_stack=False)
             reply['status'] = 'failed'
     else:
         reply['questions'] = backend_info['query']
@@ -507,6 +551,7 @@ def _allocate_stopped(payload):
                               connectors = connector_info,
                               base = base,
                               cluster_uuid = uuid,
+                              status='running', 
                               new_stack = False)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
@@ -530,6 +575,7 @@ def _allocate_snapshot(payload):
                               connectors = connector_info, 
                               base = payload['_file'],
                               cluster_uuid = uuid,
+                              status='running', 
                               new_stack = True)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
@@ -555,6 +601,7 @@ def _allocate_deployed(payload, params=None):
                               connectors = connector_info, 
                               base = payload['_file'],
                               cluster_uuid = uuid,
+                              status='running', 
                               new_stack = True)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
@@ -676,8 +723,6 @@ def logs():
     to_dir = request.args['dir']
     return docker.copy_logs(stack_uuid, to_dir)
 
-"""
-"""
 @app.route('/deploy', methods=['POST'])
 def deploy_stack():
     stack_uuid = request.form['uuid']

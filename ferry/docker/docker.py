@@ -105,7 +105,7 @@ class DockerCLI(object):
         self.registry = registry
         self.docker_user = 'root'
 
-    def _execute_cmd(self, cmd, server, read_output=True):
+    def _execute_cmd(self, cmd, server=None, read_output=True):
         """
         Execute the command on the server via ssh. 
         """
@@ -353,9 +353,6 @@ class DockerCLI(object):
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
         output, error = self._execute_cmd(cmd, server)
-        logging.warning("OUTPUT:" + str(output))
-        logging.warning("ERROR:" + str(error))
-
         err = error.strip()
         if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
             logging.error("Ferry docker daemon does not appear to be running")
