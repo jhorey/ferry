@@ -523,7 +523,7 @@ def _allocate_new_worker(uuid, payload):
             # One or more connectors was not instantiated properly. 
             docker.cancel_stack(backend_info, connector_info)
             docker.register_stack(backends = { 'uuids':[] }, 
-                                  connectors =  = [], 
+                                  connectors = [], 
                                   base = payload['_file'], 
                                   cluster_uuid = uuid, 
                                   status='failed', 

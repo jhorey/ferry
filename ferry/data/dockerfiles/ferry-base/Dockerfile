@@ -36,6 +36,10 @@ RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-passwor
 RUN ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' > /dev/null
 RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config;touch /etc/mtab
 
+# Disable UsePAM in the sshd config. 
+RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+RUN sed -ri 's/#UsePAM no/UsePAM no/g' /etc/ssh/sshd_config
+
 ADD ./setup /service/sbin/
 ADD ./halt01.sh /service/sbin/
 ADD ./init01.sh /service/sbin/

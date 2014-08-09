@@ -296,26 +296,28 @@ class OpenStackLauncherHeat(object):
                           "ports" : [],
                           "volumes" : [] }}
 
-        # Create a port in each data network. 
+        # Create a port for the manage network.
         port_descs = []
+        port_name = "ferry-port-%s-manage" % name
+        port_descs.append(self._create_port(port_name, manage_network, sec_group, ref=False))
+        plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name },
+                                                      "network" : manage_network}) 
+        desc[name]["ports"].append(port_name)
+        desc[port_name] = { "type" : "OS::Neutron::Port",
+                            "role" : "manage" }
+                                                      
+        # Create a port in each data network. 
         for n in data_networks:
             network = n[0]
             subnet = n[1]
             port_name = "ferry-port-%s-%s" % (name, network)
             port_descs.append(self._create_port(port_name, network, sec_group, ref=False))
             plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }})
+                                                          
             desc[name]["ports"].append( port_name )
             desc[port_name] = { "type" : "OS::Neutron::Port",
                                 "role" : "data" }
-
-        # Create a port for the manage network.
-        port_name = "ferry-port-%s-manage" % name
-        port_descs.append(self._create_port(port_name, manage_network, sec_group, ref=False))
-        plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }}) 
-        desc[name]["ports"].append(port_name)
-        desc[port_name] = { "type" : "OS::Neutron::Port",
-                            "role" : "manage" }
-
+                                                          
         # Combine all the port descriptions. 
         for d in port_descs:
             plan = dict(plan.items() + d.items())
@@ -368,17 +370,16 @@ class OpenStackLauncherHeat(object):
         subnet_name = "ferry-sub-%s" % cluster_uuid
         public_subnet, subnet_desc = self._create_subnet(subnet_name, network_name)
 
-        # Creating an interface between the public router and
-        # the new subnet will make this network public. 
-        iface_name = "ferry-iface-%s" %  cluster_uuid
-        router, router_desc = self._create_router_interface(iface_name, self.manage_router, subnet_name)
+        # # Creating an interface between the public router and
+        # # the new subnet will make this network public. 
+        # iface_name = "ferry-iface-%s" %  cluster_uuid
+        # router, router_desc = self._create_router_interface(iface_name, self.manage_router, subnet_name)
 
         plan["Resources"] = dict(plan["Resources"].items() + network.items())
         plan["Resources"] = dict(plan["Resources"].items() + public_subnet.items())
-        plan["Resources"] = dict(plan["Resources"].items() + router.items())
+        # plan["Resources"] = dict(plan["Resources"].items() + router.items())
         desc = { network_name : { "type" : "OS::Neutron::Net" },
-                 subnet_name : subnet_desc,
-                 iface_name : router_desc }
+                 subnet_name : subnet_desc }
 
         logging.info("create Heat network: " + str(desc))
         return plan, desc

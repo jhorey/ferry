@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import ferry.install
 from ferry.docker.docker import DockerCLI
 from ferry.fabric.openstack.heatlauncher import OpenStackLauncherHeat
 import json
@@ -32,6 +33,7 @@ class OpenStackFabric(object):
         self.config = config
         self.heat = OpenStackLauncherHeat(self.config)
 
+        self.bootstrap = bootstrap
         self.cli = DockerCLI()
         self.cli.docker_user = self.heat.ssh_user
         self.cli.key = self._get_host_key()
@@ -51,7 +53,7 @@ class OpenStackFabric(object):
 
     def _get_container_key(self):
         keydir, _ = self._read_key_dir()
-        return keydir + "/id_rsa.pub'
+        return keydir + "/id_rsa.pub"
 
     def version(self):
         """
@@ -101,7 +103,7 @@ class OpenStackFabric(object):
         Copy over the ssh keys to the server so that we can start the
         container correctly. 
         """
-        self.copy_raw(server, self._get_container_key(), self._get_key_dir())
+        self.copy_raw(server, self._get_container_key(), "/ferry/keys/")
 
     def _execute_docker_containers(self, container, lxc_opts, server):
         host_map = None
@@ -111,7 +113,7 @@ class OpenStackFabric(object):
         container = self.cli.run(service_type = container['type'], 
                                  image = container['image'], 
                                  volumes = container['volumes'],
-                                 keys = container['keys'], 
+                                 keys = { '/service/keys' : '/ferry/keys' }, 
                                  open_ports = host_map_keys,
                                  host_map = host_map, 
                                  expose_group = container['exposed'], 
