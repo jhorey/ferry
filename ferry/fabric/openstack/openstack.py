@@ -162,8 +162,10 @@ class OpenStackFabric(object):
         """
         Safe stop the containers. 
         """
-        cmd = '/service/sbin/startnode halt'
         logging.warning("halting " + str(containers))
+        cmd = '/service/sbin/startnode halt'
+        for c in containers:
+            self.cmd_raw(c.internal_ip, cmd)
 
     def remove(self, containers):
         """
@@ -189,10 +191,20 @@ class OpenStackFabric(object):
         """
         Run a command on all the containers and collect the output. 
         """
-        return {}
+        all_output = {}
+        for c in containers:
+            output = self.cmd_raw(c.internal_ip, cmd)
+            all_output[c.host_name] = output.strip()
+        return all_output
 
     def cmd_raw(self, ip, cmd):
-        logging.warning("cmd raw " + str(ip))
+        opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        key = '-i ' + self.cli.key
+        ip = self.docker_user + '@' + ip
+        ssh = 'ssh ' + opts + ' ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+        logging.warning(ssh)
+        output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
+        return output
 
 class OpenStackInspector(object):
     def __init__(self, os):
