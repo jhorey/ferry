@@ -15,7 +15,6 @@
 
 import ferry.install
 from ferry.docker.docker import DockerInstance, DockerCLI
-from ferry.fabric.openstack.heatlauncher import OpenStackLauncherHeat
 import json
 import logging
 from subprocess import Popen, PIPE
@@ -27,8 +26,6 @@ class OpenStackFabric(object):
     def __init__(self, config=None, bootstrap=False):
         self.name = "openstack"
         self.repo = 'public'
-        self.networks = {}
-        self.apps = {}
 
         # Initialize the launcher and data networks. 
         self.config = config
@@ -44,8 +41,6 @@ class OpenStackFabric(object):
         """
         Dynamically load a class
         """
-        # Construct the full module path. This lets us filter out only
-        # the deployment engines and ignore all the other imported packages. 
         s = class_name.split("/")
         module_path = s[0]
         clazz_name = s[1]
@@ -53,7 +48,7 @@ class OpenStackFabric(object):
         for n, o in inspect.getmembers(module):
             if inspect.isclass(o):
                 if o.__module__ == module_path and o.__name__ == clazz_name:
-                    return o(self.config)
+                    return o(self, self.config)
         return None
 
     def _init_openstack(self, conf_file):
@@ -64,7 +59,7 @@ class OpenStackFabric(object):
             # launching into different OpenStack environments that each
             # may be slightly different (HP Cloud, Rackspace, etc). 
             launcher = args["system"]["mode"]
-            self.heat = self._load_class(launcher)
+            self.launcher = self._load_class(launcher)
 
             # The name of the data network device (eth*). 
             self.data_network = args["system"]["network"]
@@ -104,31 +99,6 @@ class OpenStackFabric(object):
         """
         return []
 
-    def _fetch_network(self, cluster_uuid):
-        """
-        Check if this is a new cluster. If so, create
-        a new application network. Otherwise, return
-        the existing network. 
-        """
-        if not cluster_uuid in self.networks:
-            self.networks[cluster_uuid] = self.heat.create_app_network(cluster_uuid)
-
-        # Go through the network resources and find the network ID. 
-        resources = self.networks[cluster_uuid]
-        for r in resources.values(): 
-            if r["type"] == "OS::Neutron::Net":
-                return r
-
-    def _fetch_subnet(self, cluster_uuid):
-        """
-        Fetch the subnet information. 
-        """
-
-        resources = self.networks[cluster_uuid]
-        for r in resources.values(): 
-            if r["type"] == "OS::Neutron::Subnet":
-                return r
-
     def _copy_public_keys(self, server):
         """
         Copy over the ssh keys to the server so that we can start the
@@ -136,7 +106,7 @@ class OpenStackFabric(object):
         """
         self.copy_raw(server, self._get_container_key(), "/ferry/keys/")
 
-    def _execute_docker_containers(self, container, lxc_opts, private_ip, public_ip):
+    def execute_docker_containers(self, container, lxc_opts, private_ip, public_ip):
         host_map = None
         host_map_keys = []
         mounts = {}
@@ -175,136 +145,12 @@ class OpenStackFabric(object):
         else:
             return None, None
 
-    def _get_private_ip(self, server, subnet_id, resources):
-        """
-        Get the IP address associated with the supplied server. 
-        """
-        for port_name in server["ports"]:
-            port_desc = resources[port_name]
-            if port_desc["subnet"] == subnet_id:
-                return port_desc["ip_address"]
-
-    def _get_public_ip(self, server, resources):
-        """
-        Get the IP address associated with the supplied server. 
-        """
-        for port_name in server["ports"]:
-            port_desc = resources[port_name]
-            if "floating_ip" in port_desc:
-                return port_desc["floating_ip"]
-
-    def _get_subnet(self, network_info):
-        """
-        Get the subnet information. 
-        """
-        logging.warning("NET INFO: " + str(network_info))
-        for r in network_info["subnets"]: 
-            return r
-
-    def _get_servers(self, resources):
-        servers = []
-        for r in resources.values(): 
-            if r["type"] == "OS::Nova::Server":
-                servers.append(r)
-        return servers
-
-    def _get_net_info(self, server_info, subnet, resources):
-        """
-        Look up the IP address, gateway, and subnet range. 
-        """
-        cidr = subnet["cidr"].split("/")[1]
-        ip = self._get_private_ip(server_info, subnet["id"], resources)
-
-        # We want to use the host NIC, so modify LXC to use phys networking, and
-        # then start the docker containers on the server. 
-        lxc_opts = ["lxc.network.type = phys",
-                    "lxc.network.ipv4 = %s/%s" % (ip, cidr),
-                    "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
-                    "lxc.network.link = %s" % self.data_network,
-                    "lxc.network.name = eth0", 
-                    "lxc.network.flags = up"]
-        return lxc_opts, ip
 
     def alloc(self, cluster_uuid, container_info, ctype):
         """
         Allocate a new cluster. 
         """
-
-        # Now take the cluster and create the security group
-        # to expose all the right ports. 
-        sec_group_ports = []
-        if ctype == "connector": 
-            # Since this is a connector, we need to expose
-            # the public ports. For now, we ignore the host port. 
-            floating_ip = True
-            for c in container_info:
-                for p in c['ports']:
-                    s = str(p).split(":")
-                    if len(s) > 1:
-                        sec_group_ports.append( (s[1], s[1]) )
-                    else:
-                        sec_group_ports.append( (s[0], s[0]) )
-        else:
-            # Since this is a backend type, we need to 
-            # look at the internally exposed ports. 
-            # floating_ip = False
-            floating_ip = True
-
-            # We need to create a range tuple, so check if 
-            # the exposed port is a range.
-            for p in container_info[0]['exposed']:
-                s = p.split("-")
-                if len(s) == 1:
-                    sec_group_ports.append( (s[0], s[0]) )
-                else:
-                    sec_group_ports.append( (s[0], s[1]) )
-
-        # Check if this is a new cluster. If so, we'll need to create
-        # a new application network. 
-        network = self._fetch_network(cluster_uuid)
-        network_id = network["id"]
-        subnet = self._fetch_subnet(cluster_uuid)
-
-        # Tell OpenStack to allocate the cluster. 
-        resources = self.heat.create_app_stack(cluster_uuid = cluster_uuid, 
-                                               num_instances = len(container_info), 
-                                               network = (network_id, subnet), 
-                                               security_group_ports = sec_group_ports,
-                                               assign_floating_ip = floating_ip,
-                                               ctype = ctype)
-        
-        # Now we need to ask the cluster to start the 
-        # Docker containers.
-        containers = []
-        mounts = {}
-
-        if resources:
-            self.apps[cluster_uuid] = resources
-            servers = self._get_servers(resources)
-            for i in range(0, len(container_info)):
-                # Fetch a server to run the Docker commands. 
-                server = servers[i]
-
-                # Get the LXC networking options
-                lxc_opts, private_ip = self._get_net_info(server, subnet, resources)
-
-                # Now get an addressable IP address. Normally we would use
-                # a private IP address since we should be operating in the same VPC.
-                public_ip = self._get_public_ip(server, resources)
-                self._copy_public_keys(public_ip)
-                container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
-                
-                if container:
-                    mounts = dict(mounts.items() + cmounts.items())
-                    # containers.append(container)
-
-        # # Check if we need to set the file permissions
-        # # for the mounted volumes. 
-        # for c, i in mounts.items():
-        #     for _, v in i['vols']:
-        #         self.cmd([c], 'chown -R %s %s' % (i['user'], v))
-
-        return containers
+        return self.launcher.alloc(cluster_uuid, container_info, ctype)
 
     def stop(self, containers):
         """

@@ -24,22 +24,28 @@ import sys
 import time
 import yaml
 
-class OpenStackLauncherHeat(object):
+class MultiLauncher(object):
     """
-    Launches new instances/networks on an OpenStack
-    cluster and initializes the instances to run Ferry processes. 
+    Launches new Ferry containers on an OpenStack cluster.
+
+    Unlike the single-launcher, the application is launched into
+    a new data network (i.e., VPC). This makes it more suitable
+    for situations in which multiple users may share a single
+    OpenStack account. However, the OpenStack provider must support
+    multiple networks/NICS. 
     """
-    def __init__(self, conf_file):
+    def __init__(self, controller, conf_file):
         self.docker_registry = None
         self.docker_user = None
         self.heat_server = None
         self.openstack_key = None
 
         self.networks = {}
-        self.stacks = {}
+        self.apps = {}
         self.num_network_hosts = 128
         self.num_subnet_hosts = 32
 
+        self.controller = controller
         self._init_open_stack(conf_file)
 
     def _init_open_stack(self, conf_file):
@@ -511,7 +517,7 @@ class OpenStackLauncherHeat(object):
                     logging.warning("FLOATING IP: " + str(port_desc["floating_ip"]))
         return stack_desc
 
-    def create_app_network(self, cluster_uuid):
+    def _create_app_network(self, cluster_uuid):
         """
         Create a network for a new application. 
         """
@@ -520,7 +526,32 @@ class OpenStackLauncherHeat(object):
         return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
 
 
-    def create_app_stack(self, cluster_uuid, num_instances, network, security_group_ports, assign_floating_ip, ctype):
+    def _fetch_network(self, cluster_uuid):
+        """
+        Check if this is a new cluster. If so, create
+        a new application network. Otherwise, return
+        the existing network. 
+        """
+        if not cluster_uuid in self.networks:
+            self.networks[cluster_uuid] = self._create_app_network(cluster_uuid)
+
+        # Go through the network resources and find the network ID. 
+        resources = self.networks[cluster_uuid]
+        for r in resources.values(): 
+            if r["type"] == "OS::Neutron::Net":
+                return r
+
+    def _fetch_subnet(self, cluster_uuid):
+        """
+        Fetch the subnet information. 
+        """
+
+        resources = self.networks[cluster_uuid]
+        for r in resources.values(): 
+            if r["type"] == "OS::Neutron::Subnet":
+                return r
+
+    def _create_app_stack(self, cluster_uuid, num_instances, network, security_group_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
         security groups, and floating IPs. 
@@ -569,6 +600,136 @@ class OpenStackLauncherHeat(object):
         if stack_desc:
             return self._collect_network_info(stack_desc)
 
+    def _get_private_ip(self, server, subnet_id, resources):
+        """
+        Get the IP address associated with the supplied server. 
+        """
+        for port_name in server["ports"]:
+            port_desc = resources[port_name]
+            if port_desc["subnet"] == subnet_id:
+                return port_desc["ip_address"]
+
+    def _get_public_ip(self, server, resources):
+        """
+        Get the IP address associated with the supplied server. 
+        """
+        for port_name in server["ports"]:
+            port_desc = resources[port_name]
+            if "floating_ip" in port_desc:
+                return port_desc["floating_ip"]
+
+    def _get_subnet(self, network_info):
+        """
+        Get the subnet information. 
+        """
+        logging.warning("NET INFO: " + str(network_info))
+        for r in network_info["subnets"]: 
+            return r
+
+    def _get_servers(self, resources):
+        servers = []
+        for r in resources.values(): 
+            if r["type"] == "OS::Nova::Server":
+                servers.append(r)
+        return servers
+
+    def _get_net_info(self, server_info, subnet, resources):
+        """
+        Look up the IP address, gateway, and subnet range. 
+        """
+        cidr = subnet["cidr"].split("/")[1]
+        ip = self._get_private_ip(server_info, subnet["id"], resources)
+
+        # We want to use the host NIC, so modify LXC to use phys networking, and
+        # then start the docker containers on the server. 
+        lxc_opts = ["lxc.network.type = phys",
+                    "lxc.network.ipv4 = %s/%s" % (ip, cidr),
+                    "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
+                    "lxc.network.link = %s" % self.data_network,
+                    "lxc.network.name = eth0", 
+                    "lxc.network.flags = up"]
+        return lxc_opts, ip
+
+    def alloc(self, cluster_uuid, container_info, ctype):
+        """
+        Allocate a new cluster. 
+        """
+
+        # Now take the cluster and create the security group
+        # to expose all the right ports. 
+        sec_group_ports = []
+        if ctype == "connector": 
+            # Since this is a connector, we need to expose
+            # the public ports. For now, we ignore the host port. 
+            floating_ip = True
+            for c in container_info:
+                for p in c['ports']:
+                    s = str(p).split(":")
+                    if len(s) > 1:
+                        sec_group_ports.append( (s[1], s[1]) )
+                    else:
+                        sec_group_ports.append( (s[0], s[0]) )
+        else:
+            # Since this is a backend type, we need to 
+            # look at the internally exposed ports. 
+            floating_ip = False
+
+            # We need to create a range tuple, so check if 
+            # the exposed port is a range.
+            for p in container_info[0]['exposed']:
+                s = p.split("-")
+                if len(s) == 1:
+                    sec_group_ports.append( (s[0], s[0]) )
+                else:
+                    sec_group_ports.append( (s[0], s[1]) )
+
+        # Check if this is a new cluster. If so, we'll need to create
+        # a new application network. 
+        network = self._fetch_network(cluster_uuid)
+        network_id = network["id"]
+        subnet = self._fetch_subnet(cluster_uuid)
+
+        # Tell OpenStack to allocate the cluster. 
+        resources = self._create_app_stack(cluster_uuid = cluster_uuid, 
+                                           num_instances = len(container_info), 
+                                           network = (network_id, subnet), 
+                                           security_group_ports = sec_group_ports,
+                                           assign_floating_ip = floating_ip,
+                                           ctype = ctype)
+        
+        # Now we need to ask the cluster to start the 
+        # Docker containers.
+        containers = []
+        mounts = {}
+
+        if resources:
+            self.apps[cluster_uuid] = resources
+            servers = self._get_servers(resources)
+            for i in range(0, len(container_info)):
+                # Fetch a server to run the Docker commands. 
+                server = servers[i]
+
+                # Get the LXC networking options
+                lxc_opts, private_ip = self._get_net_info(server, subnet, resources)
+
+                # Now get an addressable IP address. Normally we would use
+                # a private IP address since we should be operating in the same VPC.
+                public_ip = self._get_public_ip(server, resources)
+                self._copy_public_keys(public_ip)
+                container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
+                
+                if container:
+                    mounts = dict(mounts.items() + cmounts.items())
+                    # containers.append(container)
+
+        # # Check if we need to set the file permissions
+        # # for the mounted volumes. 
+        # for c, i in mounts.items():
+        #     for _, v in i['vols']:
+        #         self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+
+        return containers
+
     def _delete_stack(self, stack_id):
         # To delete the stack properly, we first need to disassociate
         # the floating IPs. 
@@ -580,10 +741,3 @@ class OpenStackLauncherHeat(object):
 
         # Now delete the stack. 
         self.heat.stacks.delete(stack_id)
-
-# def main():
-#     fabric = OpenStackLauncherHeat(sys.argv[1])
-#     fabric.test_neutron()
-
-# if __name__ == "__main__":
-#     main()

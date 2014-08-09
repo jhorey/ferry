@@ -32,15 +32,15 @@ class SingleLauncher(object):
     network for all communication. This makes it suitable for OpenStack
     environments that only support a single network (i.e., HP Cloud). 
     """
-    def __init__(self, conf_file):
+    def __init__(self, controller, conf_file):
         self.docker_registry = None
         self.docker_user = None
         self.heat_server = None
         self.openstack_key = None
 
-        self.networks = {}
-        self.stacks = {}
+        self.apps = {}
 
+        self.controller = controller
         self._init_open_stack(conf_file)
 
     def _init_open_stack(self, conf_file):
@@ -558,7 +558,7 @@ class SingleLauncher(object):
                 # a private IP address since we should be operating in the same VPC.
                 public_ip = self._get_public_ip(server, resources)
                 self._copy_public_keys(public_ip)
-                container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
+                container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
                 
                 if container:
                     mounts = dict(mounts.items() + cmounts.items())
