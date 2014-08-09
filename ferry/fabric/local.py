@@ -14,6 +14,7 @@
 #
 
 from ferry.docker.docker import DockerCLI
+from ferry.docker.docker import DockerInspector
 from ferry.ip.client import DHCPClient
 import ferry.install
 import json
@@ -28,6 +29,7 @@ class LocalFabric(object):
         self.repo = 'public'
         self.docker_user = 'root'
         self.cli = DockerCLI(ferry.install.DOCKER_REGISTRY)
+        self.inspector = DockerInspector(self.cli)
         self.bootstrap = bootstrap
 
         # Bootstrap mode means that the DHCP network
@@ -153,7 +155,8 @@ class LocalFabric(object):
                                      hostname = c['hostname'],
                                      default_cmd = c['default_cmd'],
                                      args= c['args'],
-                                     lxc_opts = lxc_opts)
+                                     lxc_opts = lxc_opts,
+                                     inspector = self.inspector)
             if container:
                 container.default_user = self.docker_user
                 containers.append(container)

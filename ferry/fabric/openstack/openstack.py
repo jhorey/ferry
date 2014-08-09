@@ -14,7 +14,7 @@
 #
 
 import ferry.install
-from ferry.docker.docker import DockerCLI
+from ferry.docker.docker import DockerInstance, DockerCLI
 from ferry.fabric.openstack.heatlauncher import OpenStackLauncherHeat
 import json
 import logging
@@ -30,13 +30,44 @@ class OpenStackFabric(object):
         self.networks = {}
         self.apps = {}
 
+        # Initialize the launcher and data networks. 
         self.config = config
-        self.heat = OpenStackLauncherHeat(self.config)
+        self._init_openstack(self.config)
 
         self.bootstrap = bootstrap
         self.cli = DockerCLI()
         self.cli.docker_user = self.heat.ssh_user
         self.cli.key = self._get_host_key()
+        self.inspector = OpenStackInspector()
+
+    def _load_class(self, class_name):
+        """
+        Dynamically load a class
+        """
+        # Construct the full module path. This lets us filter out only
+        # the deployment engines and ignore all the other imported packages. 
+        s = class_name.split("/")
+        module_path = s[0]
+        clazz_name = s[1]
+        module = importlib.import_module(module_path)
+        for n, o in inspect.getmembers(module):
+            if inspect.isclass(o):
+                if o.__module__ == module_path and o.__name__ == clazz_name:
+                    return o(self.config)
+        return None
+
+    def _init_openstack(self, conf_file):
+        with open(conf_file, 'r') as f:
+            args = yaml.load(f)
+
+            # The actual OpenStack launcher. This lets us customize 
+            # launching into different OpenStack environments that each
+            # may be slightly different (HP Cloud, Rackspace, etc). 
+            launcher = args["system"]["mode"]
+            self.heat = self._load_class(launcher)
+
+            # The name of the data network device (eth*). 
+            self.data_network = args["system"]["network"]
 
     def _read_key_dir(self):
         """
@@ -105,7 +136,7 @@ class OpenStackFabric(object):
         """
         self.copy_raw(server, self._get_container_key(), "/ferry/keys/")
 
-    def _execute_docker_containers(self, container, lxc_opts, server):
+    def _execute_docker_containers(self, container, lxc_opts, private_ip, public_ip):
         host_map = None
         host_map_keys = []
         mounts = {}
@@ -121,12 +152,14 @@ class OpenStackFabric(object):
                                  default_cmd = container['default_cmd'],
                                  args= container['args'],
                                  lxc_opts = lxc_opts,
-                                 server = server)
+                                 server = public_ip,
+                                 inspector = self.inspector)
         if container:
+            # Fill in some information that the inspector doesn't, such
+            # as both the internal and external IP. 
+            container.internal_ip = private_ip
+            container.external_ip = public_ip
             container.default_user = self.cli.docker_user
-            if not 'netenable' in c:
-                container.internal_ip = ip
-                self.network.set_owner(ip, container.container)
 
             if 'name' in c:
                 container.name = container['name']
@@ -187,21 +220,14 @@ class OpenStackFabric(object):
         lxc_opts = ["lxc.network.type = phys",
                     "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
-                    "lxc.network.link = eth1",
-                    "lxc.network.name = eth1", 
+                    "lxc.network.link = %s" % self.data_network,
+                    "lxc.network.name = eth0", 
                     "lxc.network.flags = up"]
-        return lxc_opts
-
-    def status(self, cluster_uuid):
-        """
-        Return the status of the cluster. The status can be 
-        BUILDING, READY, or FAILED
-        """
-        return "READY"
+        return lxc_opts, ip
 
     def alloc(self, cluster_uuid, container_info, ctype):
         """
-        Allocate several instances.
+        Allocate a new cluster. 
         """
 
         # Now take the cluster and create the security group
@@ -260,13 +286,13 @@ class OpenStackFabric(object):
                 server = servers[i]
 
                 # Get the LXC networking options
-                lxc_opts = self._get_net_info(server, subnet, resources)
+                lxc_opts, private_ip = self._get_net_info(server, subnet, resources)
 
                 # Now get an addressable IP address. Normally we would use
                 # a private IP address since we should be operating in the same VPC.
                 public_ip = self._get_public_ip(server, resources)
                 self._copy_public_keys(public_ip)
-                container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, public_ip)
+                container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
                 
                 if container:
                     mounts = dict(mounts.items() + cmounts.items())
@@ -321,3 +347,37 @@ class OpenStackFabric(object):
 
     def cmd_raw(self, ip, cmd):
         logging.warning("cmd raw " + str(ip))
+
+class OpenStackInspector(object):
+    def __init__(self, os):
+        self.fabric = os
+
+    def inspect(self, image, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
+        """
+        Inspect a container and return information on how
+        to connect to the container. 
+        """        
+        logging.warning("inspecting")
+        instance = DockerInstance()
+
+        # We don't keep track of the container ID in single-network
+        # mode, so use this to store the VM image instead. 
+        instance.container = self.heat.default_image
+
+        # The port mapping should be 1-to-1 since we're using
+        # the physical networking mode. 
+        instance.ports = {}
+        for p in open_ports:
+            instance.ports[p] = { 'HostIp' : '0.0.0.0',
+                                  'HostPort' : p }
+
+        # These values are just stored for convenience. 
+        instance.image = image
+        instance.host_name = hostname
+        instance.service_type = service_type
+        instance.args = args
+        instance.volumes = volumes
+        instance.keys = keys
+
+        return instance        
+    

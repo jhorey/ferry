@@ -304,7 +304,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None):
+    def run(self, service_type, image, volumes, keys, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, inspector=None):
         flags = self.daemon 
 
         # Specify the hostname (this is optional)
@@ -328,7 +328,6 @@ class DockerCLI(object):
         if keys != None:
             for v in keys.keys():
                 flags += self.volume_flag
-                # flags += ' %s:%s' % (v, keys[v])
                 flags += ' %s:%s' % (keys[v], v)
 
         # Add the lxc options
@@ -362,7 +361,7 @@ class DockerCLI(object):
             return None
 
         container = output.strip()
-        return self.inspect(container, keys, volumes, hostname, open_ports, host_map, service_type, args, server)
+        return inspector.inspect(image, container, keys, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -371,14 +370,18 @@ class DockerCLI(object):
                 return ip
         return None
 
-    """
-    Inspect a container and return information on how
-    to connect to the container. 
-    """
-    def inspect(self, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
-        cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container
+class DockerInspector(object):
+    def __init__(self, cli):
+        self.cli = cli
+
+    def inspect(self, image, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
+        """
+        Inspect a container and return information on how
+        to connect to the container. 
+        """
+        cmd = self.cli.docker + ' ' + self.cli.inspect_cmd + ' ' + container
         logging.warning(cmd)
-        output, _ = self._execute_cmd(cmd, server)
+        output, _ = self.cli._execute_cmd(cmd, server)
 
         data = json.loads(output.strip())
         instance = DockerInstance()
@@ -393,7 +396,7 @@ class DockerCLI(object):
         # If we've used the lxc config, then the networking information
         # will be located somewhere else. 
         if instance.internal_ip == "":
-            instance.internal_ip = self._get_lxc_net(data['HostConfig']['LxcConf'])
+            instance.internal_ip = self.cli._get_lxc_net(data['HostConfig']['LxcConf'])
 
         if hostname:
             instance.host_name = hostname

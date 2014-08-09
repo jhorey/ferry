@@ -24,10 +24,13 @@ import sys
 import time
 import yaml
 
-class OpenStackLauncherHeat(object):
+class SingleLauncher(object):
     """
-    Launches new instances/networks on an OpenStack
-    cluster and initializes the instances to run Ferry processes. 
+    Launches new Ferry containers on an OpenStack cluster.
+
+    Unlike the multi-launcher, containers use a single pre-assigned
+    network for all communication. This makes it suitable for OpenStack
+    environments that only support a single network (i.e., HP Cloud). 
     """
     def __init__(self, conf_file):
         self.docker_registry = None
@@ -37,8 +40,6 @@ class OpenStackLauncherHeat(object):
 
         self.networks = {}
         self.stacks = {}
-        self.num_network_hosts = 128
-        self.num_subnet_hosts = 32
 
         self._init_open_stack(conf_file)
 
@@ -60,7 +61,6 @@ class OpenStackLauncherHeat(object):
             servers = args[provider][self.default_dc]
             self.manage_network = servers['network']
             self.external_network = servers['extnet']
-            self.manage_router = servers['router']
 
             # OpenStack API endpoints. 
             self.keystone_server = servers['keystone']
@@ -86,10 +86,13 @@ class OpenStackLauncherHeat(object):
             self.tenant_name = os.environ['OS_TENANT_NAME']
             self.auth_tok = os.environ['OS_TOKEN']
 
-            self._init_heat_server()
+            # Initialize the OpenStack clients and also
+            # download some networking information (subnet ID, 
+            # cidr, gateway, etc.)
+            self._init_openstack_clients()
+            self._collect_subnet_info()
 
-    def _init_heat_server(self):
-        # Instantiate the OpenStack clients. 
+    def _init_openstack_clients(self):
         if 'HEAT_API_VERSION' in os.environ:
             heat_api_version = os.environ['HEAT_API_VERSION']
         else:
@@ -111,70 +114,6 @@ class OpenStackLauncherHeat(object):
         kwargs['endpoint_url'] = self.neutron_server
         self.neutron = neutron_client.Client(neutron_api_version, 
                                              **kwargs)
-
-    def _define_address_range(self, num_hosts):
-        """
-        Choose a private address range. 
-        """
-
-        # First determine the cidr block. 
-        exp = 32 - math.log(num_hosts, 2)
-
-        # Now figure out where to start counting. As a note
-        # we reserve one of the networks for management. 
-        addr = [10, 0, 0, 0]
-        if num_hosts < 256:
-            slot = 1
-        elif num_hosts < 65536:
-            slot = 2
-        addr[slot] = len(self.networks) + 1
-
-        # Now set the gateway IP and address.
-        gw = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], 1)
-        cidr = "%d.%d.%d.%d/%d" % (addr[0], addr[1], addr[2], addr[3], exp)
-
-        # Define the allocation pool. 
-        start_pool = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], 2)
-        end_pool = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], num_hosts - 2)
-
-        return cidr, gw, start_pool, end_pool
-
-    def _create_network(self, name):
-        """
-        Create a network (equivalent to VPC). 
-        """
-        cidr, _, _, _ = self._define_address_range(self.num_network_hosts)
-        desc = { name : { "Type" : "OS::Neutron::Net",
-                          "Properties" : { "name" : name }}}
-        self.networks[name] = { 'subnets' : [] }
-        return desc
-
-    def _create_subnet(self, name, network):
-        """
-        Create a subnet. The subnet is attached to a network, but
-        doesn't have a router associated with it. 
-        """
-
-        # Define the subnet range and store the information. 
-        cidr, gateway, pool_start, pool_end = self._define_address_range(self.num_subnet_hosts)
-        self.networks[network]['subnets'].append( { name : { 'cidr' : cidr,
-                                                             'gw' : gateway }} )
-
-        # Create the HEAT description. 
-        plan = { name : { "Type" : "OS::Neutron::Subnet",
-                          "Properties" : { "name" : name,
-                                           "cidr" : cidr,
-                                           "gateway_ip" : gateway,
-                                           "enable_dhcp" : "True",
-                                           "ip_version" : 4,
-                                           "dns_nameservers" : ["8.8.8.7", "8.8.8.8"],
-                                           "allocation_pools" : [{ "start" : pool_start,
-                                                                   "end" : pool_end }],
-                                           "network_id" : { "Ref" : network}}}}
-        desc = { "type" : "OS::Neutron::Subnet",
-                 "cidr" : cidr,
-                 "gateway" : gateway }
-        return plan, desc
 
     def _create_floating_ip(self, name, port):
         """
@@ -273,14 +212,6 @@ class OpenStackLauncherHeat(object):
           }}
         return user_data
 
-    def _create_router_interface(self, iface_name, router, subnet):
-        plan = { iface_name: { "Type": "OS::Neutron::RouterInterface",
-                               "Properties": { "router_id": router,
-                                               "subnet_id": { "Ref" : subnet }}}}
-        desc = { "type" : "OS::Neutron::RouterInterface",
-                 "router" : router }
-        return plan, desc
-
     def _create_volume_attachment(self, iface, instance, volume_id):
         plan = { iface: { "Type": "OS::Cinder::VolumeAttachment",
                           "Properties": { "instance_uuid": { "Ref" : instance },
@@ -289,7 +220,7 @@ class OpenStackLauncherHeat(object):
         desc = { "type" : "OS::Cinder::VolumeAttachment" }
         return plan, desc
 
-    def _create_instance(self, name, image, size, manage_network, data_networks, sec_group):
+    def _create_instance(self, name, image, size, manage_network, sec_group):
         """
         Create a new instance
         """
@@ -306,7 +237,7 @@ class OpenStackLauncherHeat(object):
 
         # Create a port for the manage network.
         port_descs = []
-        port_name = "ferry-port-%s-manage" % name
+        port_name = "ferry-port-%s" % name
         port_descs.append(self._create_port(port_name, manage_network, sec_group, ref=False))
         plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name },
                                                       "network" : manage_network}) 
@@ -314,18 +245,6 @@ class OpenStackLauncherHeat(object):
         desc[port_name] = { "type" : "OS::Neutron::Port",
                             "role" : "manage" }
                                                       
-        # Create a port in each data network. 
-        for n in data_networks:
-            network = n[0]
-            subnet = n[1]
-            port_name = "ferry-port-%s-%s" % (name, network)
-            port_descs.append(self._create_port(port_name, network, sec_group, ref=False))
-            plan[name]["Properties"]["networks"].append({ "port" : { "Ref" : port_name }})
-                                                          
-            desc[name]["ports"].append( port_name )
-            desc[port_name] = { "type" : "OS::Neutron::Port",
-                                "role" : "data" }
-                                                          
         # Combine all the port descriptions. 
         for d in port_descs:
             plan = dict(plan.items() + d.items())
@@ -366,33 +285,7 @@ class OpenStackLauncherHeat(object):
         desc = { sec_group_name : { "type" : "OS::Neutron::SecurityGroup" }}
         return plan, desc
 
-    def _create_network_plan(self, cluster_uuid):
-        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
-                 "Description" : "Ferry generated Heat plan",
-                 "Resources" : {},
-                 "Outputs" : {} }
-        
-        network_name = "ferry-net-%s" % cluster_uuid
-        network = self._create_network(network_name)
-
-        subnet_name = "ferry-sub-%s" % cluster_uuid
-        public_subnet, subnet_desc = self._create_subnet(subnet_name, network_name)
-
-        # # Creating an interface between the public router and
-        # # the new subnet will make this network public. 
-        # iface_name = "ferry-iface-%s" %  cluster_uuid
-        # router, router_desc = self._create_router_interface(iface_name, self.manage_router, subnet_name)
-
-        plan["Resources"] = dict(plan["Resources"].items() + network.items())
-        plan["Resources"] = dict(plan["Resources"].items() + public_subnet.items())
-        # plan["Resources"] = dict(plan["Resources"].items() + router.items())
-        desc = { network_name : { "type" : "OS::Neutron::Net" },
-                 subnet_name : subnet_desc }
-
-        logging.info("create Heat network: " + str(desc))
-        return plan, desc
-
-    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, network, sec_group_name, ctype): 
+    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
@@ -402,7 +295,7 @@ class OpenStackLauncherHeat(object):
         for i in range(0, num_instances):
             # Create the actual instances. 
             instance_name = "ferry-instance-%s-%s-%d" % (cluster_uuid, ctype, i)
-            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, [network], sec_group_name)
+            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, sec_group_name)
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
             desc = dict(desc.items() + instance_desc.items())
 
@@ -482,6 +375,18 @@ class OpenStackLauncherHeat(object):
         descs = [r.to_dict() for r in resources]
         return descs
 
+    def _collect_subnet_info(self):
+        """
+        Collect the data network subnet info (ID, CIDR, and gateway). 
+        """
+        subnets = self.neutron.list_subnets()
+        for s in subnets['subnets']:
+            logging.warning("SUBNET: " + str(s))
+
+        self.subnet = { "id" : None,
+                        "cidr" : None, 
+                        "gateway" : None }
+
     def _collect_network_info(self, stack_desc):
         """
         Collect all the networking information. 
@@ -508,19 +413,9 @@ class OpenStackLauncherHeat(object):
                 # we need to check first. 
                 if port_desc["ip_address"] in ip_map:
                     port_desc["floating_ip"] = ip_map[port_desc["ip_address"]]
-                    logging.warning("FLOATING IP: " + str(port_desc["floating_ip"]))
         return stack_desc
 
-    def create_app_network(self, cluster_uuid):
-        """
-        Create a network for a new application. 
-        """
-        logging.info("creating network for %s" % cluster_uuid)
-        stack_plan, stack_desc = self._create_network_plan(cluster_uuid)
-        return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
-
-
-    def create_app_stack(self, cluster_uuid, num_instances, network, security_group_ports, assign_floating_ip, ctype):
+    def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
         security groups, and floating IPs. 
@@ -535,7 +430,6 @@ class OpenStackLauncherHeat(object):
                                                             num_instances = num_instances, 
                                                             image = self.default_image,
                                                             size = self.default_personality, 
-                                                            network = network,
                                                             sec_group_name = sec_group_desc.keys()[0], 
                                                             ctype = ctype)
 
@@ -569,6 +463,115 @@ class OpenStackLauncherHeat(object):
         if stack_desc:
             return self._collect_network_info(stack_desc)
 
+    def _get_private_ip(self, server, subnet_id, resources):
+        """
+        Get the IP address associated with the supplied server. 
+        """
+        for port_name in server["ports"]:
+            port_desc = resources[port_name]
+            if port_desc["subnet"] == subnet_id:
+                return port_desc["ip_address"]
+
+    def _get_public_ip(self, server, resources):
+        """
+        Get the IP address associated with the supplied server. 
+        """
+        for port_name in server["ports"]:
+            port_desc = resources[port_name]
+            if "floating_ip" in port_desc:
+                return port_desc["floating_ip"]
+
+    def _get_net_info(self, server_info, subnet, resources):
+        """
+        Look up the IP address, gateway, and subnet range. 
+        """
+        cidr = subnet["cidr"].split("/")[1]
+        ip = self._get_private_ip(server_info, subnet["id"], resources)
+
+        # We want to use the host NIC, so modify LXC to use phys networking, and
+        # then start the docker containers on the server. 
+        lxc_opts = ["lxc.network.type = phys",
+                    "lxc.network.ipv4 = %s/%s" % (ip, cidr),
+                    "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
+                    "lxc.network.link = %s" % self.data_network,
+                    "lxc.network.name = eth0", 
+                    "lxc.network.flags = up"]
+        return lxc_opts, ip
+
+    def alloc(self, cluster_uuid, container_info, ctype):
+        """
+        Allocate a new cluster. 
+        """
+
+        # Now take the cluster and create the security group
+        # to expose all the right ports. 
+        sec_group_ports = []
+        if ctype == "connector": 
+            # Since this is a connector, we need to expose
+            # the public ports. For now, we ignore the host port. 
+            floating_ip = True
+            for c in container_info:
+                for p in c['ports']:
+                    s = str(p).split(":")
+                    if len(s) > 1:
+                        sec_group_ports.append( (s[1], s[1]) )
+                    else:
+                        sec_group_ports.append( (s[0], s[0]) )
+        else:
+            # Since this is a backend type, we need to 
+            # look at the internally exposed ports. 
+            # floating_ip = False
+            floating_ip = True
+
+            # We need to create a range tuple, so check if 
+            # the exposed port is a range.
+            for p in container_info[0]['exposed']:
+                s = p.split("-")
+                if len(s) == 1:
+                    sec_group_ports.append( (s[0], s[0]) )
+                else:
+                    sec_group_ports.append( (s[0], s[1]) )
+
+        # Tell OpenStack to allocate the cluster. 
+        resources = self._create_app_stack(cluster_uuid = cluster_uuid, 
+                                           num_instances = len(container_info), 
+                                           security_group_ports = sec_group_ports,
+                                           assign_floating_ip = floating_ip,
+                                           ctype = ctype)
+        
+        # Now we need to ask the cluster to start the 
+        # Docker containers.
+        containers = []
+        mounts = {}
+
+        if resources:
+            self.apps[cluster_uuid] = resources
+            servers = self._get_servers(resources)
+            for i in range(0, len(container_info)):
+                # Fetch a server to run the Docker commands. 
+                server = servers[i]
+
+                # Get the LXC networking options
+                lxc_opts, private_ip = self._get_net_info(server, self.subnet, resources)
+
+                # Now get an addressable IP address. Normally we would use
+                # a private IP address since we should be operating in the same VPC.
+                public_ip = self._get_public_ip(server, resources)
+                self._copy_public_keys(public_ip)
+                container, cmounts = self._execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
+                
+                if container:
+                    mounts = dict(mounts.items() + cmounts.items())
+                    # containers.append(container)
+
+        # # Check if we need to set the file permissions
+        # # for the mounted volumes. 
+        # for c, i in mounts.items():
+        #     for _, v in i['vols']:
+        #         self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+
+        return containers
+        
     def _delete_stack(self, stack_id):
         # To delete the stack properly, we first need to disassociate
         # the floating IPs. 
@@ -580,10 +583,3 @@ class OpenStackLauncherHeat(object):
 
         # Now delete the stack. 
         self.heat.stacks.delete(stack_id)
-
-# def main():
-#     fabric = OpenStackLauncherHeat(sys.argv[1])
-#     fabric.test_neutron()
-
-# if __name__ == "__main__":
-#     main()
