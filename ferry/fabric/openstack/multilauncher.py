@@ -650,7 +650,7 @@ class MultiLauncher(object):
                     "lxc.network.flags = up"]
         return lxc_opts, ip
 
-    def alloc(self, cluster_uuid, container_info, ctype):
+    def alloc(self, cluster_uuid, container_info, ctype, proxy):
         """
         Allocate a new cluster. 
         """
@@ -670,9 +670,15 @@ class MultiLauncher(object):
                     else:
                         sec_group_ports.append( (s[0], s[0]) )
         else:
-            # Since this is a backend type, we need to 
-            # look at the internally exposed ports. 
-            floating_ip = False
+            if proxy:
+                # If the controller is acting as a proxy, then it has
+                # direct access to the VMs, so the backend shouldn't
+                # get any floating IPs. 
+                floating_ip = False
+            else:
+                # Otherwise, the backend should also get floating IPs
+                # so that the controller can access it. 
+                floating_ip = True
 
             # We need to create a range tuple, so check if 
             # the exposed port is a range.

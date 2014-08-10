@@ -64,6 +64,11 @@ class OpenStackFabric(object):
             # The name of the data network device (eth*). 
             self.data_network = args["system"]["network"]
 
+            # Determine if we are using this fabric in proxy
+            # mode. Proxy mode means that the client is external
+            # to the network, but controller has direct access. 
+            self.proxy = bool(args["system"]["proxy"])
+
     def _read_key_dir(self):
         """
         Read the location of the directory containing the keys
@@ -127,8 +132,16 @@ class OpenStackFabric(object):
         if container:
             # Fill in some information that the inspector doesn't, such
             # as both the internal and external IP. 
-            container.internal_ip = private_ip
             container.external_ip = public_ip
+            if self.proxy:
+                # When the fabric controller is acting in proxy mode, 
+                # it can contact the VMs via their private addresses. 
+                container.internal_ip = private_ip
+            else:
+                # Otherwise, the controller can only interact with the
+                # VMs via their public IP address. 
+                container.internal_ip = public_ip
+
             container.default_user = self.cli.docker_user
 
             if 'name' in c:
@@ -150,7 +163,7 @@ class OpenStackFabric(object):
         """
         Allocate a new cluster. 
         """
-        return self.launcher.alloc(cluster_uuid, container_info, ctype)
+        return self.launcher.alloc(cluster_uuid, container_info, ctype, self.proxy)
 
     def stop(self, containers):
         """
