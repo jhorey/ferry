@@ -215,6 +215,9 @@ class Installer(object):
             return None
 
     def _clean_rules(self):
+        """
+        Get rid of all the forwarding rules. 
+        """
         self.network.clean_rules()
 
     def install(self, args, options):
@@ -438,6 +441,11 @@ class Installer(object):
         cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
+    def _force_stop_web(self):
+        logging.warning("stopping docker http servers")
+        cmd = 'pkill -f gunicorn'
+        Popen(cmd, stdout=PIPE, shell=True)
+
     def stop_web(self, key):
         # Shutdown the mongo instance
         if os.path.exists('/tmp/mongodb.ip'):
@@ -535,7 +543,7 @@ class Installer(object):
                         self._tag_images(image, repo, images)
 
             # After building everything, get rid of the temp dir.
-            # shutil.rmtree("/tmp/dockerfiles")
+            shutil.rmtree("/tmp/dockerfiles")
         else:
             logging.error("ferry daemon not started")
 

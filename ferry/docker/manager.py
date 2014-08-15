@@ -582,11 +582,11 @@ class DockerManager(object):
 
         return container_dir, log_dir, host_name, ports, exposed
 
-    def _read_key_dir(self):
+    def _read_key_dir(self, private_key):
         """
         Read the directory containing the key we should use. 
         """
-        return { '/service/keys' : ferry.install.DEFAULT_KEY_DIR  }
+        return { '/service/keys' : os.path.dirname(private_key)  }
 
     def _read_public_key(self, private_key):
         s = private_key.split("/")
@@ -633,7 +633,7 @@ class DockerManager(object):
                               'type':t, 
                               'volumes':dir_info,
                               'volume_user':DEFAULT_FERRY_OWNER, 
-                              'keydir': self._read_key_dir(), 
+                              'keydir': self._read_key_dir(key_name), 
                               'keyname': self._read_public_key(key_name), 
                               'privatekey': key_name, 
                               'ports':ports,
@@ -676,7 +676,7 @@ class DockerManager(object):
             container_info = {'image':instance_type,
                               'volumes':dir_info,
                               'volume_user':DEFAULT_FERRY_OWNER, 
-                              'keydir': self._read_key_dir(), 
+                              'keydir': self._read_key_dir(key_name), 
                               'keyname': self._read_public_key(key_name), 
                               'privatekey': key_name, 
                               'type':t, 
@@ -720,7 +720,7 @@ class DockerManager(object):
         else:
             host_name = name
         container_info = { 'image':instance_type,
-                           'keydir': self._read_key_dir(), 
+                           'keydir': self._read_key_dir(key_name), 
                            'keyname': self._read_public_key(key_name), 
                            'privatekey': key_name, 
                            'volumes':{},

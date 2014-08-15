@@ -624,47 +624,56 @@ class CLI(object):
         for c in reply['msgs'].keys():
             output += "%s: %s\n" % (c, reply['msgs'][c])
         return output
-        
+
+    def _start_stack(self, options, args):
+        private_key = self._get_ssh_key(options=options)
+
+        # Check if we need to build the image before running. 
+        if '-b' in options:
+            build_dir = options['-b'][0]
+            self._build(build_dir + '/Dockerfile')
+
+        # Try to figure out what application the user is staring.
+        # This could be a new stack or an existing stopped stack. 
+        arg = args.pop(0)
+        json_arg = {}
+        if not os.path.exists(arg):
+            file_path = self._find_installed_app(arg)
+        else:
+            file_path = arg
+
+        # Looks like the user is trying to start a brand
+        # new application (specified by a filename). 
+        if file_path and os.path.exists(file_path):
+            file_path = os.path.abspath(file_path)
+            json_arg = self._read_app_content(file_path)
+            if not json_arg:
+                logging.error("could not load file " + file_path)
+                exit(1)
+            json_arg['_file_path'] = file_path
+        json_arg['_file'] = arg
+
+        # Create the application stack and print
+        # the status message.
+        posted, reply = self._create_stack(json_arg, args, private_key)
+        if posted:
+            try:
+                reply = json.loads(reply)
+                if reply['status'] == 'query':
+                    return self._resubmit_create(reply, json_arg, args, private_key)
+                elif reply['status'] == 'failed':
+                    return 'could not create application'
+                else:
+                    return self._format_output(reply)
+            except ValueError as e:
+                logging.error(reply)
+
     def dispatch_cmd(self, cmd, args, options):
         """
         This is the command dispatch table. 
         """
         if(cmd == 'start'):
-            private_key = self._get_ssh_key(options=options)
-
-            # Check if we need to build the image before running. 
-            if '-b' in options:
-                build_dir = options['-b'][0]
-                self._build(build_dir + '/Dockerfile')
-
-            arg = args.pop(0)
-            json_arg = {}
-            if not os.path.exists(arg):
-                file_path = self._find_installed_app(arg)
-            else:
-                file_path = arg
-
-            if file_path and os.path.exists(file_path):
-                file_path = os.path.abspath(file_path)
-                json_arg = self._read_app_content(file_path)
-                if not json_arg:
-                    logging.error("could not load file " + file_path)
-                    exit(1)
-
-                json_arg['_file_path'] = file_path
-            json_arg['_file'] = arg
-            posted, reply = self._create_stack(json_arg, args, private_key)
-            if posted:
-                try:
-                    reply = json.loads(reply)
-                    if reply['status'] == 'query':
-                        return self._resubmit_create(reply, json_arg, args, private_key)
-                    elif reply['status'] == 'failed':
-                        return 'could not create application'
-                    else:
-                        return self._format_output(reply)
-                except ValueError as e:
-                    logging.error(reply)
+            return self._start_stack(options, args)
         elif(cmd == 'ps'):
             if len(args) > 0 and args[0] == '-a':
                 opt = args.pop(0)
@@ -678,10 +687,7 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
-            private_key = self._get_ssh_key(options=options)
-            self.installer.start_web(options, clean=True)
-            self.installer._clean_rules()
-            self.installer.stop_web(private_key)
+            self.installer._force_stop_web()
             self.installer._stop_docker_daemon(force=True)
             return 'cleaned ferry'
         elif(cmd == 'inspect'):
