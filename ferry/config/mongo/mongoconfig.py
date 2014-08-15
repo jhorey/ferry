@@ -150,7 +150,9 @@ class MongoInitializer(object):
                 self._generate_mongo_config(new_config_dir, config, 'notrust')
 
             # Expose the login info. 
-            output = self.fabric.cmd_raw(entry_point['mongo'], '/service/sbin/startnode login')
+            output = self.fabric.cmd_raw(key = containers[0]['container'].privatekey, 
+                                         ip = entry_point['mongo'], 
+                                         cmd = '/service/sbin/startnode login')
             login_info = json.loads(str(output))
             entry_point['mongo_user'] = login_info['user']
             entry_point['mongo_pass'] = login_info['pass']

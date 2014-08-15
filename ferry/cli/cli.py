@@ -288,7 +288,7 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
-    def _create_stack(self, stack_description, args):
+    def _create_stack(self, stack_description, args, private_key):
         """
         Create a new stack. 
         """
@@ -296,7 +296,8 @@ class CLI(object):
         conf = self._parse_deploy_arg('conf', args, default='default')
         payload = { 'payload' : json.dumps(stack_description),
                     'mode' : mode, 
-                    'conf' : conf }
+                    'conf' : conf,
+                    'key' : private_key }
         try:
             res = requests.post(self.ferry_server + '/create', data=payload)
             return True, str(res.text)
@@ -304,7 +305,7 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return False, "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
-    def _resubmit_create(self, reply, stack_description, args):
+    def _resubmit_create(self, reply, stack_description, args, key_name):
         values = {}
         for q in reply['questions']:
             question = colored(q['query']['text'], 'red')
@@ -312,7 +313,7 @@ class CLI(object):
             v = raw_input(question + prompt)
             values[q['query']['id']] = v
         stack_description['iparams'] = values
-        posted, reply = self._create_stack(stack_description, args)
+        posted, reply = self._create_stack(stack_description, args, key_name)
         if posted:
             try:
                 return self._format_output(json.loads(reply))
@@ -401,7 +402,7 @@ class CLI(object):
         return t.get_string(sortby="UUID",
                             padding_width=2)
 
-    def _stop_all(self):
+    def _stop_all(self, private_key):
         try:
             constraints = { 'status' : 'running' }
             payload = { 'constraints' : json.dumps(constraints) }
@@ -409,6 +410,7 @@ class CLI(object):
             stacks = json.loads(res.text)
             for uuid in stacks.keys():
                 self._manage_stacks({'uuid' : uuid,
+                                     'key' : private_key, 
                                      'action' : 'stop'})
         except ConnectionError:
             logging.error("could not connect to ferry server")
@@ -493,7 +495,7 @@ class CLI(object):
     """
     Connector a specific client/connector via ssh. 
     """
-    def _connect_stack(self, stack_id, connector_id):
+    def _connect_stack(self, stack_id, connector_id, options):
         # Get the IP and default user information for this connector.
         payload = {'uuid':stack_id}
         try:
@@ -514,10 +516,10 @@ class CLI(object):
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
-            keydir, _ = self._read_key_dir()
+            private_key = self._get_ssh_key(options=options)
             key_opt = '-o StrictHostKeyChecking=no'
             host_opt = '-o UserKnownHostsFile=/dev/null'
-            ident = '-i %s/id_rsa' % keydir
+            ident = '-i %s' % private_key
             dest = '%s@%s' % (self.default_user, connector_ip)
             cmd = "ssh %s %s %s %s" % (key_opt, host_opt, ident, dest)
             logging.warning(cmd)
@@ -594,89 +596,11 @@ class CLI(object):
 
         return json_text
 
-    def _read_key_dir(self, options=None, root=False, server=False):
-        """
-        Read the location of the directory containing the keys
-        used to communicate with the containers. 
-        """
-        if root:
-            keydir = ferry.install._get_key_dir(root=True, server=server)
-        else:
-            keydir = ferry.install._get_key_dir(root=False, server=server)
-
-        # May need to generate the user key. 
-        if not os.path.isfile(keydir):
-            self.installer._process_ssh_key(options=options, root=False)
-
-        # Read the key directory
-        with open(keydir, 'r') as f: 
-            k = f.read().strip().split("://")
-            return k[1], k[0]
-
-    def _using_tmp_ssh_key(self):
-        """
-        Check if the key being used is a temporary key. 
-        """
-        keydir, tmp = self._read_key_dir(root=True, server=True)
-        return tmp == "tmp"
-
-    def _copy_ssh_key(self, keydir):
-        try:
-            os.makedirs(keydir)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                logging.error("Could not create ssh directory %s" % keydir)
-                exit(1)
-        try:
-            shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa', keydir + '/id_rsa')
-            shutil.copy(ferry.install.DEFAULT_KEY_DIR + '/id_rsa.pub', keydir + '/id_rsa.pub')
-                            
-            uid = pwd.getpwnam(os.environ['USER']).pw_uid
-            gid = grp.getgrnam(os.environ['USER']).gr_gid
-            os.chown(keydir + '/id_rsa', uid, gid)
-            os.chmod(keydir + '/id_rsa', 0600)
-            os.chown(keydir + '/id_rsa.pub', uid, gid)
-            os.chmod(keydir + '/id_rsa.pub', 0644)
-        except OSError as e:
-            logging.error("Could not copy ssh keys (%s)" % str(e))
-            exit(1)
-        except IOError as e:
-            if e.errno == errno.EACCES:
-                logging.error("Could not override keys in %s, please delete those keys and try again." % keydir)
-                exit(1)
-
-    def _check_ssh_key(self, options=None, root=False, server=False):
-        """
-        Make sure that we pick the right ssh key and copy it over
-        if necessary. 
-        """
-        
+    def _get_ssh_key(self, options=None):
         if options and '-k' in options:
-            # The user wants to use a custom key. Just need
-            # to record the location of that key. 
-            if root:
-                ferry.install.GLOBAL_ROOT_DIR = 'user://' + options['-k'][0]
-                ferry.install._touch_file(ferry.install._get_key_dir(root=True, server=server), 
-                                          ferry.install.GLOBAL_ROOT_DIR)
-            else:
-                ferry.install.GLOBAL_KEY_DIR = 'user://' + options['-k'][0]
-                ferry.install._touch_file(ferry.install._get_key_dir(root=False, server=server), 
-                                          ferry.install.GLOBAL_KEY_DIR)
+            return options['-k'][0]
         else:
-            # The user wants to use the default key.  
-            keydir, proto = self._read_key_dir(options=options, root=root)
-            if proto == "user" or keydir == ferry.install.DEFAULT_KEY_DIR:
-                if root:
-                    keydir = os.environ['HOME'] + '/.ssh/tmp-root'
-                    ferry.install.GLOBAL_ROOT_DIR = 'tmp://' + keydir
-                    ferry.install._touch_file(ferry.install._get_key_dir(root=True, server=server), 
-                                              ferry.install.GLOBAL_ROOT_DIR)
-                else:
-                    keydir = os.environ['HOME'] + '/.ssh/tmp-ferry'
-                    ferry.install.GLOBAL_KEY_DIR = 'tmp://' + keydir
-                    ferry.install._touch_file(ferry.install._get_key_dir(root=False, server=server), 
-                                              ferry.install.GLOBAL_KEY_DIR)
-                self._copy_ssh_key(keydir)
+            return ferry.install.DEFAULT_SSH_KEY
 
     def _find_installed_app(self, app):
         """
@@ -706,7 +630,7 @@ class CLI(object):
         This is the command dispatch table. 
         """
         if(cmd == 'start'):
-            self._check_ssh_key(options=options)
+            private_key = self._get_ssh_key(options=options)
 
             # Check if we need to build the image before running. 
             if '-b' in options:
@@ -729,12 +653,12 @@ class CLI(object):
 
                 json_arg['_file_path'] = file_path
             json_arg['_file'] = arg
-            posted, reply = self._create_stack(json_arg, args)
+            posted, reply = self._create_stack(json_arg, args, private_key)
             if posted:
                 try:
                     reply = json.loads(reply)
                     if reply['status'] == 'query':
-                        return self._resubmit_create(reply, json_arg, args)
+                        return self._resubmit_create(reply, json_arg, args, private_key)
                     elif reply['status'] == 'failed':
                         return 'could not create application'
                     else:
@@ -754,12 +678,11 @@ class CLI(object):
             self.installer._stop_docker_daemon()
             return msg
         elif(cmd == 'clean'):
-            self._check_ssh_key(options=options, server=True)
-            self.installer.start_web(clean=True)
+            private_key = self._get_ssh_key(options=options)
+            self.installer.start_web(options, clean=True)
             self.installer._clean_rules()
-            self.installer.stop_web()
+            self.installer.stop_web(private_key)
             self.installer._stop_docker_daemon(force=True)
-            self.installer._reset_ssh_key(root=True)
             return 'cleaned ferry'
         elif(cmd == 'inspect'):
             return self._inspect_stack(args[0])
@@ -769,24 +692,18 @@ class CLI(object):
             self.installer.start_web(options)
             return 'started ferry'
         elif(cmd == 'ssh'):
-            self._check_ssh_key(options=options)
             stack_id = args[0]
             connector_id = None
             if len(args) > 1:
                 connector_id = args[1]
-
-            return self._connect_stack(stack_id, connector_id)
+            return self._connect_stack(stack_id, connector_id, options)
         elif(cmd == 'quit'):
-            self._check_ssh_key(options=options, root=True, server=True)
-            self._stop_all()
-            self.installer.stop_web()
+            private_key = self._get_ssh_key(options=options)
+            self._stop_all(private_key)
+            self.installer.stop_web(private_key)
             self.installer._stop_docker_daemon()
-
-            if self._using_tmp_ssh_key():
-                self.installer._reset_ssh_key(root=True)
             return 'stopped ferry'
         elif(cmd == 'deploy'):
-            self._check_ssh_key(options=options)
             stack_id = args.pop(0)
             return self._deploy_stack(stack_id, args)
         elif(cmd == 'ls'):
@@ -811,8 +728,9 @@ class CLI(object):
         else:
             # The user wants to perform some management function
             # over the stack. 
-            self._check_ssh_key(options=options)
+            private_key = self._get_ssh_key(options=options)
             stack_info = {'uuid' : args[0],
+                          'key' : private_key, 
                           'action' : cmd}
             return self._manage_stacks(stack_info)
     

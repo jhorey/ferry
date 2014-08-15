@@ -6,7 +6,7 @@ NAME ferry-base
 RUN dpkg-divert --local --add --rename --divert /bin/mknod.real /bin/mknod && ln -s /bin/true /bin/mknod
 
 # Fake a fuse install
-RUN apt-get install libfuse2
+RUN apt-get update; apt-get install libfuse2
 RUN cd /tmp ; apt-get download fuse
 RUN cd /tmp ; dpkg-deb -x fuse_* .
 RUN cd /tmp ; dpkg-deb -e fuse_*
@@ -27,7 +27,7 @@ RUN chmod 1777 /tmp
 RUN mkdir -p /service/keys /service/sbin /service/sconf /var/run/sshd
 
 # Download some dependencies
-RUN apt-get update;apt-get --yes install openssh-server
+RUN apt-get --yes install openssh-server
 
 # Create ferry user
 RUN addgroup supergroup;addgroup --gid $DOCKER docker;adduser --disabled-password --gecos "" ferry;usermod -a -G sudo ferry;usermod -a -G docker ferry;usermod -a -G supergroup ferry;chown -R ferry:docker /service;chown -R ferry:ferry /home/ferry

@@ -83,12 +83,6 @@ def _get_ferry_scratch():
 
     return scratch_dir
 
-def _get_key_dir(root, server):
-    if root:
-        return _get_ferry_dir(server=server) + '/rootdir'
-    else:
-        return _get_ferry_dir(server=server) + '/keydir'
-
 def _get_ferry_user():
     uid = pwd.getpwnam("root").pw_uid
     gid = grp.getgrnam("docker").gr_gid
@@ -155,8 +149,7 @@ def _touch_file(file_name, content, root=False):
 FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
-GLOBAL_KEY_DIR=DEFAULT_KEY_DIR
-GLOBAL_ROOT_DIR=FERRY_HOME + '/data/key'
+DEFAULT_SSH_KEY=DEFAULT_KEY_DIR + '/insecure_ferry_key.pem'
 DEFAULT_DOCKER_LOGIN=os.environ['HOME'] + '/.ferry.docker'
 DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
@@ -224,50 +217,6 @@ class Installer(object):
     def _clean_rules(self):
         self.network.clean_rules()
 
-    def _reset_ssh_key(self, root):
-        """
-        Reset the temporary ssh key. This function should only be
-        called from the server. 
-        """
-        keydir, tmp = self.cli._read_key_dir(root=root)
-
-        # Only reset temporary keys. User-defined key directories
-        # shouldn't be touched. 
-        if keydir != DEFAULT_KEY_DIR and tmp == "tmp":
-            shutil.rmtree(keydir)
-
-        # Mark that we are using the default package keys
-        if root:
-            global GLOBAL_ROOT_DIR
-            GLOBAL_ROOT_DIR = 'tmp://' + DEFAULT_KEY_DIR
-            _touch_file(_get_key_dir(root=True, server=True), GLOBAL_ROOT_DIR, root=True)
-        else:
-            global GLOBAL_KEY_DIR
-            GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
-            _touch_file(_get_key_dir(root=False, server=True), GLOBAL_KEY_DIR, root=True)
-        
-    def _process_ssh_key(self, options, root=False):
-        """
-        Initialize the ssh key location. This method is used
-        when starting the ferry server. 
-        """
-        if root:
-            global GLOBAL_ROOT_DIR
-            if options and '-k' in options:
-                GLOBAL_ROOT_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
-            else:
-                GLOBAL_ROOT_DIR = 'tmp://' + DEFAULT_KEY_DIR
-                logging.warning("using key directory " + GLOBAL_ROOT_DIR)
-                _touch_file(_get_key_dir(root=True, server=True), GLOBAL_ROOT_DIR, root=True)
-        else:
-            global GLOBAL_KEY_DIR
-            if options and '-k' in options:
-                GLOBAL_KEY_DIR = 'user://' + self.fetch_image_keys(options['-k'][0])
-            else:
-                GLOBAL_KEY_DIR = 'tmp://' + DEFAULT_KEY_DIR
-                logging.warning("using key directory " + GLOBAL_KEY_DIR)
-                _touch_file(_get_key_dir(root=False, server=False), GLOBAL_KEY_DIR, root=False)
-
     def install(self, args, options):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not _supported_arch():
@@ -291,6 +240,10 @@ class Installer(object):
             logging.error("Could not install Ferry.\n") 
             logging.error(e.strerror)
             sys.exit(1)
+
+        # Make sure that the Ferry keys have the correct
+        # ownership & permission. 
+        self._check_and_change_ssh_keyperm()
 
         # Start the Ferry docker daemon. If it does not successfully
         # start, print out a msg. 
@@ -368,6 +321,16 @@ class Installer(object):
             to_dir = c[2]
             self.fabric.copy([container], from_dir, to_dir)
 
+    def _read_public_key(self, private_key):
+        s = private_key.split("/")
+        p = os.path.splitext(s[len(s) - 1])[0]
+        return p
+
+    def _check_and_change_ssh_keyperm(self):
+        os.chmod(DEFAULT_SSH_KEY, 0600)
+        uid, gid = _get_ferry_user()
+        os.chown(DEFAULT_SSH_KEY, uid, gid)
+
     def start_web(self, options=None, clean=False):
         start, msg = self._start_docker_daemon(options)
         if not clean and not start:
@@ -376,9 +339,9 @@ class Installer(object):
             logging.error(msg) 
             sys.exit(1)
 
-        # Check if the user wants to use a specific key directory. 
-        self._process_ssh_key(options=options, root=True)
-                               
+        # Check if the ssh key permission is properly set. 
+        self._check_and_change_ssh_keyperm()
+
         # Check if the user-application directory exists.
         # If not, create it. 
         try:
@@ -413,19 +376,18 @@ class Installer(object):
         # Check if there are any other Mongo instances runnig.
         self._clean_web()
 
-        # Copy over the ssh keys.
-        self.cli._check_ssh_key(root=True, server=True)
-
         # Start the Mongo server. Create a new configuration and
         # manually start the container. 
-        keydir, _ = self.cli._read_key_dir(root=True)
+        private_key = self.cli._get_ssh_key(options)
         volumes = { DEFAULT_MONGO_LOG : self.mongo.container_log_dir,
                     DEFAULT_MONGO_DB : self.mongo.container_data_dir }
         mongoplan = {'image':'ferry/mongodb',
                      'type':'ferry/mongodb', 
+                     'keydir': { '/service/keys' : DEFAULT_KEY_DIR },
+                     'keyname': self._read_public_key(private_key), 
+                     'privatekey': private_key, 
                      'volumes':volumes,
                      'volume_user':DEFAULT_FERRY_OWNER, 
-                     'keys': { '/service/keys' : keydir }, 
                      'ports':[],
                      'exposed':self.mongo.get_exposed_ports(1), 
                      'hostname':'ferrydb',
@@ -476,15 +438,13 @@ class Installer(object):
         cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
-    def stop_web(self):
+    def stop_web(self, key):
         # Shutdown the mongo instance
         if os.path.exists('/tmp/mongodb.ip'):
             f = open('/tmp/mongodb.ip', 'r')
             ip = f.read().strip()
             f.close()
 
-            keydir, tmp = self.cli._read_key_dir(root=True)
-            key = keydir + "/id_rsa"
             cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode stop' % (key, ip)
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
@@ -535,15 +495,6 @@ class Installer(object):
             if len(location.split(".")) == 1:
                 s |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
             os.chmod(location, s)
-
-    """
-    Ask for the key directory.
-    """
-    def fetch_image_keys(self, key_dir=None):
-        if key_dir and os.path.exists(key_dir):
-            return key_dir
-        else:
-            return DEFAULT_KEY_DIR
 
     """
     Check if the dockerfiles are already built. 

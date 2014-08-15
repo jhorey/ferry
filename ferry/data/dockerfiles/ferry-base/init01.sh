@@ -14,5 +14,5 @@
 source /service/sbin/setup
 
 create_fuse_dev    
-cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
+cat /service/keys/$(KEY) >> /root/.ssh/authorized_keys
 /usr/sbin/sshd -D
