@@ -32,9 +32,11 @@ class DefaultResolver(object):
             # Check the storage.             
             if b['storage']['instances'] in values.keys():
                 b['storage']['instances'] = values[b['storage']['instances']]
-            else:
-                # Check the compute. 
-                for c in b['compute']:
-                    if c['instances'] in values.keys():
-                        c['instances'] = values[c['instances']]
+
+                
+            # Check the compute. 
+            for c in b['compute']:
+                if c['instances'] in values.keys():
+                    c['instances'] = values[c['instances']]
+
         return payload
