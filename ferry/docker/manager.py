@@ -29,6 +29,7 @@ import yaml
 from pymongo import MongoClient
 from sets import Set
 from ferry.install import *
+from ferry.docker.resolve       import DefaultResolver
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.fabric        import DockerFabric
 from ferry.docker.configfactory import ConfigFactory
@@ -41,6 +42,7 @@ class DockerManager(object):
         # Generate configuration.
         self.docker = DockerFabric()
         self.config = ConfigFactory()
+        self.resolver = DefaultResolver()
 
         # Service mappings
         self.service = {

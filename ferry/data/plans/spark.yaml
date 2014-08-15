@@ -3,13 +3,20 @@ metadata:
    version: 0.2.0
    description: Spark over Hadoop
    tags: [infrastructure,hadoop,spark]
+params:
+   resolver: ferry.docker.resolve.DefaultResolver
+questions:
+   - question: Number of instances for hadoop
+     param: "{numhadoop}"
+   - question: Number of instances for spark
+     param: "{numspark}"
 backend:
    - storage:
         personality: "hadoop"
-        instances: ">=1"
+        instances: "{numhadoop}"
      compute:
         - personality: "spark"
-          instances: ">=1"
+          instances: "{numspark}"
 connectors:
    - personality: "ferry/spark-client"
      ports: [8080]

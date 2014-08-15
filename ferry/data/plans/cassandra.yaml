@@ -3,10 +3,15 @@ metadata:
    version: 0.2.0
    description: Cassandra stack
    tags: [infrastructure,cassandra]
+params:
+   resolver: ferry.docker.resolve.DefaultResolver
+questions:
+   - question: Number of instances for cassandra
+     param: "{instances}"
 backend:
    - storage:
         personality: "cassandra"
-        instances: ">=1"
+        instances: "{instances}"
         layers: 
            - "titan"
         args: 

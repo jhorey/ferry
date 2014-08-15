@@ -305,20 +305,10 @@ class CLI(object):
             logging.error("could not connect to ferry server")
             return False, "It appears Ferry servers are not running.\nType sudo ferry server and try again."
 
-    def _resubmit_create(self, reply, stack_description, args, key_name):
-        values = {}
-        for q in reply['questions']:
-            question = colored(q['query']['text'], 'red')
-            prompt = colored(' >> ', 'green')
-            v = raw_input(question + prompt)
-            values[q['query']['id']] = v
-        stack_description['iparams'] = values
-        posted, reply = self._create_stack(stack_description, args, key_name)
-        if posted:
-            try:
-                return self._format_output(json.loads(reply))
-            except ValueError as e:
-                logging.error(reply)
+    def _ask_question(self, question_text):
+        question = colored(question_text, 'red')
+        prompt = colored(' >> ', 'green')
+        return raw_input(question + prompt)
 
     def _format_apps_query(self, json_data):
         authors = []
@@ -650,6 +640,15 @@ class CLI(object):
             if not json_arg:
                 logging.error("could not load file " + file_path)
                 exit(1)
+            else:
+                # Check if there are any questions associated with
+                # this application stack. If so, we should prompt the
+                # user and include the answers. 
+                if 'questions' in json_arg:
+                    for q in json_arg['questions']:
+                        question = q['question']
+                        q['_answer'] = self._ask_question(question)
+
             json_arg['_file_path'] = file_path
         json_arg['_file'] = arg
 
@@ -659,9 +658,7 @@ class CLI(object):
         if posted:
             try:
                 reply = json.loads(reply)
-                if reply['status'] == 'query':
-                    return self._resubmit_create(reply, json_arg, args, private_key)
-                elif reply['status'] == 'failed':
+                if reply['status'] == 'failed':
                     return 'could not create application'
                 else:
                     return self._format_output(reply)

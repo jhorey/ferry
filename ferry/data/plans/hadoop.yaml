@@ -3,10 +3,15 @@ metadata:
    version: 0.2.0
    description: Hadoop stack
    tags: [infrastructure,hadoop]
+params:
+   resolver: ferry.docker.resolve.DefaultResolver
+questions:
+   - question: Number of instances for hadoop
+     param: "{instances}"
 backend:
    - storage:
         personality: "hadoop"
-        instances: ">=1"
+        instances: "{instances}"
         layers:
            - "hive"
 connectors:

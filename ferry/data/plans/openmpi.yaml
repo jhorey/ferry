@@ -3,13 +3,20 @@ metadata:
    version: 0.2.0
    description: Open MPI over GlusterFS
    tags: [infrastructure,openmpi,glusterfs]
+params:
+   resolver: ferry.docker.resolve.DefaultResolver
+questions:
+   - question: Number of instances for gluster
+     param: "{numgluster}"
+   - question: Number of instances for openmpi
+     param: "{nummpi}"
 backend:
    - storage:
         personality: "gluster"
-        instances: ">=1"
+        instances: "{numgluster}"
      compute:
         - personality: "openmpi"
-          instances: ">=1"
+          instances: "{nummpi}"
 connectors:
    - personality: "ferry/openmpi-client"
      name: "control-0"
