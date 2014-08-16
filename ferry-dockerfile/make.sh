@@ -7,7 +7,7 @@ ORANGE='\e[0;33m'
 BLUE='\e[0;34m'
 NC='\e[0m'
 
-VERSION='0.2.3'
+VERSION='0.2.4'
 
 # Compare two version numbers. 
 function vercomp () {
