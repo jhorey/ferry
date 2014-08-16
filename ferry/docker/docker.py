@@ -33,7 +33,9 @@ class DockerInstance(object):
             self.internal_ip = None
             self.ports = {}
             self.image = ''
-            self.keys = None
+            self.keydir = None
+            self.keyname = None
+            self.privatekey = None
             self.volumes = None
             self.default_user = None
             self.name = None
@@ -49,7 +51,9 @@ class DockerInstance(object):
             self.default_user = json_data['user']
             self.name = json_data['name']
             self.args = json_data['args']
-            self.keys = json_data['keys']
+            self.keydir = json_data['keydir']
+            self.keyname =json_data['keyname']
+            self.privatekey = json_data['privatekey']
             self.volumes = json_data['volumes']
 
     """
@@ -64,7 +68,9 @@ class DockerInstance(object):
                        'container' : self.container,
                        'image' : self.image,
                        'type': self.service_type, 
-                       'keys' : self.keys,
+                       'keydir' : self.keydir,
+                       'keyname' : self.keyname, 
+                       'privatekey' : self.privatekey, 
                        'volumes' : self.volumes,
                        'user' : self.default_user,
                        'name' : self.name,
@@ -286,7 +292,7 @@ class DockerCLI(object):
     """
     Start a stopped container. 
     """
-    def start(self, container, service_type, keys, volumes, args, server=None):
+    def start(self, container, service_type, keydir, keyname, privatekey, volumes, args, server=None):
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
         output, _ = self._execute_cmd(cmd, server)
@@ -294,7 +300,9 @@ class DockerCLI(object):
         # Now parse the output to get the IP and port
         container = output.strip()
         return self.inspect(container = container, 
-                            keys = keys,
+                            keydir = keydir,
+                            keyname = keyname,
+                            privatekey = privatekey,
                             volumes = volumes,
                             service_type = service_type, 
                             args = args)
@@ -304,7 +312,7 @@ class DockerCLI(object):
     The Docker allocator will ignore subnet, volumes, instance_name, and key
     information since everything runs locally. 
     """
-    def run(self, service_type, image, volumes, keys, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, inspector=None):
+    def run(self, service_type, image, volumes, keydir, keyname, privatekey, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, inspector=None):
         flags = self.daemon 
 
         # Specify the hostname (this is optional)
@@ -325,10 +333,12 @@ class DockerCLI(object):
                 flags += ' %s:%s' % (v, volumes[v])
 
         # Add the key directory
-        if keys != None:
-            for v in keys.keys():
+        if keydir != None:
+            for v in keydir.keys():
                 flags += self.volume_flag
-                flags += ' %s:%s' % (keys[v], v)
+                flags += ' %s:%s' % (keydir[v], v)
+                flags += self.env_flag
+                flags += ' \"KEY=%s\"' % keyname
 
         # Add the lxc options
         if lxc_opts != None:
@@ -361,7 +371,7 @@ class DockerCLI(object):
             return None
 
         container = output.strip()
-        return inspector.inspect(image, container, keys, volumes, hostname, open_ports, host_map, service_type, args, server)
+        return self.inspect(container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -374,7 +384,11 @@ class DockerInspector(object):
     def __init__(self, cli):
         self.cli = cli
 
-    def inspect(self, image, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
+    """
+    Inspect a container and return information on how
+    to connect to the container. 
+    """
+    def inspect(self, image, container, keydir=None, keyname=None, privatekey=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
         """
         Inspect a container and return information on how
         to connect to the container. 
@@ -424,6 +438,8 @@ class DockerInspector(object):
         else:
             instance.volumes = data['Volumes']
 
-        if keys:
-            instance.keys = keys
+            
+        instance.keydir = keydir
+        instance.keyname = keyname
+        instance.privatekey = privatekey
         return instance

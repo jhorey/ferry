@@ -5,14 +5,25 @@
 # first script run after the container is started. This script should not be modified 
 # by the container. 
 # 
-# 
-# Currently the script is very simple. It creates the FUSE device (necessary for
-# older versions of Docker) and sets up an SSH daemon. This allows the host to
-# communicate with the container. 
 #
 
+#
+# Contains basic functions. 
+# 
 source /service/sbin/setup
 
+#
+# Create the FUSE device. This won't be necessary
+# once we upgrade Docker, but keep it as a fail-safe
+# 
 create_fuse_dev    
-cat /service/keys/id_rsa.pub >> /root/.ssh/authorized_keys
+
+#
+# Authorize the ssh key so that we can do password-less entry. 
+#
+cat /service/keys/$KEY >> /root/.ssh/authorized_keys
+
+#
+# Start the ssh daemon in the foreground so that the container won't quit. 
+#
 /usr/sbin/sshd -D

@@ -3,13 +3,20 @@ metadata:
    version: 0.2.0
    description: Hadoop YARN over GlusterFS
    tags: [infrastructure,hadoop,glusterfs]
+params:
+   resolver: ferry.docker.resolve.DefaultResolver
+questions:
+   - question: Number of instances for gluster
+     param: "{numgluster}"
+   - question: Number of instances for yarn
+     param: "{numyarn}"
 backend:
    - storage:
         personality: "gluster"
-        instances: ">=1"
+        instances: "{numgluster}"
      compute:
         - personality: "yarn"
-          instances: ">=1"
+          instances: "{numyarn}"
           layers: 
              - "hive"
 connectors:

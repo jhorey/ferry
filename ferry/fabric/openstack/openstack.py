@@ -119,7 +119,9 @@ class OpenStackFabric(object):
         container = self.cli.run(service_type = container['type'], 
                                  image = container['image'], 
                                  volumes = container['volumes'],
-                                 keys = { '/service/keys' : '/ferry/keys' }, 
+                                 keydir = { '/service/keys' : '/ferry/keys' }, 
+                                 keyname = c['keyname'], 
+                                 privatekey = c['privatekey'], 
                                  open_ports = host_map_keys,
                                  host_map = host_map, 
                                  expose_group = container['exposed'], 
@@ -191,12 +193,11 @@ class OpenStackFabric(object):
         Copy over the contents to each container
         """
         for c in containers:
-            self.copy_raw(c.internal_ip, from_dir, to_dir)
+            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir)
 
-    def copy_raw(self, ip, from_dir, to_dir):
+    def copy_raw(self, key, ip, from_dir, to_dir):
         opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        key = '-i ' + self.cli.key
-        scp = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.cli.docker_user + '@' + ip + ':' + to_dir
+        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + ip + ':' + to_dir
         logging.warning(scp)
         output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
 
@@ -206,15 +207,13 @@ class OpenStackFabric(object):
         """
         all_output = {}
         for c in containers:
-            output = self.cmd_raw(c.internal_ip, cmd)
+            output = self.cmd_raw(c.privatekey, c.internal_ip, cmd)
             all_output[c.host_name] = output.strip()
         return all_output
 
-    def cmd_raw(self, ip, cmd):
-        opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        key = '-i ' + self.cli.key
+    def cmd_raw(self, key, ip, cmd):
         ip = self.docker_user + '@' + ip
-        ssh = 'ssh ' + opts + ' ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+        ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
         output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
         return output

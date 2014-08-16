@@ -31,6 +31,7 @@ import yaml
 from pymongo import MongoClient
 from sets import Set
 from ferry.install import *
+from ferry.docker.resolve       import DefaultResolver
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.configfactory import ConfigFactory
 from ferry.docker.deploy        import DeployEngine
@@ -41,6 +42,7 @@ class DockerManager(object):
     def __init__(self):
         # Generate configuration.
         self.config = ConfigFactory()
+        self.resolver = DefaultResolver()
 
         # Service mappings
         self.service = {
@@ -617,23 +619,23 @@ class DockerManager(object):
 
         return container_dir, log_dir, host_name, ports, exposed
 
-    def _read_key_dir(self):
+    def _read_key_dir(self, private_key):
         """
         Read the directory containing the key we should use. 
         """
-        # This needs to be fixed. When starting the
-        # container, we need to know which key is being used. 
-        # However, we want to read the client directory instead of
-        # the server directory!
-        with open(ferry.install._get_key_dir(root=False, server=False), 'r') as f:
-            k = f.read().strip().split("://")
-            return { '/service/keys' : k[1]  }
+        return { '/service/keys' : os.path.dirname(private_key)  }
+
+    def _read_public_key(self, private_key):
+        s = private_key.split("/")
+        p = os.path.splitext(s[len(s) - 1])[0]
+        return p
 
     def _prepare_storage_environment(self, 
                                      service_uuid, 
                                      num_instances, 
                                      storage_type, 
                                      layers,
+                                     key_name, 
                                      args = None,
                                      replace = False):
         """
@@ -668,7 +670,9 @@ class DockerManager(object):
                               'type':t, 
                               'volumes':dir_info,
                               'volume_user':DEFAULT_FERRY_OWNER, 
-                              'keys': self._read_key_dir(), 
+                              'keydir': self._read_key_dir(key_name), 
+                              'keyname': self._read_public_key(key_name), 
+                              'privatekey': key_name, 
                               'ports':ports,
                               'exposed':exposed, 
                               'hostname':host_name,
@@ -682,6 +686,7 @@ class DockerManager(object):
                                      service_uuid, 
                                      num_instances, 
                                      compute_type,
+                                     key_name, 
                                      layers, 
                                      args = None):
         """
@@ -708,7 +713,9 @@ class DockerManager(object):
             container_info = {'image':instance_type,
                               'volumes':dir_info,
                               'volume_user':DEFAULT_FERRY_OWNER, 
-                              'keys': self._read_key_dir(), 
+                              'keydir': self._read_key_dir(key_name), 
+                              'keyname': self._read_public_key(key_name), 
+                              'privatekey': key_name, 
                               'type':t, 
                               'ports':ports,
                               'exposed':exposed, 
@@ -731,6 +738,7 @@ class DockerManager(object):
     def _prepare_connector_environment(self, 
                                        service_uuid, 
                                        connector_type, 
+                                       key_name, 
                                        instance_type=None,
                                        name=None, 
                                        ports=[],
@@ -749,7 +757,9 @@ class DockerManager(object):
         else:
             host_name = name
         container_info = { 'image':instance_type,
-                           'keys': self._read_key_dir(), 
+                           'keydir': self._read_key_dir(key_name), 
+                           'keyname': self._read_public_key(key_name), 
+                           'privatekey': key_name, 
                            'volumes':{},
                            'type':connector_type, 
                            'ports':ports,
@@ -772,7 +782,7 @@ class DockerManager(object):
             logging.warning("transfer config %s -> %s" % (from_dir, to_dir))
             self.docker.copy([container], from_dir, to_dir)
 
-    def _transfer_ip(self, ips):
+    def _transfer_ip(self, private_key, ips):
         """
         Transfer the hostname/IP addresses to all the containers. 
         """
@@ -780,8 +790,8 @@ class DockerManager(object):
             for ip in ips:
                 hosts_file.write("%s %s\n" % (ip[0], ip[1]))
         for ip in ips:
-            self.docker.copy_raw(ip[0], '/tmp/instances', '/service/sconf/instances')
-            self.docker.cmd_raw(ip[0], '/service/sbin/startnode hosts')
+            self.docker.copy_raw(private_key, ip[0], '/tmp/instances', '/service/sconf/instances')
+            self.docker.cmd_raw(private_key, ip[0], '/service/sbin/startnode hosts')
         
     def _transfer_env_vars(self, containers, env_vars):
         """
@@ -835,7 +845,7 @@ class DockerManager(object):
         """
         return self._new_stack_uuid()
 
-    def register_stack(self, backends, connectors, base, cluster_uuid, status, new_stack=True):
+    def register_stack(self, backends, connectors, base, cluster_uuid, status, key=None, new_stack=True):
         """
         Register the set of services under a single cluster identifier. 
         """
@@ -851,6 +861,7 @@ class DockerManager(object):
                     'ts':ts }
 
         if new_stack:
+            cluster['key'] = key
             self.cluster_collection.insert( cluster )
         else:
             self.cluster_collection.remove( {'uuid' : cluster_uuid} )
@@ -997,6 +1008,7 @@ class DockerManager(object):
     def allocate_compute(self,
                          cluster_uuid, 
                          compute_type, 
+                         key_name, 
                          storage_uuid,
                          args, 
                          num_instances=1,
@@ -1010,7 +1022,12 @@ class DockerManager(object):
 
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
-        plan = self._prepare_compute_environment(service_uuid, num_instances, compute_type, layers, args)
+        plan = self._prepare_compute_environment(service_uuid = service_uuid, 
+                                                 num_instances = num_instances, 
+                                                 compute_type = compute_type, 
+                                                 key_name = key_name,
+                                                 layers = layers, 
+                                                 args = args)
 
         # Get the entry point for the storage layer. 
         storage_entry = self._get_service_configuration(storage_uuid)
@@ -1028,16 +1045,14 @@ class DockerManager(object):
 
             # Now copy over the configuration.
             self._transfer_config(config_dirs)
-            for k in self._read_key_dir().keys():
-                keydir = k
         else:
             entry_point = {}
 
+        # Update the service configuration. 
         container_info = self._serialize_containers(containers)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
                    'class':'compute',
-                   'keys': keydir, 
                    'type':compute_type,
                    'entry':entry_point,
                    'storage':storage_uuid, 
@@ -1120,6 +1135,7 @@ class DockerManager(object):
     def allocate_storage(self, 
                          cluster_uuid, 
                          storage_type, 
+                         key_name, 
                          num_instances=1,
                          layers=[], 
                          args=None,
@@ -1134,7 +1150,13 @@ class DockerManager(object):
 
         # Generate the data volumes. This basically defines which
         # directories on the host get mounted in the container. 
-        plan = self._prepare_storage_environment(service_uuid, num_instances, storage_type, layers, args, replace)
+        plan = self._prepare_storage_environment(service_uuid = service_uuid, 
+                                                 num_instances = num_instances, 
+                                                 storage_type = storage_type, 
+                                                 layers = layers, 
+                                                 key_name = key_name, 
+                                                 args = args, 
+                                                 replace = replace)
 
         # Allocate all the containers. 
         containers = self._start_containers(cluster_uuid, plan, ctype="storage")
@@ -1209,6 +1231,7 @@ class DockerManager(object):
 
     def manage_stack(self,
                      stack_uuid,
+                     private_key, 
                      action):
         """
         Manage the stack.
@@ -1246,6 +1269,7 @@ class DockerManager(object):
         """
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
+            key = cluster['key']
             backends = []
             backends = cluster['backends']
             for i, uuid in enumerate(backends):
@@ -1261,7 +1285,9 @@ class DockerManager(object):
                 
                 backends.append( {'storage' : storage_conf,
                                   'compute' : compute_confs} )
-            return backends
+            return backends, key
+        else:
+            return None, None
             
 
     def fetch_snapshot_backend(self, snapshot_uuid):
@@ -1313,6 +1339,7 @@ class DockerManager(object):
     def allocate_deployed_connectors(self, 
                                      cluster_uuid, 
                                      app_uuid, 
+                                     key_name, 
                                      backend_info,
                                      conf = None):
         """
@@ -1327,6 +1354,7 @@ class DockerManager(object):
             for c in app['connectors']:
                 uuid, containers = self.allocate_connector(cluster_uuid = cluster_uuid,
                                                            connector_type = c['type'],
+                                                           key_name = key_name,  
                                                            backend = backend_info,
                                                            name = c['name'], 
                                                            args = c['args'],
@@ -1342,6 +1370,7 @@ class DockerManager(object):
     def allocate_snapshot_connectors(self, 
                                      cluster_uuid, 
                                      snapshot_uuid, 
+                                     key_name, 
                                      backend_info):
         """
         Lookup the snapshot connector info and instantiate. 
@@ -1353,6 +1382,7 @@ class DockerManager(object):
             for s in snapshot['snapshot_cs']:
                 uuid, containers = self.allocate_connector(cluster_uuid = cluster_uuid,
                                                            connector_type = s['type'],
+                                                           key_name = key_name, 
                                                            backend = backend_info,
                                                            name = s['name'], 
                                                            args = s['args'],
@@ -1416,6 +1446,7 @@ class DockerManager(object):
     def allocate_connector(self,
                            cluster_uuid, 
                            connector_type, 
+                           key_name, 
                            backend=None,
                            name=None, 
                            args=None,
@@ -1444,6 +1475,7 @@ class DockerManager(object):
         service_uuid = self._new_service_uuid()
         plan = self._prepare_connector_environment(service_uuid = service_uuid, 
                                                    connector_type = connector_type, 
+                                                   key_name = key_name, 
                                                    instance_type = image,
                                                    name = name,
                                                    ports = ports, 

@@ -147,6 +147,7 @@ class OpenMPIInitializer(object):
             mount_ip = storage['gluster']
             mount_dir = storage['volume']
             entry_point['mount'] = "%s:/%s" % (mount_ip, mount_dir)
+            logging.warning("MOUNT: " + str(entry_point['mount']))
 
             # Check if we are being called as a compute instance or client.
             if not 'compute' in containers[0]:

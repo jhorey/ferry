@@ -31,8 +31,6 @@ import threading2
 import Queue
 import time
 
-
-
 """
 Worker thread for starting new stacks. 
 """
@@ -72,29 +70,34 @@ Fetch the current docker version
 def get_version():
     return docker.version()
 
+def _get_private_key(keydir, public_key):
+    return keydir + "/" + public_key + ".pem"
+
 """
 Allocate the backend from a snapshot. 
 """
-def _allocate_backend_from_snapshot(cluster_uuid, payload):
+def _allocate_backend_from_snapshot(cluster_uuid, payload, key_name):
     snapshot_uuid = payload['_file']
     backends = docker.fetch_snapshot_backend(snapshot_uuid)
 
     if backends:
         return _allocate_backend(cluster_uuid = cluster_uuid,
                                  payload = None,
+                                 key_name = key_name, 
                                  backends = backends,
-                                 new_stack = True)
+        new_stack = True)
 
 """
 Allocate the backend from a deployment. 
 """
-def _allocate_backend_from_deploy(cluster_uuid, payload, params=None):
+def _allocate_backend_from_deploy(cluster_uuid, payload, key_name, params=None):
     app_uuid = payload['_file']
     backends = docker.fetch_deployed_backend(app_uuid, params)
     
     if backends:
         return _allocate_backend(cluster_uuid = cluster_uuid,
                                  payload = None,
+                                 key_name = key_name, 
                                  backends = backends,
                                  new_stack = True)
 
@@ -103,42 +106,28 @@ Allocate the backend from a stopped service.
 """
 def _allocate_backend_from_stopped(cluster_uuid, payload):
     app_uuid = payload['_file']
-    backends = docker.fetch_stopped_backend(app_uuid)
+    backends, key_name = docker.fetch_stopped_backend(app_uuid)
     
     if backends:
-        return _allocate_backend(cluster_uuid = cluster_uuid,
-                                 payload = None,
-                                 backends = backends,
-                                 uuid = app_uuid,
-                                 new_stack = False)
+        backend_info, backend_plan = _allocate_backend(cluster_uuid = cluster_uuid,
+                                                       payload = None,
+                                                       key_name = key_name, 
+                                                       backends = backends,
+                                                       uuid = app_uuid,
+                                                       new_stack = False)
+        return backend_info, backend_plan, key_name
 
-def _fetch_num_instances(instance_arg, instance_type, options=None):
+def _fetch_num_instances(instance_arg):
     reply = {}
     try:
-        num_instances = int(instance_arg)
-        reply['num'] = num_instances
+        reply['num'] = int(instance_arg)
     except ValueError:
-        # This was not an integer, check if it was a string.
-        # First remove any extra white spaces.
-        instance_arg = instance_arg.replace(" ","")
-        if instance_arg[0] == '>':
-            if instance_arg[1] == '=':
-                min_instances = int(instance_arg[2])
-            else:
-                min_instances = int(instance_arg[1]) + 1
+        # This is an error so don't allocate anything. 
+        reply['num'] = 0
 
-            if options and instance_type in options:
-                num_instances = int(options[instance_type])
-                if num_instances < min_instances:
-                    reply['num'] = min_instances
-                else:
-                    reply['num'] = num_instances
-            else:
-                reply['query'] = { 'id' : instance_type,
-                                   'text' : 'Number of instances for %s' % instance_type  }
     return reply
 
-def _allocate_compute(cluster_uuid, computes, storage_uuid, options=None):
+def _allocate_compute(cluster_uuid, computes, key_name, storage_uuid):
     """
     Allocate a new compute backend. This method assumes that every
     compute backend already has a specific instance count associated
@@ -149,7 +138,7 @@ def _allocate_compute(cluster_uuid, computes, storage_uuid, options=None):
     compute_plan = []
     for c in computes:
         compute_type = c['personality']
-        reply = _fetch_num_instances(c['instances'], compute_type, options)
+        reply = _fetch_num_instances(c['instances'])
         num_instances = reply['num']
         c['instances'] = num_instances
         args = {}
@@ -162,6 +151,7 @@ def _allocate_compute(cluster_uuid, computes, storage_uuid, options=None):
 
         compute_uuid, compute_containers = docker.allocate_compute(cluster_uuid = cluster_uuid,
                                                                    compute_type = compute_type,
+                                                                   key_name = key_name,
                                                                    storage_uuid = storage_uuid, 
                                                                    args = args, 
                                                                    num_instances = num_instances,
@@ -172,21 +162,6 @@ def _allocate_compute(cluster_uuid, computes, storage_uuid, options=None):
                                'start' : 'start' } )
         uuids.append( compute_uuid )
     return uuids, compute_plan
-
-def _query_backend_params(backends, options=None):
-    """
-    Helps allocate a storage/compute backend. It must first determine though if
-    there are any missing value parameters. If there are, it sends back a
-    list of questions to the client to get those values. The client then
-    has to resubmit the request. 
-    """
-    all_queries = []
-    for b in backends:
-        backend_type = b['personality']
-        query = _fetch_num_instances(b['instances'], backend_type, options)
-        if 'query' in query:
-            all_queries.append(query)
-    return all_queries
 
 def _restart_compute(computes):
     uuids = []
@@ -207,24 +182,18 @@ def _restart_compute(computes):
         docker.restart_containers(service_uuid, containers)
     return uuids, compute_plan
 
+"""
+Allocate a brand new backend
+"""
 def _allocate_backend(cluster_uuid,
                       payload,
-                      backends = None,
-                      replace = False,
-                      uuid = None,
+                      key_name, 
+                      backends=None,
+                      replace=False,
+                      uuid=None,
                       new_stack = True):
-    """
-    Allocate a brand new backend
-    """
 
-    iparams = None
     if not backends:
-        # The 'iparams' specifies the number of instances to use
-        # for the various stack components. It is optional since
-        # the application stack may already specify these values. 
-        if 'iparams' in payload:
-            iparams = payload['iparams']
-            
         # We should find the backend information in the payload. 
         if 'backend' in payload:
             backends = payload['backend']
@@ -242,26 +211,6 @@ def _allocate_backend(cluster_uuid,
     compute_plan = []
     compute_uuids = []
 
-    # First we need to check if either the storage or the compute 
-    # have unspecified number of instances. If so, we'll need to abort
-    # the creating the backend, and send a query. 
-    if not uuid:
-        all_questions = []
-        for b in backends:
-            storage = b['storage']
-            storage_params = _query_backend_params([storage], iparams)
-            compute_params = []
-            if 'compute' in b:
-                compute_params = _query_backend_params(b['compute'], iparams)
-            all_questions = storage_params + compute_params + all_questions
-
-        # Looks like there are unfilled parameters. Send back a list of
-        # questions for the user to fill out. 
-        if len(all_questions) > 0:
-            backend_info['status'] = 'query'
-            backend_info['query'] = all_questions
-            return backend_info, None
-    
     # Go ahead and create the actual backend stack. If the user has passed in
     # an existing backend UUID, that means we should restart that backend. Otherwise
     # we create a fresh backend. 
@@ -272,7 +221,7 @@ def _allocate_backend(cluster_uuid,
             if 'args' in storage:
                 args = storage['args']
             storage_type = storage['personality']
-            reply = _fetch_num_instances(storage['instances'], storage_type, iparams)
+            reply = _fetch_num_instances(storage['instances'])
             num_instances = reply['num']
             storage['instances'] = num_instances
             layers = []
@@ -281,6 +230,7 @@ def _allocate_backend(cluster_uuid,
 
             storage_uuid, storage_containers = docker.allocate_storage(cluster_uuid = cluster_uuid,
                                                                        storage_type = storage_type, 
+                                                                       key_name = key_name, 
                                                                        num_instances = num_instances,
                                                                        layers = layers,
                                                                        args = args,
@@ -306,11 +256,11 @@ def _allocate_backend(cluster_uuid,
         # we should check if it even exists first. 
         compute_uuid = []
         if 'compute' in b:
-            if new_stack:
+            if not uuid:
                 compute_uuid, plan = _allocate_compute(cluster_uuid = cluster_uuid,
                                                        computes = b['compute'], 
-                                                       storage_uuid = storage_uuid, 
-                                                       options = iparams)
+                                                       key_name = key_name, 
+                                                       storage_uuid = storage_uuid) 
                 compute_uuids += compute_uuid
                 compute_plan += plan
             else:
@@ -323,7 +273,7 @@ def _allocate_backend(cluster_uuid,
     return backend_info, { 'storage' : storage_plan,
                            'compute' : compute_plan }
 
-def _allocate_connectors(cluster_uuid, payload, backend_info):
+def _allocate_connectors(cluster_uuid, payload, key_name, backend_info):
     connector_info = []
     connector_plan = []
     if 'connectors' in payload:
@@ -368,6 +318,7 @@ def _allocate_connectors(cluster_uuid, payload, backend_info):
                 # Now allocate the connector. 
                 uuid, containers = docker.allocate_connector(cluster_uuid = cluster_uuid,
                                                              connector_type = connector_type,
+                                                             key_name = key_name, 
                                                              backend = backend_info, 
                                                              name = connector_name, 
                                                              args = args,
@@ -382,29 +333,32 @@ def _allocate_connectors(cluster_uuid, payload, backend_info):
 """
 Allocate the connectors from a snapshot. 
 """
-def _allocate_connectors_from_snapshot(cluster_uuid, payload, backend_info):
+def _allocate_connectors_from_snapshot(cluster_uuid, payload, key_name, backend_info):
     snapshot_uuid = payload['_file']
     return docker.allocate_snapshot_connectors(cluster_uuid,
                                                snapshot_uuid,
+                                               key_name, 
                                                backend_info)
 
 """
 Allocate the connectors from a deployment. 
 """
-def _allocate_connectors_from_deploy(cluster_uuid, payload, backend_info, params=None):
+def _allocate_connectors_from_deploy(cluster_uuid, payload, key_name, backend_info, params=None):
     app_uuid = payload['_file']
     return docker.allocate_deployed_connectors(cluster_uuid,
                                                app_uuid,
+                                               key_name, 
                                                backend_info,
                                                params)
 
 """
 Allocate the connectors from a stopped application. 
 """
-def _allocate_connectors_from_stopped(cluster_uuid, payload, backend_info, params=None):
+def _allocate_connectors_from_stopped(cluster_uuid, payload, key_name, backend_info, params=None):
     app_uuid = payload['_file']
     return docker.allocate_stopped_connectors(cluster_uuid,
                                               app_uuid,
+                                              key_name, 
                                               backend_info,
                                               params)
 
@@ -418,8 +372,11 @@ def _register_ip_addresses(backend_plan, connector_plan):
         for c in s['containers']:
             if isinstance(c, dict):
                 ips.append( [c['internal_ip'], c['hostname']] )
+                private_key = c['privatekey']
             else:
                 ips.append( [c.internal_ip, c.host_name] )
+                private_key = c.privatekey
+
     for s in backend_plan['compute']:
         for c in s['containers']:
             if isinstance(c, dict):
@@ -436,7 +393,7 @@ def _register_ip_addresses(backend_plan, connector_plan):
                 ips.append( [c['internal_ip'], c['hostname']] )
             else:
                 ips.append( [c.internal_ip, c.host_name] )
-    docker._transfer_ip(ips)
+    docker._transfer_ip(private_key, ips)
 
 def _start_all_services(backend_plan, connector_plan):
     """
@@ -475,10 +432,18 @@ def _start_all_services(backend_plan, connector_plan):
             all_output = dict(all_output.items() + output.items())
     return all_output
 
-def _allocate_new(payload):
+def _allocate_new(payload, key_name):
     """
     Helper function to allocate and start a new stack. 
     """
+
+    # Check if there are any questions/answers in
+    # this payload. If so, go ahead and resolve the answers. 
+    if 'questions' in payload:
+        values = docker.resolver.resolve(payload['questions'])
+        payload = docker.resolver.replace(payload, values)
+
+    # Now allocate the backend. This includes both storage and compute. 
     reply = {}
     uuid = docker.reserve_stack()
     payload["_uuid"] = str(uuid)
@@ -488,6 +453,7 @@ def _allocate_new(payload):
                           base = payload['_file'], 
                           cluster_uuid = uuid, 
                           status='building',
+                          key = key_name,
                           new_stack=True)
 
     return json.dumps({ 'text' : str(uuid),
@@ -501,12 +467,16 @@ def _allocate_new_worker(uuid, payload):
     # uuid = docker.reserve_stack()
     backend_info, backend_plan = _allocate_backend(cluster_uuid = uuid,
                                                    payload = payload, 
+                                                   key_name = key_name,
                                                    replace=True,
                                                    new_stack=True)
+    # Check if the backend status was ok, and if so,
+    # go ahead and allocate the connectors. 
     reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
         success, connector_info, connector_plan = _allocate_connectors(cluster_uuid = uuid,
                                                                        payload = payload, 
+                                                                       key_name = key_name, 
                                                                        backend_info = backend_info['uuids'])
 
         if success:
@@ -514,6 +484,7 @@ def _allocate_new_worker(uuid, payload):
             docker.register_stack(backends = backend_info, 
                                   connectors = connector_info, 
                                   base = payload['_file'], 
+                                  key = key_name,
                                   cluster_uuid = uuid, 
                                   status='running', 
                                   new_stack=False)
@@ -529,8 +500,6 @@ def _allocate_new_worker(uuid, payload):
                                   status='failed', 
                                   new_stack=False)
             reply['status'] = 'failed'
-    else:
-        reply['questions'] = backend_info['query']
 
     return json.dumps(reply)
 
@@ -538,13 +507,14 @@ def _allocate_stopped(payload):
     """
     Helper function to allocate and start a stopped stack. 
     """
-    uuid = payload['_file']
-    base = docker.get_base_image(uuid)
-    backend_info, backend_plan = _allocate_backend_from_stopped(cluster_uuid = uuid,
-                                                                payload = payload)
+uuid = payload['_file']
+base = docker.get_base_image(uuid)
+backend_info, backend_plan, key_name = _allocate_backend_from_stopped(cluster_uuid = uuid,
+                                                                      payload = payload)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_stopped(cluster_uuid = uuid,
                                                                            payload = payload, 
+                                                                           key_name = key_name, 
                                                                            backend_info = backend_info['uuids'])
         output = _start_all_services(backend_plan, connector_plan)        
         docker.register_stack(backends = backend_info,
@@ -552,6 +522,7 @@ def _allocate_stopped(payload):
                               base = base,
                               cluster_uuid = uuid,
                               status='running', 
+                              key = key_name,
                               new_stack = False)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
@@ -559,16 +530,18 @@ def _allocate_stopped(payload):
     else:
         return json.dumps({'status' : 'failed'})
 
-def _allocate_snapshot(payload):
+def _allocate_snapshot(payload, key_name):
     """
     Helper function to allocate and start a snapshot.
     """
     uuid = docker.reserve_stack()
     backend_info, backend_plan = _allocate_backend_from_snapshot(cluster_uuid = uuid,
-                                                                 payload = payload)
+                                                                 payload = payload,
+                                                                 key_name = key_name)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_snapshot(cluster_uuid = uuid,
                                                                             payload = payload, 
+                                                                            key_name = key_name,                                                                            
                                                                             backend_info = backend_info['uuids'])
         output = _start_all_services(backend_plan, connector_plan)
         docker.register_stack(backends = backend_info, 
@@ -576,6 +549,7 @@ def _allocate_snapshot(payload):
                               base = payload['_file'],
                               cluster_uuid = uuid,
                               status='running', 
+                              key = key_name,
                               new_stack = True)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
@@ -583,17 +557,19 @@ def _allocate_snapshot(payload):
     else:
         return json.dumps({'status' : 'failed'})
 
-def _allocate_deployed(payload, params=None):
+def _allocate_deployed(payload, key_name, params=None):
     """
     Helper function to allocate and start a deployed application. 
     """
     uuid = docker.reserve_stack()
     backend_info, backend_plan = _allocate_backend_from_deploy(cluster_uuid = uuid,
                                                                payload = payload, 
+                                                               key_name = key_name, 
                                                                params = params)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_deploy(cluster_uuid = uuid,
                                                                           payload = payload, 
+                                                                          key_name = key_name, 
                                                                           backend_info = backend_info['uuids'],
                                                                           params = params)
         output = _start_all_services(backend_plan, connector_plan)
@@ -602,6 +578,7 @@ def _allocate_deployed(payload, params=None):
                               base = payload['_file'],
                               cluster_uuid = uuid,
                               status='running', 
+                              key = key_name,
                               new_stack = True)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
@@ -652,6 +629,7 @@ def allocate_stack():
     payload = json.loads(request.form['payload'])
     mode = request.form['mode']
     conf = request.form['conf']
+    key_name = request.form['key']
     params = docker._get_deploy_params(mode, conf)
 
     # Check whether the user wants to start from fresh or
@@ -659,11 +637,11 @@ def allocate_stack():
     if docker.is_stopped(payload['_file']):
         return _allocate_stopped(payload)
     elif docker.is_snapshot(payload['_file']):
-        return _allocate_snapshot(payload)
+        return _allocate_snapshot(payload, key_name)
     elif docker.is_deployed(payload['_file'], params):
         return _allocate_deployed(payload, params)
     elif '_file_path' in payload:
-        return _allocate_new(payload)
+        return _allocate_new(payload, key_name)
     else:
         return "Could not start " + payload['_file']
 
@@ -742,7 +720,10 @@ Manage the stacks.
 def manage_stack():
     stack_uuid = request.form['uuid']
     stack_action = request.form['action']
-    reply = docker.manage_stack(stack_uuid, stack_action)
+    private_key = request.form['key']
+    reply = docker.manage_stack(stack_uuid = stack_uuid, 
+                                private_key = private_key,
+                                action = stack_action)
 
     # Format the message to make more sense.
     if reply['status']:

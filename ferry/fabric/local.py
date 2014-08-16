@@ -60,16 +60,6 @@ class LocalFabric(object):
         cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         return Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
 
-    def _read_key_dir(self):
-        """
-        Read the location of the directory containing the keys
-        used to communicate with the containers. 
-        """
-        keydir = ferry.install._get_key_dir(root=self.bootstrap, server=True)
-        with open(keydir, 'r') as f: 
-            k = f.read().strip().split("://")
-            return k[1], k[0]
- 
     def version(self):
         """
         Fetch the current docker version.
@@ -90,7 +80,9 @@ class LocalFabric(object):
         for c in containers:
             container = self.cli.start(c.container,
                                        c.service_type,
-                                       c.keys,
+                                       c.keydir,
+                                       c.keyname,
+                                       c.privatekey,
                                        c.volumes,
                                        c.args)
             container.default_user = self.docker_user
@@ -148,7 +140,9 @@ class LocalFabric(object):
             container = self.cli.run(service_type = c['type'], 
                                      image = c['image'], 
                                      volumes = c['volumes'],
-                                     keys = c['keys'], 
+                                     keydir = c['keydir'], 
+                                     keyname = c['keyname'], 
+                                     privatekey = c['privatekey'], 
                                      open_ports = host_map_keys,
                                      host_map = host_map, 
                                      expose_group = c['exposed'], 
@@ -257,20 +251,18 @@ class LocalFabric(object):
         """
         cmd = '/service/sbin/startnode halt'
         for c in containers:
-            self.cmd_raw(c.internal_ip, cmd)
+            self.cmd_raw(c.privatekey, c.internal_ip, cmd)
 
     def copy(self, containers, from_dir, to_dir):
         """
         Copy over the contents to each container
         """
         for c in containers:
-            self.copy_raw(c.internal_ip, from_dir, to_dir)
+            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir)
 
-    def copy_raw(self, ip, from_dir, to_dir):
-        keydir, _ = self._read_key_dir()
+    def copy_raw(self, key, ip, from_dir, to_dir):
         opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        key = '-i ' + keydir + '/id_rsa'
-        scp = 'scp ' + opts + ' ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + ip + ':' + to_dir
+        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + ip + ':' + to_dir
         logging.warning(scp)
         output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
 
@@ -280,13 +272,11 @@ class LocalFabric(object):
         """
         all_output = {}
         for c in containers:
-            output = self.cmd_raw(c.internal_ip, cmd)
+            output = self.cmd_raw(c.privatekey, c.internal_ip, cmd)
             all_output[c.host_name] = output.strip()
         return all_output
 
-    def cmd_raw(self, ip, cmd):
-        keydir, _ = self._read_key_dir()
-        key = keydir + '/id_rsa'
+    def cmd_raw(self, key, ip, cmd):
         ip = self.docker_user + '@' + ip
         ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
