@@ -222,7 +222,7 @@ class OpenStackInspector(object):
     def __init__(self, os):
         self.fabric = os
 
-    def inspect(self, image, container, keys=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
+    def inspect(self, image, container, keydir=None, keyname=None, privatekey=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
         """
         Inspect a container and return information on how
         to connect to the container. 
@@ -247,7 +247,9 @@ class OpenStackInspector(object):
         instance.service_type = service_type
         instance.args = args
         instance.volumes = volumes
-        instance.keys = keys
+        instance.keydir = keydir
+        instance.keyname = keyname
+        instance.privatekey = privatekey
 
         return instance        
     

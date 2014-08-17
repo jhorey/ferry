@@ -472,10 +472,8 @@ def _allocate_stopped(payload):
                           status='building', 
                           key = stack['key'],
                           new_stack = False)
-        return json.dumps({'status' : 'building',
-                           'text' : str(uuid)})
-    else:
-        return json.dumps({'status' : 'failed'})
+    return json.dumps({'status' : 'building',
+                       'text' : str(uuid)})
 
 def _allocate_stopped_worker(payload):
     """
@@ -520,11 +518,8 @@ def _allocate_snapshot(payload, key_name):
                           status='building',
                           key = key_name,
                           new_stack=True)
-
     return json.dumps({ 'text' : str(uuid),
                         'status' : 'building' })
-    else:
-        return json.dumps({'status' : 'failed'})
 
 def _allocate_snapshot_worker(uuid, payload):
     """

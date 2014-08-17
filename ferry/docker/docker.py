@@ -371,7 +371,7 @@ class DockerCLI(object):
             return None
 
         container = output.strip()
-        return self.inspect(container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
+        return inspector.inspect(image, container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
@@ -384,10 +384,6 @@ class DockerInspector(object):
     def __init__(self, cli):
         self.cli = cli
 
-    """
-    Inspect a container and return information on how
-    to connect to the container. 
-    """
     def inspect(self, image, container, keydir=None, keyname=None, privatekey=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
         """
         Inspect a container and return information on how
@@ -438,7 +434,7 @@ class DockerInspector(object):
         else:
             instance.volumes = data['Volumes']
 
-            
+        # Store the key information. 
         instance.keydir = keydir
         instance.keyname = keyname
         instance.privatekey = privatekey
