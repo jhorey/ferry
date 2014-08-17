@@ -51,7 +51,6 @@ class CLI(object):
         self.cmds.add_option("-v", "--volume", "Mount host volume")
         self.cmds.add_cmd("build", "Build a Dockerfile")
         self.cmds.add_cmd("clean", "Clean zombie Ferry processes")
-        self.cmds.add_cmd("deploy", "Deploy a service to the cloud")
         self.cmds.add_cmd("help", "Print this help message")
         self.cmds.add_cmd("info", "Print version information")
         self.cmds.add_cmd("inspect", "Return low-level information on a service")
@@ -527,23 +526,6 @@ class CLI(object):
                 return m.group(1)
         return default
 
-    def _deploy_stack(self, stack_id, args):
-        """
-        Deploy the stack. 
-        """
-        mode = self._parse_deploy_arg('mode', args, default='local')
-        conf = self._parse_deploy_arg('conf', args, default='default')
-
-        payload = { 'uuid' : stack_id,
-                    'mode' : mode,
-                    'conf' : conf }
-        try:
-            res = requests.post(self.ferry_server + '/deploy', data=payload)
-            return res.text
-        except ConnectionError:
-            logging.error("could not connect to ferry server")
-            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
-
     def _manage_stacks(self, stack_info):
         """
         Manage the stack. 
@@ -709,9 +691,6 @@ class CLI(object):
             self.installer.stop_web(private_key)
             self.installer._stop_docker_daemon()
             return 'stopped ferry'
-        elif(cmd == 'deploy'):
-            stack_id = args.pop(0)
-            return self._deploy_stack(stack_id, args)
         elif(cmd == 'ls'):
             return self._list_apps()
         elif(cmd == 'info'):
