@@ -19,6 +19,9 @@ from flask import Flask, request
 from ferry.install import Installer
 from ferry.docker.manager import DockerManager
 from ferry.docker.docker import DockerInstance
+import Queue
+import threading2
+import time
 
 # Initialize Flask
 app = Flask(__name__)
@@ -26,10 +29,6 @@ app = Flask(__name__)
 # Initialize the storage driver
 installer = Installer()
 docker = DockerManager()
-
-import threading2
-import Queue
-import time
 
 """
 Worker thread for starting new stacks. 
@@ -52,38 +51,10 @@ _new_stack_worker = threading2.Thread(target=_alloc_new_stacks)
 _new_stack_worker.daemon = True
 _new_stack_worker.start()
 
-"""
-Fetch the current information for a particular filesystem. 
-"""
-@app.route('/storage', methods=['GET'])
-def query_storage():
-    status = AllocationResponse()
-    status.uuid = request.args['uuid']
-    status.status = status.NOT_EXISTS
-
-    # Get the time the storage cluster was created, 
-    # along with basic usage information. 
-    info = storage.query_storage(status.uuid)
-    if info != None:
-        status.status = info
-
-    # Return the JSON reply.
-    return status.json()
-
-"""
-Fetch the current docker version
-"""
-@app.route('/version', methods=['GET'])
-def get_version():
-    return docker.version()
-
-def _get_private_key(keydir, public_key):
-    return keydir + "/" + public_key + ".pem"
-
-"""
-Allocate the backend from a snapshot. 
-"""
 def _allocate_backend_from_snapshot(cluster_uuid, payload, key_name):
+    """
+    Allocate the backend from a snapshot. 
+    """
     snapshot_uuid = payload['_file']
     backends = docker.fetch_snapshot_backend(snapshot_uuid)
 
@@ -94,10 +65,10 @@ def _allocate_backend_from_snapshot(cluster_uuid, payload, key_name):
                                  backends = backends,
         new_stack = True)
 
-"""
-Allocate the backend from a stopped service. 
-"""
 def _allocate_backend_from_stopped(cluster_uuid, payload):
+    """
+    Allocate the backend from a stopped service. 
+    """
     app_uuid = payload['_file']
     backends, key_name = docker.fetch_stopped_backend(app_uuid)
     
@@ -175,9 +146,6 @@ def _restart_compute(computes):
         docker.restart_containers(service_uuid, containers)
     return uuids, compute_plan
 
-"""
-Allocate a brand new backend
-"""
 def _allocate_backend(cluster_uuid,
                       payload,
                       key_name, 
@@ -185,7 +153,9 @@ def _allocate_backend(cluster_uuid,
                       replace=False,
                       uuid=None,
                       new_stack = True):
-
+    """
+    Allocate a brand new backend
+    """
     if not backends:
         # We should find the backend information in the payload. 
         if 'backend' in payload:
@@ -323,20 +293,20 @@ def _allocate_connectors(cluster_uuid, payload, key_name, backend_info):
                 connector_info.append(uuid)
     return True, connector_info, connector_plan
 
-"""
-Allocate the connectors from a snapshot. 
-"""
 def _allocate_connectors_from_snapshot(cluster_uuid, payload, key_name, backend_info):
+    """
+    Allocate the connectors from a snapshot. 
+    """
     snapshot_uuid = payload['_file']
     return docker.allocate_snapshot_connectors(cluster_uuid,
                                                snapshot_uuid,
                                                key_name, 
                                                backend_info)
 
-"""
-Allocate the connectors from a stopped application. 
-"""
 def _allocate_connectors_from_stopped(cluster_uuid, payload, key_name, backend_info, params=None):
+    """
+    Allocate the connectors from a stopped application. 
+    """
     app_uuid = payload['_file']
     return docker.allocate_stopped_connectors(cluster_uuid,
                                               app_uuid,
@@ -581,6 +551,32 @@ def _allocate_snapshot_worker(uuid, payload):
     else:
         return json.dumps({'status' : 'failed'})
 
+
+@app.route('/storage', methods=['GET'])
+def query_storage():
+    """
+    Fetch the current information for a particular filesystem. 
+    """
+    status = AllocationResponse()
+    status.uuid = request.args['uuid']
+    status.status = status.NOT_EXISTS
+
+    # Get the time the storage cluster was created, 
+    # along with basic usage information. 
+    info = storage.query_storage(status.uuid)
+    if info != None:
+        status.status = info
+
+    # Return the JSON reply.
+    return status.json()
+
+@app.route('/version', methods=['GET'])
+def get_version():
+    """
+    Fetch the current docker version
+    """
+    return docker.version()
+
 @app.route('/login', methods=['POST'])
 def login_registry():
     """
@@ -675,20 +671,20 @@ def inspect():
     elif docker.is_installed(uuid):
         return docker.inspect_installed(uuid)
 
-"""
-Copy over logs
-"""
 @app.route('/logs', methods=['GET'])
 def logs():
+    """
+    Copy over logs
+    """
     stack_uuid = request.args['uuid']
     to_dir = request.args['dir']
     return docker.copy_logs(stack_uuid, to_dir)
 
-"""
-Manage the stacks.
-"""
 @app.route('/manage/stack', methods=['POST'])
 def manage_stack():
+    """
+    Manage the stacks.
+    """
     stack_uuid = request.form['uuid']
     stack_action = request.form['action']
     private_key = request.form['key']
