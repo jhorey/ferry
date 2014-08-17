@@ -34,7 +34,6 @@ from ferry.install import *
 from ferry.docker.resolve       import DefaultResolver
 from ferry.docker.docker        import DockerInstance
 from ferry.docker.configfactory import ConfigFactory
-from ferry.docker.deploy        import DeployEngine
 
 class DockerManager(object):
     SSH_PORT = '22'
@@ -77,7 +76,6 @@ class DockerManager(object):
 
         # Initialize the state. 
         self.docker = self._get_system_backend()
-        self.deploy = DeployEngine(self.docker)
         self._init_state_db()
         self._clean_state_db()
         logging.warning("using backend %s ver:%s " %(self.docker.name, self.docker.version()))
@@ -288,16 +286,6 @@ class DockerManager(object):
         else:
             return ""
         
-    def inspect_deployed(self, uuid, registry):
-        """
-        Inspect a deployed stack. 
-        """
-        json_reply = {}
-        return json.dumps(json_reply, 
-                          sort_keys=True,
-                          indent=2,
-                          separators=(',',':'))
-
     def inspect_stack(self, stack_uuid):
         """
         Inspect a running stack. 
@@ -456,30 +444,6 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
-    def query_deployed(self, conf=None):
-        """
-        Query the deployed applications. 
-        """
-        json_reply = {}
-
-        cursors = self.deploy.find(conf=conf)
-        for c in cursors:
-            for v in c:
-                time = v['ts'].strftime("%m/%w/%Y (%I:%M %p)")
-                c = self.cluster_collection.find_one( {'uuid':v['cluster_uuid']} )
-                backends = c['backends']['uuids']
-                connectors = c['connectors']
-                json_reply[v['uuid']] = { 'uuid' : v['uuid'],
-                                          'base' : c['base'], 
-                                          'ts' : time,
-                                          'backends' : backends,
-                                          'connectors': connectors,
-                                          'status': 'deployed' }
-        return json.dumps(json_reply, 
-                          sort_keys=True,
-                          indent=2,
-                          separators=(',',':'))
-
     def _new_service_uuid(self):
         """
         Allocate new UUIDs. 
@@ -532,18 +496,6 @@ class DockerManager(object):
     def is_removed(self, uuid, conf=None):
         return self._confirm_status(uuid, 'removed')
     
-    def is_deployed(self, uuid, conf=None):
-        """
-        Check if the UUID is of a deployed application. 
-        """
-        v = self.deploy.find( one=True, 
-                              spec = {'uuid':uuid},
-                              conf = conf )
-        if v:
-            return True
-        else:
-            return False
-
     def is_installed(self, app):
         """
         Indicate whether the application is installed. 
@@ -1189,46 +1141,6 @@ class DockerManager(object):
         """
         return FERRY_HOME + '/data/conf/deploy_default.json'
 
-    def _get_deploy_params(self, mode, conf):
-        """
-        Get the deployment configuration parameters. 
-        """
-        # First just find and read the configuration file. 
-        if conf == 'default':
-            conf = self._get_default_conf()
-
-        # Read the configuration file.
-        if os.path.exists(conf):
-            with open(conf, 'r') as f: 
-                j = json.loads(f.read())
-
-                # Now find the right configuration.
-                if mode in j:
-                    j[mode]['_mode'] = mode
-                    return j[mode]
-        return None
-
-    def deploy_stack(self, cluster_uuid, params=None):
-        """
-        Deploy an existing stack. 
-        """
-        containers = []
-        cluster = self.cluster_collection.find_one( {'uuid':cluster_uuid} )
-        if cluster:
-            connector_uuids = cluster['connectors']
-            for c in connector_uuids:
-                connector_info = self._get_service_configuration(c, detailed=True)
-                if connector_info:
-                    containers.append(DockerInstance(connector_info['containers'][0]))
-
-            self.deploy.deploy(cluster_uuid, containers, params)
-
-            # Check if we need to try starting the
-            # stack right away. 
-            if params and 'start-on-create' in params:
-                return True
-        return False
-
     def manage_stack(self,
                      stack_uuid,
                      private_key, 
@@ -1298,17 +1210,6 @@ class DockerManager(object):
         if snapshot:
             return snapshot['backends']
 
-    def fetch_deployed_backend(self, app_uuid, conf=None):
-        """
-        Lookup the deployed backend info. 
-        """
-        app = self.deploy.find( one = True,
-                                spec = { 'uuid' : app_uuid },
-                                conf = conf )
-        stack = self.cluster_collection.find_one( {'uuid':app['cluster_uuid'] } )
-        if stack:
-            return stack['backends']
-
     def allocate_stopped_connectors(self, 
                                      app_uuid, 
                                      backend_info,
@@ -1336,37 +1237,6 @@ class DockerManager(object):
                     self.restart_containers(cuid, containers)
         return connector_info, connector_plan
 
-    def allocate_deployed_connectors(self, 
-                                     cluster_uuid, 
-                                     app_uuid, 
-                                     key_name, 
-                                     backend_info,
-                                     conf = None):
-        """
-        Lookup the deployed application connector info and instantiate. 
-        """
-        connector_info = []
-        connector_plan = []
-        app = self.deploy.find( one = True,
-                                spec = { 'uuid' : app_uuid },
-                                conf = conf)
-        if app:
-            for c in app['connectors']:
-                uuid, containers = self.allocate_connector(cluster_uuid = cluster_uuid,
-                                                           connector_type = c['type'],
-                                                           key_name = key_name,  
-                                                           backend = backend_info,
-                                                           name = c['name'], 
-                                                           args = c['args'],
-                                                           ports = c['ports'].keys(),
-                                                           image = c['image'])
-                connector_info.append(uuid)
-                connector_plan.append( { 'uuid' : uuid,
-                                         'containers' : containers,
-                                         'type' : c['type'], 
-                                         'start' : 'start' } )
-        return connector_info, connector_plan
-                
     def allocate_snapshot_connectors(self, 
                                      cluster_uuid, 
                                      snapshot_uuid, 

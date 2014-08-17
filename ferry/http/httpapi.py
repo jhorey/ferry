@@ -624,7 +624,6 @@ def allocate_stack():
     mode = request.form['mode']
     conf = request.form['conf']
     key_name = request.form['key']
-    params = docker._get_deploy_params(mode, conf)
 
     # Check whether the user wants to start from fresh or
     # start with a snapshot.

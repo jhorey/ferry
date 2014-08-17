@@ -213,26 +213,6 @@ class LocalFabric(object):
             self.cli.commit(c, snapshot_name)
         return snapshots
 
-    def deploy(self, containers, registry=None):
-        """
-        Upload these containers to the specified registry.
-        """
-        deployed = []
-        for c in containers:
-            image_name = '%s-%s:DEPLOYED' % (c.image, 
-                                             c.host_name)
-            deployed.append( {'image' : image_name,
-                              'base' : c.image,
-                              'type' : c.service_type, 
-                              'name' : c.name, 
-                              'args' : c.args,
-                              'ports': c.ports} )
-            if not registry:
-                self.cli.commit(c, image_name)
-            else:
-                self.cli.push(c.image, registry)
-        return deployed
-
     def push(self, image, registry=None):
         """
         Push an image to a remote registry.
