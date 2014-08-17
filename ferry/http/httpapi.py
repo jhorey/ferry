@@ -30,10 +30,10 @@ app = Flask(__name__)
 installer = Installer()
 docker = DockerManager()
 
-"""
-Worker thread for starting new stacks. 
-"""
-def _alloc_new_stacks():
+def _stack_worker():
+    """
+    Worker thread.
+    """
     while(True):
         payload = _new_queue.get()
 
@@ -43,11 +43,13 @@ def _alloc_new_stacks():
             _allocate_stopped_worker(payload)
         elif payload["_action"] == "snapshotted":
             _allocate_snapshot_worker(payload["_uuid"], payload)
+        elif payload["_action"] == "manage":
+            _manage_stack_worker(payload["_uuid"], payload["_manage"], payload["_key"])
             
         time.sleep(2)
 
 _new_queue = Queue.Queue()
-_new_stack_worker = threading2.Thread(target=_alloc_new_stacks)
+_new_stack_worker = threading2.Thread(target=_stack_worker)
 _new_stack_worker.daemon = True
 _new_stack_worker.start()
 
@@ -685,15 +687,17 @@ def manage_stack():
     """
     Manage the stacks.
     """
-    stack_uuid = request.form['uuid']
-    stack_action = request.form['action']
-    private_key = request.form['key']
-    reply = docker.manage_stack(stack_uuid = stack_uuid, 
-                                private_key = private_key,
-                                action = stack_action)
+    payload = { "_uuid" : request.form['uuid'],
+                "_manage" : request.form['action'],
+                "_key" : request.form['key'],
+                "_action" : "manage" }
+    _new_queue.put(payload)
+    return ""
 
-    # Format the message to make more sense.
-    if reply['status']:
-        return reply['msg'] + ' ' + reply['uuid']
-    else:
-        return reply['msg']
+def _manage_stack_worker(uuid, action, private_key):
+    """
+    Manage the stacks.
+    """
+    reply = docker.manage_stack(stack_uuid = uuid, 
+                                private_key = private_key,
+                                action = action)
