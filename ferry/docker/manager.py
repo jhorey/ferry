@@ -551,13 +551,13 @@ class DockerManager(object):
         apps = self.query_applications()
         return app in apps
 
-    def get_base_image(self, uuid):
+    def get_stack(self, uuid):
         """
         Get the base image of this cluster. 
         """
         cluster = self.cluster_collection.find_one( {'uuid':uuid} )
         if cluster:
-            return cluster['base']
+            return cluster
         return None
 
     def _new_data_dir(self, service_uuid, storage_type, storage_id):

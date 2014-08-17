@@ -37,7 +37,12 @@ Worker thread for starting new stacks.
 def _alloc_new_stacks():
     while(True):
         payload = _new_queue.get()
-        reply = _allocate_new_worker(payload["_uuid"], payload)
+
+        if payload["_action"] == "new":
+            _allocate_new_worker(payload["_uuid"], payload)
+        elif payload["_action"] == "stopped":
+            _allocate_stopped_worker(payload)
+            
         time.sleep(2)
 
 _new_queue = Queue.Queue()
@@ -446,6 +451,7 @@ def _allocate_new(payload, key_name):
     # Now allocate the backend. This includes both storage and compute. 
     reply = {}
     uuid = docker.reserve_stack()
+    payload["_action"] = "new"
     payload["_uuid"] = str(uuid)
     _new_queue.put(payload)
     docker.register_stack(backends = { 'uuids':[] }, 
@@ -504,25 +510,42 @@ def _allocate_new_worker(uuid, payload):
     return json.dumps(reply)
 
 def _allocate_stopped(payload):
+    uuid = payload['_file']
+    stack = docker.get_stack(uuid)
+    payload["_action"] = "stopped"
+    _new_queue.put(payload)
+    docker.register_stack(backends = { 'uuids':[] }, 
+                          connectors = [],
+                          base = stack['base'],
+                          cluster_uuid = uuid,
+                          status='building', 
+                          key = stack['key'],
+                          new_stack = False)
+        return json.dumps({'status' : 'building',
+                           'text' : str(uuid)})
+    else:
+        return json.dumps({'status' : 'failed'})
+
+def _allocate_stopped_worker(payload):
     """
     Helper function to allocate and start a stopped stack. 
     """
-uuid = payload['_file']
-base = docker.get_base_image(uuid)
-backend_info, backend_plan, key_name = _allocate_backend_from_stopped(cluster_uuid = uuid,
-                                                                      payload = payload)
+    uuid = payload['_file']
+    stack = docker.get_stack(uuid)
+    backend_info, backend_plan, key_name = _allocate_backend_from_stopped(cluster_uuid = uuid,
+                                                                          payload = payload)
     if backend_info['status'] == 'ok':
         connector_info, connector_plan = _allocate_connectors_from_stopped(cluster_uuid = uuid,
                                                                            payload = payload, 
-                                                                           key_name = key_name, 
+                                                                           key_name = stack['key'], 
                                                                            backend_info = backend_info['uuids'])
         output = _start_all_services(backend_plan, connector_plan)        
         docker.register_stack(backends = backend_info,
                               connectors = connector_info,
-                              base = base,
+                              base = stack['base'],
                               cluster_uuid = uuid,
                               status='running', 
-                              key = key_name,
+                              key = stack['key'],
                               new_stack = False)
         return json.dumps({'status' : 'ok',
                            'text' : str(uuid),
