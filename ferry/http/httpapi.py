@@ -42,6 +42,8 @@ def _alloc_new_stacks():
             _allocate_new_worker(payload["_uuid"], payload)
         elif payload["_action"] == "stopped":
             _allocate_stopped_worker(payload)
+        elif payload["_action"] == "snapshotted":
+            _allocate_snapshot_worker(payload["_uuid"], payload)
             
         time.sleep(2)
 
@@ -91,20 +93,6 @@ def _allocate_backend_from_snapshot(cluster_uuid, payload, key_name):
                                  key_name = key_name, 
                                  backends = backends,
         new_stack = True)
-
-"""
-Allocate the backend from a deployment. 
-"""
-def _allocate_backend_from_deploy(cluster_uuid, payload, key_name, params=None):
-    app_uuid = payload['_file']
-    backends = docker.fetch_deployed_backend(app_uuid, params)
-    
-    if backends:
-        return _allocate_backend(cluster_uuid = cluster_uuid,
-                                 payload = None,
-                                 key_name = key_name, 
-                                 backends = backends,
-                                 new_stack = True)
 
 """
 Allocate the backend from a stopped service. 
@@ -346,17 +334,6 @@ def _allocate_connectors_from_snapshot(cluster_uuid, payload, key_name, backend_
                                                backend_info)
 
 """
-Allocate the connectors from a deployment. 
-"""
-def _allocate_connectors_from_deploy(cluster_uuid, payload, key_name, backend_info, params=None):
-    app_uuid = payload['_file']
-    return docker.allocate_deployed_connectors(cluster_uuid,
-                                               app_uuid,
-                                               key_name, 
-                                               backend_info,
-                                               params)
-
-"""
 Allocate the connectors from a stopped application. 
 """
 def _allocate_connectors_from_stopped(cluster_uuid, payload, key_name, backend_info, params=None):
@@ -453,6 +430,7 @@ def _allocate_new(payload, key_name):
     uuid = docker.reserve_stack()
     payload["_action"] = "new"
     payload["_uuid"] = str(uuid)
+    payload["_key"] = key_name
     _new_queue.put(payload)
     docker.register_stack(backends = { 'uuids':[] }, 
                           connectors = [], 
@@ -470,7 +448,7 @@ def _allocate_new_worker(uuid, payload):
     Helper function to allocate and start a new stack. 
     """
     reply = {}
-    # uuid = docker.reserve_stack()
+    key_name = payload['_key']
     backend_info, backend_plan = _allocate_backend(cluster_uuid = uuid,
                                                    payload = payload, 
                                                    key_name = key_name,
@@ -513,6 +491,7 @@ def _allocate_stopped(payload):
     uuid = payload['_file']
     stack = docker.get_stack(uuid)
     payload["_action"] = "stopped"
+    payload["_key"] = stack['key']
     _new_queue.put(payload)
     docker.register_stack(backends = { 'uuids':[] }, 
                           connectors = [],
@@ -558,6 +537,28 @@ def _allocate_snapshot(payload, key_name):
     Helper function to allocate and start a snapshot.
     """
     uuid = docker.reserve_stack()
+    payload["_action"] = "snapshotted"
+    payload["_uuid"] = str(uuid)
+    payload["_key"] = key_name
+    _new_queue.put(payload)
+    docker.register_stack(backends = { 'uuids':[] }, 
+                          connectors = [], 
+                          base = payload['_file'], 
+                          cluster_uuid = uuid, 
+                          status='building',
+                          key = key_name,
+                          new_stack=True)
+
+    return json.dumps({ 'text' : str(uuid),
+                        'status' : 'building' })
+    else:
+        return json.dumps({'status' : 'failed'})
+
+def _allocate_snapshot_worker(uuid, payload):
+    """
+    Helper function to allocate and start a snapshot.
+    """
+    key_name = payload['_key']
     backend_info, backend_plan = _allocate_backend_from_snapshot(cluster_uuid = uuid,
                                                                  payload = payload,
                                                                  key_name = key_name)
@@ -579,34 +580,6 @@ def _allocate_snapshot(payload, key_name):
                            'msgs' : output })
     else:
         return json.dumps({'status' : 'failed'})
-
-def _allocate_deployed(payload, key_name, params=None):
-    """
-    Helper function to allocate and start a deployed application. 
-    """
-    uuid = docker.reserve_stack()
-    backend_info, backend_plan = _allocate_backend_from_deploy(cluster_uuid = uuid,
-                                                               payload = payload, 
-                                                               key_name = key_name, 
-                                                               params = params)
-    if backend_info['status'] == 'ok':
-        connector_info, connector_plan = _allocate_connectors_from_deploy(cluster_uuid = uuid,
-                                                                          payload = payload, 
-                                                                          key_name = key_name, 
-                                                                          backend_info = backend_info['uuids'],
-                                                                          params = params)
-        output = _start_all_services(backend_plan, connector_plan)
-        docker.register_stack(backends = backend_info, 
-                              connectors = connector_info, 
-                              base = payload['_file'],
-                              cluster_uuid = uuid,
-                              status='running', 
-                              key = key_name,
-                              new_stack = True)
-        return json.dumps({'status' : 'ok',
-                           'text' : str(uuid),
-                           'msgs' : output })
-
 
 @app.route('/login', methods=['POST'])
 def login_registry():
@@ -661,23 +634,10 @@ def allocate_stack():
         return _allocate_stopped(payload)
     elif docker.is_snapshot(payload['_file']):
         return _allocate_snapshot(payload, key_name)
-    elif docker.is_deployed(payload['_file'], params):
-        return _allocate_deployed(payload, params)
     elif '_file_path' in payload:
         return _allocate_new(payload, key_name)
     else:
         return "Could not start " + payload['_file']
-
-@app.route('/deployed', methods=['GET'])
-def query_deployed():
-    """
-    Query the deployed applications.
-    """
-    mode = request.args['mode']
-    conf = request.args['conf']
-    params = docker._get_deploy_params(mode, conf)
-
-    return docker.query_deployed(params)
 
 @app.route('/query', methods=['GET'])
 def query_stacks():
@@ -723,18 +683,6 @@ def logs():
     stack_uuid = request.args['uuid']
     to_dir = request.args['dir']
     return docker.copy_logs(stack_uuid, to_dir)
-
-@app.route('/deploy', methods=['POST'])
-def deploy_stack():
-    stack_uuid = request.form['uuid']
-    mode = request.form['mode']
-    conf = request.form['conf']
-
-    # Deploy the stack and check if we need to
-    # automatically start the stack as well. 
-    params = docker._get_deploy_params(mode, conf)
-    if docker.deploy_stack(stack_uuid, params):
-        _allocate_deployed( { '_file' : stack_uuid } )
 
 """
 Manage the stacks.
