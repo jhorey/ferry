@@ -721,7 +721,7 @@ class MultiLauncher(object):
                 # Now get an addressable IP address. Normally we would use
                 # a private IP address since we should be operating in the same VPC.
                 public_ip = self._get_public_ip(server, resources)
-                self._copy_public_keys(public_ip)
+                self._copy_public_keys(container_info[i], public_ip)
                 container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
                 
                 if container:

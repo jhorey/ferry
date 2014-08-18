@@ -69,22 +69,8 @@ class OpenStackFabric(object):
             # to the network, but controller has direct access. 
             self.proxy = bool(args["system"]["proxy"])
 
-    def _read_key_dir(self):
-        """
-        Read the location of the directory containing the keys
-        used to communicate with the containers. 
-        """
-        keydir = ferry.install._get_key_dir(root=self.bootstrap, server=True)
-        with open(keydir, 'r') as f: 
-            k = f.read().strip().split("://")
-            return k[1], k[0]
-
     def _get_host_key(self):
         return "/ferry/keys/" + self.heat.ssh_key + ".pem"
-
-    def _get_container_key(self):
-        keydir, _ = self._read_key_dir()
-        return keydir + "/id_rsa.pub"
 
     def version(self):
         """
@@ -104,12 +90,14 @@ class OpenStackFabric(object):
         """
         return []
 
-    def _copy_public_keys(self, server):
+    def _copy_public_keys(self, container, server):
         """
-        Copy over the ssh keys to the server so that we can start the
+        Copy over the public ssh key to the server so that we can start the
         container correctly. 
         """
-        self.copy_raw(server, self._get_container_key(), "/ferry/keys/")
+        self.copy_raw(server, 
+                      container['keydir'] + "/" + container['keyname'], 
+                      "/ferry/keys/")
 
     def execute_docker_containers(self, container, lxc_opts, private_ip, public_ip):
         host_map = None
