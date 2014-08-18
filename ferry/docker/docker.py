@@ -123,6 +123,7 @@ class DockerCLI(object):
             # Wrap the command around an ssh command. 
             ip = self.docker_user + '@' + server
             ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + self.key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            logging.warning(ssh)
             proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
 
         if read_output:

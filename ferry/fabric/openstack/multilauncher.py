@@ -246,7 +246,7 @@ class MultiLauncher(object):
 
         return desc
 
-    def _create_server_init(self, instance_name, networks):
+    def _create_server_init(self):
         """
         Create the server init process. These commands are run on the
         host after the host has booted up. 
@@ -272,6 +272,8 @@ class MultiLauncher(object):
                     "mkdir /home/ferry/.ssh\n",
                     "cp /home/ubuntu/.ssh/authorized_keys /home/ferry/.ssh/\n",
                     "chown -R ferry:ferry /home/ferry/.ssh\n",
+                    "chown -R ferry:ferry /ferry/data\n",
+                    "chown -R ferry:ferry /ferry/keys\n",
                     "dhclient eth1\n",
                     "ferry server\n"
                   ]
@@ -337,7 +339,7 @@ class MultiLauncher(object):
             plan = dict(plan.items() + d.items())
 
         # Now add the user script.
-        user_data = self._create_server_init(name, data_networks)
+        user_data = self._create_server_init()
         plan[name]["Properties"]["user_data"] = user_data
 
         return plan, desc

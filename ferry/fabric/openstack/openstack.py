@@ -15,6 +15,8 @@
 
 import ferry.install
 from ferry.docker.docker import DockerInstance, DockerCLI
+import importlib
+import inspect
 import json
 import logging
 from subprocess import Popen, PIPE
@@ -33,9 +35,9 @@ class OpenStackFabric(object):
 
         self.bootstrap = bootstrap
         self.cli = DockerCLI()
-        self.cli.docker_user = self.heat.ssh_user
+        self.cli.docker_user = self.launcher.ssh_user
         self.cli.key = self._get_host_key()
-        self.inspector = OpenStackInspector()
+        self.inspector = OpenStackInspector(self)
 
     def _load_class(self, class_name):
         """
@@ -70,7 +72,7 @@ class OpenStackFabric(object):
             self.proxy = bool(args["system"]["proxy"])
 
     def _get_host_key(self):
-        return "/ferry/keys/" + self.heat.ssh_key + ".pem"
+        return "/ferry/keys/" + self.launcher.ssh_key + ".pem"
 
     def version(self):
         """
@@ -95,9 +97,11 @@ class OpenStackFabric(object):
         Copy over the public ssh key to the server so that we can start the
         container correctly. 
         """
-        self.copy_raw(server, 
-                      container['keydir'] + "/" + container['keyname'], 
-                      "/ferry/keys/")
+        keydir = container['keydir'].values()[0]
+        self.copy_raw(key = self.cli.key,
+                      ip = server, 
+                      from_dir = keydir + "/" + container["keyname"], 
+                      to_dir = "/ferry/keys/")
 
     def execute_docker_containers(self, container, lxc_opts, private_ip, public_ip):
         host_map = None
@@ -108,8 +112,8 @@ class OpenStackFabric(object):
                                  image = container['image'], 
                                  volumes = container['volumes'],
                                  keydir = { '/service/keys' : '/ferry/keys' }, 
-                                 keyname = c['keyname'], 
-                                 privatekey = c['privatekey'], 
+                                 keyname = container['keyname'], 
+                                 privatekey = container['privatekey'], 
                                  open_ports = host_map_keys,
                                  host_map = host_map, 
                                  expose_group = container['exposed'], 
@@ -131,13 +135,14 @@ class OpenStackFabric(object):
                 # Otherwise, the controller can only interact with the
                 # VMs via their public IP address. 
                 container.internal_ip = public_ip
+                logging.warning("USING PUBLIC FOR INTERNAL")
 
             container.default_user = self.cli.docker_user
 
-            if 'name' in c:
+            if 'name' in container:
                 container.name = container['name']
 
-            if 'volume_user' in c:
+            if 'volume_user' in container:
                 mounts[container] = {'user':container['volume_user'],
                                      'vols':container['volumes'].items()}
 
@@ -185,7 +190,7 @@ class OpenStackFabric(object):
 
     def copy_raw(self, key, ip, from_dir, to_dir):
         opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + ip + ':' + to_dir
+        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + self.cli.docker_user + '@' + ip + ':' + to_dir
         logging.warning(scp)
         output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
 
@@ -200,15 +205,15 @@ class OpenStackFabric(object):
         return all_output
 
     def cmd_raw(self, key, ip, cmd):
-        ip = self.docker_user + '@' + ip
+        ip = self.cli.docker_user + '@' + ip
         ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
         output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
         return output
 
 class OpenStackInspector(object):
-    def __init__(self, os):
-        self.fabric = os
+    def __init__(self, fabric):
+        self.fabric = fabric
 
     def inspect(self, image, container, keydir=None, keyname=None, privatekey=None, volumes=None, hostname=None, open_ports=[], host_map=None, service_type=None, args=None, server=None):
         """
@@ -220,7 +225,7 @@ class OpenStackInspector(object):
 
         # We don't keep track of the container ID in single-network
         # mode, so use this to store the VM image instead. 
-        instance.container = self.heat.default_image
+        instance.container = self.fabric.launcher.default_image
 
         # The port mapping should be 1-to-1 since we're using
         # the physical networking mode. 

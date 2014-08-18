@@ -49,8 +49,9 @@ class SingleLauncher(object):
 
             # First we need to know the deployment system
             # we are using. 
+            self.data_device = args['system']['network']
             provider = args['system']['provider']
-
+            
             # Now get some basic OpenStack information
             params = args[provider]['params']
             self.default_dc = params['dc']
@@ -79,12 +80,16 @@ class SingleLauncher(object):
             self.ssh_key = deploy['ssh']
             self.ssh_user = deploy['ssh-user']
 
-            # some OpenStack login credentials. 
-            self.openstack_user = os.environ['OS_USERNAME']
-            self.openstack_pass = os.environ['OS_PASSWORD']
-            self.tenant_id = os.environ['OS_TENANT_ID']
-            self.tenant_name = os.environ['OS_TENANT_NAME']
-            self.auth_tok = os.environ['OS_TOKEN']
+            # Some OpenStack login credentials. 
+            if self._check_openstack_credentials():
+                self.openstack_user = os.environ['OS_USERNAME']
+                self.openstack_pass = os.environ['OS_PASSWORD']
+                self.tenant_id = os.environ['OS_TENANT_ID']
+                self.tenant_name = os.environ['OS_TENANT_NAME']
+                self.auth_tok = os.environ['OS_TOKEN']
+            else:
+                logging.error("Missing OpenStack credentials")
+                exit(1)
 
             # Initialize the OpenStack clients and also
             # download some networking information (subnet ID, 
@@ -92,6 +97,14 @@ class SingleLauncher(object):
             self._init_openstack_clients()
             self._collect_subnet_info()
 
+    def _check_openstack_credentials(self):
+        envs = ['OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID',
+                'OS_TENANT_NAME', 'OS_TOKEN']
+        for e in envs:
+            if not e in os.environ:
+                return False
+        return True
+                
     def _init_openstack_clients(self):
         if 'HEAT_API_VERSION' in os.environ:
             heat_api_version = os.environ['HEAT_API_VERSION']
@@ -179,7 +192,7 @@ class SingleLauncher(object):
 
         return desc
 
-    def _create_server_init(self, instance_name, networks):
+    def _create_server_init(self):
         """
         Create the server init process. These commands are run on the
         host after the host has booted up. 
@@ -205,6 +218,8 @@ class SingleLauncher(object):
                     "mkdir /home/ferry/.ssh\n",
                     "cp /home/ubuntu/.ssh/authorized_keys /home/ferry/.ssh/\n",
                     "chown -R ferry:ferry /home/ferry/.ssh\n",
+                    "chown -R ferry:ferry /ferry/data\n",
+                    "chown -R ferry:ferry /ferry/keys\n",
                     "dhclient eth1\n",
                     "ferry server\n"
                   ]
@@ -250,7 +265,7 @@ class SingleLauncher(object):
             plan = dict(plan.items() + d.items())
 
         # Now add the user script.
-        user_data = self._create_server_init(name, data_networks)
+        user_data = self._create_server_init()
         plan[name]["Properties"]["user_data"] = user_data
 
         return plan, desc
@@ -381,11 +396,10 @@ class SingleLauncher(object):
         """
         subnets = self.neutron.list_subnets()
         for s in subnets['subnets']:
-            logging.warning("SUBNET: " + str(s))
-
-        self.subnet = { "id" : None,
-                        "cidr" : None, 
-                        "gateway" : None }
+            if s['network_id'] == self.manage_network:
+                self.subnet = { "id" : s['id'],
+                                "cidr" : s['cidr'], 
+                                "gateway" : s['gateway_ip'] }
 
     def _collect_network_info(self, stack_desc):
         """
@@ -481,6 +495,13 @@ class SingleLauncher(object):
             if "floating_ip" in port_desc:
                 return port_desc["floating_ip"]
 
+    def _get_servers(self, resources):
+        servers = []
+        for r in resources.values(): 
+            if r["type"] == "OS::Nova::Server":
+                servers.append(r)
+        return servers
+
     def _get_net_info(self, server_info, subnet, resources):
         """
         Look up the IP address, gateway, and subnet range. 
@@ -493,7 +514,7 @@ class SingleLauncher(object):
         lxc_opts = ["lxc.network.type = phys",
                     "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % subnet["gateway"],
-                    "lxc.network.link = %s" % self.data_network,
+                    "lxc.network.link = %s" % self.data_device,
                     "lxc.network.name = eth0", 
                     "lxc.network.flags = up"]
         return lxc_opts, ip
@@ -562,7 +583,7 @@ class SingleLauncher(object):
                 # Now get an addressable IP address. Normally we would use
                 # a private IP address since we should be operating in the same VPC.
                 public_ip = self._get_public_ip(server, resources)
-                self._copy_public_keys(container_info[i], public_ip)
+                self.controller._copy_public_keys(container_info[i], public_ip)
                 container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
                 
                 if container:
