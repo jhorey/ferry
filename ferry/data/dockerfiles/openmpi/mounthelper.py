@@ -9,8 +9,9 @@ def mount(entry_point, mount_point):
     # go ahead and create it. 
     cmd = 'mount -t glusterfs %s %s' % (entry_point,
                                         mount_point)
-    output = Popen(cmd, stdout=PIPE,shell=True).stdout.read()
-    logging.warning(output)
+    output, err = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).stdout.read()
+    print output
+    print err
 
 def umount(mount_point):
     cmd = 'cat /etc/mtab | grep /service/data | awk \'{print $2}\''

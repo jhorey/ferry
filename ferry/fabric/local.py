@@ -78,13 +78,15 @@ class LocalFabric(object):
         """
         new_containers = []
         for c in containers:
-            container = self.cli.start(c.container,
-                                       c.service_type,
-                                       c.keydir,
-                                       c.keyname,
-                                       c.privatekey,
-                                       c.volumes,
-                                       c.args)
+            container = self.cli.start(image = c.image,
+                                       container = c.container,
+                                       service_type = c.service_type,
+                                       keydir = c.keydir,
+                                       keyname = c.keyname,
+                                       privatekey = c.privatekey,
+                                       volumes = c.volumes,
+                                       args = c.args,
+                                       inspector = self.inspector)
             container.default_user = self.docker_user
             new_containers.append(container)
 

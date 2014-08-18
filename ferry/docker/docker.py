@@ -292,20 +292,21 @@ class DockerCLI(object):
     """
     Start a stopped container. 
     """
-    def start(self, container, service_type, keydir, keyname, privatekey, volumes, args, server=None):
+    def start(self, image, container, service_type, keydir, keyname, privatekey, volumes, args, server=None, inspector=None):
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
         output, _ = self._execute_cmd(cmd, server)
 
         # Now parse the output to get the IP and port
         container = output.strip()
-        return self.inspect(container = container, 
-                            keydir = keydir,
-                            keyname = keyname,
-                            privatekey = privatekey,
-                            volumes = volumes,
-                            service_type = service_type, 
-                            args = args)
+        return inspector.inspect(image = image,
+                                 container = container, 
+                                 keydir = keydir,
+                                 keyname = keyname,
+                                 privatekey = privatekey,
+                                 volumes = volumes,
+                                 service_type = service_type, 
+                                 args = args)
 
     """
     Run a command in a virtualized container

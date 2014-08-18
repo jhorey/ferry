@@ -21,11 +21,12 @@ RUN ln -s /usr/local/etc /service/conf/openmpi
 
 # Add the control script to the image. 
 ADD ./startnode /service/sbin/
+ADD ./utils /service/sbin/
 ADD ./mounthelper.py /service/sbin/
 ADD ./start01.sh /service/runscripts/start/
 ADD ./stop10.sh /service/runscripts/stop/
 ADD ./restart01.sh /service/runscripts/restart/
-RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/restart/*
+RUN chmod a+x /service/sbin/startnode;chmod a+x /service/sbin/utils;chmod a+x /service/runscripts/start/*;chmod a+x /service/runscripts/stop/*;chmod a+x /service/runscripts/restart/*
 
 # Make environment variables
 RUN echo export MPI_HOME=/service/packages/openmpi >> /etc/profile

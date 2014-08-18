@@ -5,4 +5,10 @@
 # This script is executed whenever the container restarts.
 # 
 
-source /service/runscripts/start/start01.sh $1
+source /etc/profile
+source /service/sbin/utils
+
+#
+# Remount the data directory. 
+#
+remount $1 $2

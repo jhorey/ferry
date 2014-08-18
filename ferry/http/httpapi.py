@@ -67,7 +67,7 @@ def _allocate_backend_from_snapshot(cluster_uuid, payload, key_name):
                                  backends = backends,
         new_stack = True)
 
-def _allocate_backend_from_stopped(cluster_uuid, payload):
+def _allocate_backend_from_stopped(payload):
     """
     Allocate the backend from a stopped service. 
     """
@@ -75,7 +75,7 @@ def _allocate_backend_from_stopped(cluster_uuid, payload):
     backends, key_name = docker.fetch_stopped_backend(app_uuid)
     
     if backends:
-        backend_info, backend_plan = _allocate_backend(cluster_uuid = cluster_uuid,
+        backend_info, backend_plan = _allocate_backend(cluster_uuid = app_uuid,
                                                        payload = None,
                                                        key_name = key_name, 
                                                        backends = backends,
@@ -305,14 +305,12 @@ def _allocate_connectors_from_snapshot(cluster_uuid, payload, key_name, backend_
                                                key_name, 
                                                backend_info)
 
-def _allocate_connectors_from_stopped(cluster_uuid, payload, key_name, backend_info, params=None):
+def _allocate_connectors_from_stopped(payload, backend_info, params=None):
     """
     Allocate the connectors from a stopped application. 
     """
     app_uuid = payload['_file']
-    return docker.allocate_stopped_connectors(cluster_uuid,
-                                              app_uuid,
-                                              key_name, 
+    return docker.allocate_stopped_connectors(app_uuid,
                                               backend_info,
                                               params)
 
@@ -465,8 +463,8 @@ def _allocate_stopped(payload):
     payload["_action"] = "stopped"
     payload["_key"] = stack['key']
     _new_queue.put(payload)
-    docker.register_stack(backends = { 'uuids':[] }, 
-                          connectors = [],
+    docker.register_stack(backends = stack['backends'], 
+                          connectors = stack['connectors'],
                           base = stack['base'],
                           cluster_uuid = uuid,
                           status='building', 
@@ -481,14 +479,12 @@ def _allocate_stopped_worker(payload):
     """
     uuid = payload['_file']
     stack = docker.get_stack(uuid)
-    backend_info, backend_plan, key_name = _allocate_backend_from_stopped(cluster_uuid = uuid,
-                                                                          payload = payload)
+    backend_info, backend_plan, key_name = _allocate_backend_from_stopped(payload = payload)
+                                                                          
     if backend_info['status'] == 'ok':
-        connector_info, connector_plan = _allocate_connectors_from_stopped(cluster_uuid = uuid,
-                                                                           payload = payload, 
-                                                                           key_name = stack['key'], 
+        connector_info, connector_plan = _allocate_connectors_from_stopped(payload = payload, 
                                                                            backend_info = backend_info['uuids'])
-        output = _start_all_services(backend_plan, connector_plan)        
+        output = _start_all_services(backend_plan, connector_plan)
         docker.register_stack(backends = backend_info,
                               connectors = connector_info,
                               base = stack['base'],

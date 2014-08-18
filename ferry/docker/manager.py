@@ -810,10 +810,10 @@ class DockerManager(object):
                     'backends' : backends,
                     'connectors' : connectors, 
                     'status': status,
+                    'key' : key, 
                     'ts':ts }
 
         if new_stack:
-            cluster['key'] = key
             self.cluster_collection.insert( cluster )
         else:
             self.cluster_collection.remove( {'uuid' : cluster_uuid} )
@@ -1183,12 +1183,10 @@ class DockerManager(object):
         if cluster:
             key = cluster['key']
             backends = []
-            backends = cluster['backends']
-            for i, uuid in enumerate(backends):
+            for i, uuid in enumerate(cluster['backends']['uuids']):
                 storage_uuid = uuid['storage']
                 storage_conf = self._get_service_configuration(storage_uuid, 
                                                                detailed=True)
-
                 compute_confs = []
                 if 'compute' in uuid:
                     for c in uuid['compute']:
@@ -1304,7 +1302,7 @@ class DockerManager(object):
             self._transfer_env_vars(connectors, env_vars)
 
         # Start the containers and update the state. 
-        self._restart_service(service_uuid, connectors, connectors[0].service_type)
+        output = self._restart_service(service_uuid, connectors, connectors[0].service_type)
         container_info = self._serialize_containers(connectors)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
@@ -1312,7 +1310,8 @@ class DockerManager(object):
                    'entry':entry_points,
                    'status':'running'}
         self._update_service_configuration(service_uuid, service)
-                
+        return output
+
     def allocate_connector(self,
                            cluster_uuid, 
                            connector_type, 
