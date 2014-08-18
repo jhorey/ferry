@@ -270,10 +270,6 @@ class SingleLauncher(object):
 
         return plan, desc
 
-    def _output_instance_info(self, info_name, server_name):
-        desc = {info_name : { "Value" : { "Fn::GetAtt" : [server_name, "PrivateIp"]}}}
-        return desc
-
     def _create_floatingip_plan(self, cluster_uuid, ifaces):
         """
         Assign floating IPs to the supplied interfaces/ports. 
