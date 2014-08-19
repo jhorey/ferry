@@ -205,12 +205,10 @@ class OpenStackFabric(object):
             proc = Popen(scp, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
             err = proc.stderr.read()
-            logging.warning("COPIED ERR: " + str(err))
             if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("COPY ERROR, TRY AGAIN")
                 time.sleep(3)
             else:
-                logging.warning("COPIED SUCCESSFULLY!")
                 break
 
     def cmd(self, containers, cmd):
@@ -237,12 +235,10 @@ class OpenStackFabric(object):
             proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
             err = proc.stderr.read()
-            logging.warning("SSH ERR: " + str(err))
             if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("SSH ERROR, TRY AGAIN")
                 time.sleep(3)
             else:
-                logging.warning("SSH SUCCESSFULLY!")
                 break
         return output, err
 

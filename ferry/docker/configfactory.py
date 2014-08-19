@@ -114,7 +114,7 @@ class ConfigFactory(object):
         for c in containers:
             s = {'data_dev':'eth0', 
                  'data_ip':c.internal_ip, 
-                 'manage_ip':c.internal_ip,
+                 'manage_ip':c.external_ip,
                  'host_name':c.host_name,
                  'type':c.service_type}
             s['container'] = c
@@ -141,7 +141,7 @@ class ConfigFactory(object):
         for c in containers:
             s = {'data_dev':'eth0', 
                  'data_ip':c.internal_ip, 
-                 'manage_ip':c.internal_ip,
+                 'manage_ip':c.external_ip,
                  'host_name':c.host_name}
             s['container'] = c
             s['args'] = args
