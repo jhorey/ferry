@@ -128,6 +128,7 @@ class MongoInitializer(object):
 
         # Keep track of the MongoDB IP address. 
         entry_point['mongo'] = containers[0]['data_ip']
+        entry_point['ip'] = containers[0]['manage_ip']
 
         new_config_dir = "/tmp/" + self._generate_config_dir(config.uuid)
         try:

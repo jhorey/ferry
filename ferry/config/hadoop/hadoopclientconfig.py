@@ -195,7 +195,7 @@ class HadoopClientInitializer(object):
     """
     def apply(self, config, containers):
         entry_point = { 'type' : 'hadoop-client' }
-        entry_point['ip'] = containers[0]['data_ip']
+        entry_point['ip'] = containers[0]['manage_ip']
 
         # Create a new configuration directory, and place
         # into the template directory. 

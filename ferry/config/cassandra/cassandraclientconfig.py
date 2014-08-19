@@ -124,7 +124,7 @@ class CassandraClientInitializer(object):
     """
     def apply(self, config, containers):
         entry_point = { 'type' : 'cassandra-client' }
-        entry_point['ip'] = containers[0]['data_ip']
+        entry_point['ip'] = containers[0]['manage_ip']
 
         # Get the storage information. 
         storage_entry = self._find_cassandra_storage(containers)

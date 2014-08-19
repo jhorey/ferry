@@ -122,6 +122,7 @@ class SparkInitializer(object):
     """
     def apply(self, config, containers):
         entry_point = { 'type' : 'spark' }
+        entry_point['ip'] = containers[0]['manage_ip']
         config_dirs = []
 
         new_config_dir = "/tmp/" + self._generate_config_dir(config.uuid)
