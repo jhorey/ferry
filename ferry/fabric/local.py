@@ -27,8 +27,8 @@ class LocalFabric(object):
     def __init__(self, config=None, bootstrap=False):
         self.name = "local"
         self.repo = 'public'
-        self.docker_user = 'root'
         self.cli = DockerCLI(ferry.install.DOCKER_REGISTRY)
+        self.docker_user = self.cli.docker_user
         self.inspector = DockerInspector(self.cli)
         self.bootstrap = bootstrap
 
@@ -152,7 +152,8 @@ class LocalFabric(object):
                                      default_cmd = c['default_cmd'],
                                      args= c['args'],
                                      lxc_opts = lxc_opts,
-                                     inspector = self.inspector)
+                                     inspector = self.inspector,
+                                     background = False)
             if container:
                 container.default_user = self.docker_user
                 containers.append(container)
@@ -233,18 +234,18 @@ class LocalFabric(object):
         """
         cmd = '/service/sbin/startnode halt'
         for c in containers:
-            self.cmd_raw(c.privatekey, c.internal_ip, cmd)
+            self.cmd_raw(c.privatekey, c.internal_ip, cmd, c.default_user)
 
     def copy(self, containers, from_dir, to_dir):
         """
         Copy over the contents to each container
         """
         for c in containers:
-            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir)
+            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir, c.default_user)
 
-    def copy_raw(self, key, ip, from_dir, to_dir):
+    def copy_raw(self, key, ip, from_dir, to_dir, user):
         opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + self.docker_user + '@' + ip + ':' + to_dir
+        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
         logging.warning(scp)
         output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
 
@@ -254,12 +255,12 @@ class LocalFabric(object):
         """
         all_output = {}
         for c in containers:
-            output = self.cmd_raw(c.privatekey, c.internal_ip, cmd)
+            output = self.cmd_raw(c.privatekey, c.internal_ip, cmd, c.default_user)
             all_output[c.host_name] = output.strip()
         return all_output
 
-    def cmd_raw(self, key, ip, cmd):
-        ip = self.docker_user + '@' + ip
+    def cmd_raw(self, key, ip, cmd, user):
+        ip = user + '@' + ip
         ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
         output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()

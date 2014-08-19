@@ -320,6 +320,7 @@ def _register_ip_addresses(backend_plan, connector_plan):
     of all the containers. 
     """
     ips = []
+    private_key = None
     for s in backend_plan['storage']:
         for c in s['containers']:
             if isinstance(c, dict):
@@ -345,7 +346,11 @@ def _register_ip_addresses(backend_plan, connector_plan):
                 ips.append( [c['internal_ip'], c['hostname']] )
             else:
                 ips.append( [c.internal_ip, c.host_name] )
-    docker._transfer_ip(private_key, ips)
+
+    # It's possible that the storage wasn't allocated
+    # properly and so there's nothing to transfer. 
+    if private_key:
+        docker._transfer_ip(private_key, ips)
 
 def _start_all_services(backend_plan, connector_plan):
     """
@@ -428,12 +433,14 @@ def _allocate_new_worker(uuid, payload):
     # go ahead and allocate the connectors. 
     reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
+        logging.warning("ALLOCATING CONNECTORS")
         success, connector_info, connector_plan = _allocate_connectors(cluster_uuid = uuid,
                                                                        payload = payload, 
                                                                        key_name = key_name, 
                                                                        backend_info = backend_info['uuids'])
 
         if success:
+            logging.warning("STARTING SERVICES")
             output = _start_all_services(backend_plan, connector_plan)
             docker.register_stack(backends = backend_info, 
                                   connectors = connector_info, 

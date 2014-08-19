@@ -19,6 +19,7 @@ import importlib
 import inspect
 import json
 import logging
+import re
 from subprocess import Popen, PIPE
 import time
 import yaml
@@ -29,14 +30,13 @@ class OpenStackFabric(object):
         self.name = "openstack"
         self.repo = 'public'
 
-        # Initialize the launcher and data networks. 
         self.config = config
         self._init_openstack(self.config)
 
         self.bootstrap = bootstrap
         self.cli = DockerCLI()
-        self.cli.docker_user = self.launcher.ssh_user
         self.cli.key = self._get_host_key()
+        self.docker_user = self.cli.docker_user
         self.inspector = OpenStackInspector(self)
 
     def _load_class(self, class_name):
@@ -97,32 +97,41 @@ class OpenStackFabric(object):
         Copy over the public ssh key to the server so that we can start the
         container correctly. 
         """
+
         keydir = container['keydir'].values()[0]
         self.copy_raw(key = self.cli.key,
                       ip = server, 
                       from_dir = keydir + "/" + container["keyname"], 
-                      to_dir = "/ferry/keys/")
+                      to_dir = "/ferry/keys/",
+                      user = self.launcher.ssh_user)
 
-    def execute_docker_containers(self, container, lxc_opts, private_ip, public_ip):
+    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
+        """
+        Run the Docker container and use the OpenStack inspector to get information
+        about the container/VM.
+        """
+
         host_map = None
         host_map_keys = []
         mounts = {}
-        container['default_cmd'] = "/service/sbin/startnode init"
-        container = self.cli.run(service_type = container['type'], 
-                                 image = container['image'], 
-                                 volumes = container['volumes'],
+        cinfo['default_cmd'] = "/service/sbin/startnode init"
+        container = self.cli.run(service_type = cinfo['type'], 
+                                 image = cinfo['image'], 
+                                 volumes = cinfo['volumes'],
                                  keydir = { '/service/keys' : '/ferry/keys' }, 
-                                 keyname = container['keyname'], 
-                                 privatekey = container['privatekey'], 
+                                 keyname = cinfo['keyname'], 
+                                 privatekey = cinfo['privatekey'], 
                                  open_ports = host_map_keys,
                                  host_map = host_map, 
-                                 expose_group = container['exposed'], 
-                                 hostname = container['hostname'],
-                                 default_cmd = container['default_cmd'],
-                                 args= container['args'],
+                                 expose_group = cinfo['exposed'], 
+                                 hostname = cinfo['hostname'],
+                                 default_cmd = cinfo['default_cmd'],
+                                 args= cinfo['args'],
                                  lxc_opts = lxc_opts,
                                  server = public_ip,
-                                 inspector = self.inspector)
+                                 user = self.launcher.ssh_user, 
+                                 inspector = self.inspector,
+                                 background = True)
         if container:
             # Fill in some information that the inspector doesn't, such
             # as both the internal and external IP. 
@@ -139,16 +148,13 @@ class OpenStackFabric(object):
 
             container.default_user = self.cli.docker_user
 
-            if 'name' in container:
-                container.name = container['name']
+            if 'name' in cinfo:
+                container.name = cinfo['name']
 
-            if 'volume_user' in container:
-                mounts[container] = {'user':container['volume_user'],
-                                     'vols':container['volumes'].items()}
+            if 'volume_user' in cinfo:
+                mounts[container] = {'user':cinfo['volume_user'],
+                                     'vols':cinfo['volumes'].items()}
 
-            # We should wait for a second to let the ssh server start
-            # on the containers (otherwise sometimes we get a connection refused)
-            time.sleep(2)
             return container, mounts
         else:
             return None, None
@@ -173,7 +179,7 @@ class OpenStackFabric(object):
         logging.warning("halting " + str(containers))
         cmd = '/service/sbin/startnode halt'
         for c in containers:
-            self.cmd_raw(c.internal_ip, cmd)
+            self.cmd_raw(c.privatekey, c.internal_ip, cmd, c.default_user)
 
     def remove(self, containers):
         """
@@ -186,13 +192,29 @@ class OpenStackFabric(object):
         Copy over the contents to each container
         """
         for c in containers:
-            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir)
+            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir, c.default_user)
 
-    def copy_raw(self, key, ip, from_dir, to_dir):
+    def copy_raw(self, key, ip, from_dir, to_dir, user):
         opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + self.cli.docker_user + '@' + ip + ':' + to_dir
+        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
         logging.warning(scp)
-        output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
+
+        # All the possible errors that might happen when
+        # we try to connect via ssh. 
+        conn_closed = re.compile('[/:\s\w]*Connection closed[\'\s\w]*')
+        timed_out = re.compile('[/:\s\w]*timed out[\'\s\w]*')
+        permission = re.compile('[/:\s\w]*Permission denied[\'\s\w]*')
+        while(True):
+            proc = Popen(scp, stdout=PIPE, stderr=PIPE, shell=True)
+            output = proc.stdout.read()
+            err = proc.stderr.read()
+            logging.warning("COPIED ERR: " + str(err))
+            if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
+                logging.warning("COPY ERROR, TRY AGAIN")
+                time.sleep(3)
+            else:
+                logging.warning("COPIED SUCCESSFULLY!")
+                break
 
     def cmd(self, containers, cmd):
         """
@@ -200,16 +222,33 @@ class OpenStackFabric(object):
         """
         all_output = {}
         for c in containers:
-            output = self.cmd_raw(c.privatekey, c.internal_ip, cmd)
+            output, _ = self.cmd_raw(c.privatekey, c.internal_ip, cmd, c.default_user)
             all_output[c.host_name] = output.strip()
         return all_output
 
-    def cmd_raw(self, key, ip, cmd):
-        ip = self.cli.docker_user + '@' + ip
+    def cmd_raw(self, key, ip, cmd, user):
+        ip = user + '@' + ip
         ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
-        output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
-        return output
+
+        # All the possible errors that might happen when
+        # we try to connect via ssh. 
+        conn_closed = re.compile('[/:\s\w]*Connection closed[\'\s\w]*')
+        timed_out = re.compile('[/:\s\w]*timed out[\'\s\w]*')
+        permission = re.compile('[/:\s\w]*Permission denied[\'\s\w]*')
+        while(True):
+            proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
+            output = proc.stdout.read()
+            err = proc.stderr.read()
+            logging.warning("SSH: " + str(output))
+            logging.warning("SSH ERR: " + str(err))
+            if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
+                logging.warning("SSH ERROR, TRY AGAIN")
+                time.sleep(3)
+            else:
+                logging.warning("SSH SUCCESSFULLY!")
+                break
+        return output, err
 
 class OpenStackInspector(object):
     def __init__(self, fabric):
@@ -220,7 +259,6 @@ class OpenStackInspector(object):
         Inspect a container and return information on how
         to connect to the container. 
         """        
-        logging.warning("inspecting")
         instance = DockerInstance()
 
         # We don't keep track of the container ID in single-network

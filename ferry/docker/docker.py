@@ -111,7 +111,7 @@ class DockerCLI(object):
         self.registry = registry
         self.docker_user = 'root'
 
-    def _execute_cmd(self, cmd, server=None, read_output=True):
+    def _execute_cmd(self, cmd, server=None, user=None, read_output=True):
         """
         Execute the command on the server via ssh. 
         """
@@ -121,7 +121,11 @@ class DockerCLI(object):
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         else:
             # Wrap the command around an ssh command. 
-            ip = self.docker_user + '@' + server
+            if user:
+                ip = user + '@' + server
+            else:
+                ip = self.docker_user + '@' + server
+
             ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + self.key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
             proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
@@ -144,52 +148,52 @@ class DockerCLI(object):
         output, _ = self._execute_cmd(cmd)
         return output.strip()
         
-    """
-    Fetch the current docker version.
-    """
     def version(self, server=None):
+        """
+        Fetch the current docker version.
+        """
         cmd = self.docker + ' ' + self.version_cmd + ' | grep Client | awk \'{print $3}\''
         logging.warning(cmd)
 
-        output, _ = self._execute_cmd(cmd)
+        output, _ = self._execute_cmd(cmd, server)
         return output.strip()
         
-    """
-    List all the containers. 
-    """
     def list(self, server=None):
+        """
+        List all the containers. 
+        """
         cmd = self.docker + ' ' + self.ps_cmd + ' -q' 
         logging.warning(cmd)
 
-        output, _ = self._execute_cmd(cmd)
+        output, _ = self._execute_cmd(cmd, server)
         output = output.strip()
 
         # There is a container ID for each line
         return output.split()
 
-    """
-    List all images that match the image name
-    """
     def images(self, image_name=None, server=None):
+        """
+        List all images that match the image name
+        """
         cmd = self.docker + ' ' + self.images_cmd + ' | awk \'{print $1}\''
         if image_name:
             cmd = cmd  + ' | grep ' + image_name
 
-        output, _ = self._execute_cmd(cmd)
+        output, _ = self._execute_cmd(cmd, server)
         logging.warning(cmd)
         return output.strip()
 
-    """
-    Build a new image from a Dockerfile
-    """
     def build(self, image, docker_file=None, server=None):
+        """
+        Build a new image from a Dockerfile
+        """
         path = '.'
         if docker_file != None:
             path = docker_file
 
         cmd = self.docker + ' ' + self.build_cmd + ' -t %s %s' % (image, path)
         logging.warning(cmd)
-        output, _ = self._execute_cmd(cmd)
+        output, _ = self._execute_cmd(cmd, server)
 
     def _get_default_run(self, container):
         cmd = self.docker + ' ' + self.inspect_cmd + ' ' + container.container
@@ -274,29 +278,29 @@ class DockerCLI(object):
         logging.warning(cmd)
         self._execute_cmd(cmd, server)
 
-    """
-    Stop a running container
-    """
     def stop(self, container, server=None):
+        """
+        Stop a running container
+        """
         cmd = self.docker + ' ' + self.stop_cmd + ' ' + container
         logging.warning(cmd)
         self._execute_cmd(cmd, server)
 
-    """
-    Remove a container
-    """
     def remove(self, container, server=None):
+        """
+        Remove a container
+        """
         cmd = self.docker + ' ' + self.rm_cmd + ' ' + container
         logging.warning(cmd)
         self._execute_cmd(cmd, server)
 
-    """
-    Start a stopped container. 
-    """
-    def start(self, image, container, service_type, keydir, keyname, privatekey, volumes, args, server=None, inspector=None):
+    def start(self, image, container, service_type, keydir, keyname, privatekey, volumes, args, server=None, user=None, inspector=None):
+        """
+        Start a stopped container. 
+        """
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
-        output, _ = self._execute_cmd(cmd, server)
+        output, _ = self._execute_cmd(cmd, server, user)
 
         # Now parse the output to get the IP and port
         container = output.strip()
@@ -309,12 +313,10 @@ class DockerCLI(object):
                                  service_type = service_type, 
                                  args = args)
 
-    """
-    Run a command in a virtualized container
-    The Docker allocator will ignore subnet, volumes, instance_name, and key
-    information since everything runs locally. 
-    """
-    def run(self, service_type, image, volumes, keydir, keyname, privatekey, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, inspector=None):
+    def run(self, service_type, image, volumes, keydir, keyname, privatekey, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, user=None, inspector=None, background=False):
+        """
+        Start a brand new container
+        """
         flags = self.daemon 
 
         # Specify the hostname (this is optional)
@@ -363,16 +365,25 @@ class DockerCLI(object):
         # Now construct the final docker command. 
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
-        output, error = self._execute_cmd(cmd, server)
-        err = error.strip()
-        if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
-            logging.error("Ferry docker daemon does not appear to be running")
-            return None
-        elif re.compile('Unable to find image[\'\s\w]*').match(err):
-            logging.error("%s not present" % image)
-            return None
 
-        container = output.strip()
+        if background:
+            # The user wants to execute the Docker run command 
+            # in the background.
+            read_output = False
+            proc = self._execute_cmd(cmd, server, user, read_output)
+            container = None
+        else:
+            read_output = True
+            output, error = self._execute_cmd(cmd, server, user, read_output)
+            err = error.strip()
+            if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
+                logging.error("Ferry docker daemon does not appear to be running")
+                return None
+            elif re.compile('Unable to find image[\'\s\w]*').match(err):
+                logging.error("%s not present" % image)
+                return None
+            container = output.strip()
+
         return inspector.inspect(image, container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):

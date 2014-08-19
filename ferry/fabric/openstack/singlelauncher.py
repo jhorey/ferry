@@ -20,6 +20,7 @@ import json
 import logging
 import math
 import os
+import re
 import sys
 import time
 import yaml
@@ -585,12 +586,12 @@ class SingleLauncher(object):
                 if container:
                     mounts = dict(mounts.items() + cmounts.items())
                     containers.append(container)
-
-        # # Check if we need to set the file permissions
-        # # for the mounted volumes. 
-        # for c, i in mounts.items():
-        #     for _, v in i['vols']:
-        #         self.cmd([c], 'chown -R %s %s' % (i['user'], v))
+                
+        # Check if we need to set the file permissions
+        # for the mounted volumes. 
+        for c, i in mounts.items():
+            for _, v in i['vols']:
+                self.controller.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
         return containers
         

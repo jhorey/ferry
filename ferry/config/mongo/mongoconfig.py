@@ -152,7 +152,8 @@ class MongoInitializer(object):
             # Expose the login info. 
             output = self.fabric.cmd_raw(key = containers[0]['container'].privatekey, 
                                          ip = entry_point['mongo'], 
-                                         cmd = '/service/sbin/startnode login')
+                                         cmd = '/service/sbin/startnode login',
+                                         user = self.fabric.docker_user)
             login_info = json.loads(str(output))
             entry_point['mongo_user'] = login_info['user']
             entry_point['mongo_pass'] = login_info['pass']

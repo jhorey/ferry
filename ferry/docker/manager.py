@@ -742,8 +742,8 @@ class DockerManager(object):
             for ip in ips:
                 hosts_file.write("%s %s\n" % (ip[0], ip[1]))
         for ip in ips:
-            self.docker.copy_raw(private_key, ip[0], '/tmp/instances', '/service/sconf/instances')
-            self.docker.cmd_raw(private_key, ip[0], '/service/sbin/startnode hosts')
+            self.docker.copy_raw(private_key, ip[0], '/tmp/instances', '/service/sconf/instances', self.docker.docker_user)
+            self.docker.cmd_raw(private_key, ip[0], '/service/sbin/startnode hosts', self.docker.docker_user)
         
     def _transfer_env_vars(self, containers, env_vars):
         """
@@ -1125,6 +1125,7 @@ class DockerManager(object):
         else:
             entry_point = {}
 
+        logging.warning("UPDATING SERVICE CONFIGURATION")
         container_info = self._serialize_containers(containers)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
