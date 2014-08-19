@@ -329,7 +329,7 @@ class SingleLauncher(object):
         # for it to complete. 
         resp = self.heat.stacks.create(stack_name=stack_name, template=heat_plan)
         if not self._wait_for_stack(resp["stack"]["id"]):
-            logging.warning("Network stack %s CREATE_FAILED" % resp["stack"]["id"])
+            logging.warning("Heat plan %s CREATE_FAILED" % resp["stack"]["id"])
             return None
 
         # Now find the physical IDs of all the resources. 
@@ -473,6 +473,8 @@ class SingleLauncher(object):
         # machines. 
         if stack_desc:
             return self._collect_network_info(stack_desc)
+        else:
+            return None
 
     def _get_private_ip(self, server, subnet_id, resources):
         """

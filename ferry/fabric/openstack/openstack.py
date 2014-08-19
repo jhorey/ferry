@@ -133,18 +133,15 @@ class OpenStackFabric(object):
                                  inspector = self.inspector,
                                  background = True)
         if container:
-            # Fill in some information that the inspector doesn't, such
-            # as both the internal and external IP. 
-            container.external_ip = public_ip
+            container.internal_ip = private_ip
             if self.proxy:
                 # When the fabric controller is acting in proxy mode, 
                 # it can contact the VMs via their private addresses. 
-                container.internal_ip = private_ip
+                container.external_ip = private_ip
             else:
                 # Otherwise, the controller can only interact with the
                 # VMs via their public IP address. 
-                container.internal_ip = public_ip
-                logging.warning("USING PUBLIC FOR INTERNAL")
+                container.external_ip = public_ip
 
             container.default_user = self.cli.docker_user
 
@@ -179,7 +176,7 @@ class OpenStackFabric(object):
         logging.warning("halting " + str(containers))
         cmd = '/service/sbin/startnode halt'
         for c in containers:
-            self.cmd_raw(c.privatekey, c.internal_ip, cmd, c.default_user)
+            self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
 
     def remove(self, containers):
         """
@@ -192,7 +189,7 @@ class OpenStackFabric(object):
         Copy over the contents to each container
         """
         for c in containers:
-            self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir, c.default_user)
+            self.copy_raw(c.privatekey, c.external_ip, from_dir, to_dir, c.default_user)
 
     def copy_raw(self, key, ip, from_dir, to_dir, user):
         opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -201,9 +198,9 @@ class OpenStackFabric(object):
 
         # All the possible errors that might happen when
         # we try to connect via ssh. 
-        conn_closed = re.compile('[/:\s\w]*Connection closed[\'\s\w]*')
-        timed_out = re.compile('[/:\s\w]*timed out[\'\s\w]*')
-        permission = re.compile('[/:\s\w]*Permission denied[\'\s\w]*')
+        conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
+        timed_out = re.compile('.*timed out*', re.DOTALL)
+        permission = re.compile('.*Permission denied.*', re.DOTALL)
         while(True):
             proc = Popen(scp, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
@@ -222,7 +219,7 @@ class OpenStackFabric(object):
         """
         all_output = {}
         for c in containers:
-            output, _ = self.cmd_raw(c.privatekey, c.internal_ip, cmd, c.default_user)
+            output, _ = self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
             all_output[c.host_name] = output.strip()
         return all_output
 
@@ -233,14 +230,13 @@ class OpenStackFabric(object):
 
         # All the possible errors that might happen when
         # we try to connect via ssh. 
-        conn_closed = re.compile('[/:\s\w]*Connection closed[\'\s\w]*')
-        timed_out = re.compile('[/:\s\w]*timed out[\'\s\w]*')
-        permission = re.compile('[/:\s\w]*Permission denied[\'\s\w]*')
+        conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
+        timed_out = re.compile('.*timed out*', re.DOTALL)
+        permission = re.compile('.*Permission denied.*', re.DOTALL)
         while(True):
             proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
             err = proc.stderr.read()
-            logging.warning("SSH: " + str(output))
             logging.warning("SSH ERR: " + str(err))
             if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("SSH ERROR, TRY AGAIN")

@@ -324,18 +324,18 @@ def _register_ip_addresses(backend_plan, connector_plan):
     for s in backend_plan['storage']:
         for c in s['containers']:
             if isinstance(c, dict):
-                ips.append( [c['internal_ip'], c['hostname']] )
+                ips.append( [c['internal_ip'], c['external_ip'], c['hostname']] )
                 private_key = c['privatekey']
             else:
-                ips.append( [c.internal_ip, c.host_name] )
+                ips.append( [c.internal_ip, c.external_ip, c.host_name] )
                 private_key = c.privatekey
 
     for s in backend_plan['compute']:
         for c in s['containers']:
             if isinstance(c, dict):
-                ips.append( [c['internal_ip'], c['hostname']] )
+                ips.append( [c['internal_ip'], c['external_ip'], c['hostname']] )
             else:
-                ips.append( [c.internal_ip, c.host_name] )
+                ips.append( [c.internal_ip, c.external_ip, c.host_name] )
     for s in connector_plan:
         for c in s['containers']:
             # This is slightly awkward. It is because when starting
@@ -343,9 +343,9 @@ def _register_ip_addresses(backend_plan, connector_plan):
             # when restarting we get dictionary descriptions. Should just
             # fix at the restart level! 
             if isinstance(c, dict):
-                ips.append( [c['internal_ip'], c['hostname']] )
+                ips.append( [c['internal_ip'], c['external_ip'], c['hostname']] )
             else:
-                ips.append( [c.internal_ip, c.host_name] )
+                ips.append( [c.internal_ip, c.external_ip, c.host_name] )
 
     # It's possible that the storage wasn't allocated
     # properly and so there's nothing to transfer. 

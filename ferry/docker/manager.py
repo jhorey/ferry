@@ -739,11 +739,15 @@ class DockerManager(object):
         Transfer the hostname/IP addresses to all the containers. 
         """
         with open('/tmp/instances', 'w+') as hosts_file:
+            # Each line has the form (private IP, public IP, hostname)
+            # We want to use the private IP for the hosts file. 
             for ip in ips:
-                hosts_file.write("%s %s\n" % (ip[0], ip[1]))
+                hosts_file.write("%s %s\n" % (ip[0], ip[2]))
         for ip in ips:
-            self.docker.copy_raw(private_key, ip[0], '/tmp/instances', '/service/sconf/instances', self.docker.docker_user)
-            self.docker.cmd_raw(private_key, ip[0], '/service/sbin/startnode hosts', self.docker.docker_user)
+            # However, we want to use the public IP for actually copying
+            # the hosts data. 
+            self.docker.copy_raw(private_key, ip[1], '/tmp/instances', '/service/sconf/instances', self.docker.docker_user)
+            self.docker.cmd_raw(private_key, ip[1], '/service/sbin/startnode hosts', self.docker.docker_user)
         
     def _transfer_env_vars(self, containers, env_vars):
         """

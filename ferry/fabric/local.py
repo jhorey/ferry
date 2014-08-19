@@ -159,6 +159,7 @@ class LocalFabric(object):
                 containers.append(container)
                 if not 'netenable' in c:
                     container.internal_ip = ip
+                    container.external_ip = ip
                     self.network.set_owner(ip, container.container)
 
                 if 'name' in c:
