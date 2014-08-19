@@ -20,6 +20,7 @@ import json
 import logging
 import math
 import os
+from pymongo import MongoClient
 import re
 import sys
 import time
@@ -39,10 +40,13 @@ class SingleLauncher(object):
         self.heat_server = None
         self.openstack_key = None
 
-        self.apps = {}
-
         self.controller = controller
         self._init_open_stack(conf_file)
+        self._init_app_db()
+
+    def _init_app_db(self):
+        self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
+        self.apps = self.mongo['openstack']['heat']
 
     def _init_open_stack(self, conf_file):
         with open(conf_file, 'r') as f:
@@ -518,6 +522,10 @@ class SingleLauncher(object):
                     "lxc.network.flags = up"]
         return lxc_opts, ip
 
+    def _update_app_db(self, cluster_uuid, heat_plan):
+        heat_plan["_cluster_uuid"] = cluster_uuid
+        self.apps.insert(heat_plan)
+
     def alloc(self, cluster_uuid, container_info, ctype, proxy):
         """
         Allocate a new cluster. 
@@ -570,7 +578,9 @@ class SingleLauncher(object):
         mounts = {}
 
         if resources:
-            self.apps[cluster_uuid] = resources
+            # Store the resources cluster ID. 
+            self._update_app_db(cluster_uuid, resources)
+
             servers = self._get_servers(resources)
             for i in range(0, len(container_info)):
                 # Fetch a server to run the Docker commands. 
@@ -597,14 +607,22 @@ class SingleLauncher(object):
 
         return containers
         
-    def _delete_stack(self, stack_id):
-        # To delete the stack properly, we first need to disassociate
-        # the floating IPs. 
+    def _delete_stack(self, cluster_id):
+        # Find the relevant stack information. 
         ips = []
-        resources = self._collect_resources(stack_id)
-        for r in resources:
-            if r["resource_type"] == "OS::Neutron::FloatingIP":
-                self.neutron.update_floatingip(r["physical_resource_id"], {'floatingip': {'port_id': None}})
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_id } )
+        for stack in stacks:
+            for s in stack.values():
+                if s["type"] == "OS::Heat::Stack":
+                    stack_id = s["id"]
 
-        # Now delete the stack. 
-        self.heat.stacks.delete(stack_id)
+                    # To delete the stack properly, we first need to disassociate
+                    # the floating IPs. 
+                    resources = self._collect_resources(stack_id)
+                    for r in resources:
+                        if r["resource_type"] == "OS::Neutron::FloatingIP":
+                            self.neutron.update_floatingip(r["physical_resource_id"], {'floatingip': {'port_id': None}})
+
+                    # Now delete the stack. 
+                    self.heat.stacks.delete(stack_id)
+        self.apps.remove( { "_cluster_uuid" : cluster_id } )

@@ -904,14 +904,14 @@ class DockerManager(object):
         volumes = []
         connectors, compute, storage = self._get_cluster_instances(cluster_uuid)
         for c in connectors:
-            self.docker.remove(c['instances'])
+            self.docker.remove(cluster_uuid, c['instances'])
         for c in compute:
-            self.docker.remove(c['instances'])
+            self.docker.remove(cluster_uuid, c['instances'])
         for s in storage:
             for i in s['instances']:
                 for v in i.volumes.keys():
                     volumes.append(v)
-            self.docker.remove(s['instances'])
+            self.docker.remove(cluster_uuid, s['instances'])
 
         # Now remove the data directories. 
         for v in volumes:

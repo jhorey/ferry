@@ -188,7 +188,7 @@ class LocalFabric(object):
         for c in containers:
             self.cli.stop(c['container'])
 
-    def remove(self, containers):
+    def remove(self, cluster_uuid, containers):
         """
         Remove the running instances
         """

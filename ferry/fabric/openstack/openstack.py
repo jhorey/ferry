@@ -165,7 +165,7 @@ class OpenStackFabric(object):
 
     def stop(self, containers):
         """
-        Forceably stop the running containers
+        Stop the running containers
         """
         logging.warning("stopping " + str(containers))
 
@@ -173,16 +173,18 @@ class OpenStackFabric(object):
         """
         Safe stop the containers. 
         """
-        logging.warning("halting " + str(containers))
         cmd = '/service/sbin/startnode halt'
         for c in containers:
             self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
 
-    def remove(self, containers):
+    def remove(self, cluster_uuid, containers):
         """
         Remove the running instances
         """
         logging.warning("removing " + str(containers))
+
+        # The only thing left to do is terminate the VMs.
+        self.launcher._delete_stack(cluster_uuid)
 
     def copy(self, containers, from_dir, to_dir):
         """
