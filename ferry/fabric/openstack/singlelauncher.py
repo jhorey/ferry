@@ -70,6 +70,7 @@ class SingleLauncher(object):
             self.external_network = servers['extnet']
 
             # OpenStack API endpoints. 
+            self.region = servers['region']
             self.keystone_server = servers['keystone']
             self.nova_server = servers['nova']
             self.neutron_server = servers['neutron']
@@ -144,7 +145,9 @@ class SingleLauncher(object):
             'username' : self.openstack_user,
             'password' : self.openstack_pass,
             'tenant_id': self.tenant_id,
-            'auth_url' : self.keystone_server 
+            'auth_url' : self.keystone_server,
+            'service_type' : 'compute',
+            'region_name' : self.region
         }
         self.nova = nova_client.Client(nova_api_version, **kwargs)
 

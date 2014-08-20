@@ -180,6 +180,7 @@ class OpenStackFabric(object):
             self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
 
         # Now go ahead and stop the VMs. 
+        self.launcher._stop_stack(cluster_uuid)
 
     def remove(self, cluster_uuid, containers):
         """
