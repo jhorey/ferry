@@ -445,6 +445,19 @@ class SingleLauncher(object):
                     port_desc["floating_ip"] = ip_map[port_desc["ip_address"]]
         return stack_desc
 
+    def _collect_instance_info(self, stack_desc):
+        """
+        Collect all the instance information. 
+        """
+
+        servers = self.nova.servers.list()
+        for s in servers:
+            logging.warning("INSTANCE: " + str(s.to_dict()))
+            if s.name != "" and s.name in stack_desc:
+                instance_desc = stack_desc[s.name]
+                instance_desc["id"] = s.id
+        return stack_desc
+
     def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
@@ -491,6 +504,7 @@ class SingleLauncher(object):
         # Now find all the IP addresses of the various
         # machines. 
         if stack_desc:
+            stack_desc = self._collect_instance_info(stack_desc)
             return self._collect_network_info(stack_desc)
         else:
             return None
@@ -646,4 +660,7 @@ class SingleLauncher(object):
         stacks = self.apps.find( { "_cluster_uuid" : cluster_id } )
         for stack in stacks:
             servers = self._get_servers(stack)
+            for s in servers:
+                logging.warning("STOPPING " + s["id"])
+                self.nova.servers.stop(s["id"])
 
