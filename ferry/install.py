@@ -406,6 +406,7 @@ class Installer(object):
         mongoconf = self.mongo.generate(1)
         mongoconf.uuid = 'fdb-' + str(uuid.uuid4()).split('-')[0]
         mongobox = self.fabric.alloc(mongoconf.uuid,
+                                     mongoconf.uuid,
                                      [mongoplan], 
                                      "MONGO")[0]
         if not mongobox:

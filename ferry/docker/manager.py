@@ -759,11 +759,12 @@ class DockerManager(object):
             self.docker.cmd(containers, 
                             "echo export %s=%s >> /etc/profile" % (k, env_vars[k]))
 
-    def _start_containers(self, cluster_uuid, plan, ctype):
+    def _start_containers(self, cluster_uuid, service_uuid, plan, ctype):
         """
         Start the containers on the specified environment
         """
         return self.docker.alloc(cluster_uuid = cluster_uuid,
+                                 service_uuid = service_uuid, 
                                  container_info = plan['localhost']['containers'], 
                                  ctype = ctype);
 
@@ -894,24 +895,24 @@ class DockerManager(object):
 
         # Then actually stop the containers. 
         for c in connectors:
-            self.docker.halt(c['instances'])
+            self.docker.halt(cluster_uuid, c['uuid'], c['instances'])
         for c in compute:
-            self.docker.halt(c['instances'])
+            self.docker.halt(cluster_uuid, c['uuid'], c['instances'])
         for c in storage:
-            self.docker.halt(c['instances'])
+            self.docker.halt(cluster_uuid, c['uuid'], c['instances'])
 
     def _purge_stack(self, cluster_uuid):
         volumes = []
         connectors, compute, storage = self._get_cluster_instances(cluster_uuid)
         for c in connectors:
-            self.docker.remove(cluster_uuid, c['instances'])
+            self.docker.remove(cluster_uuid, c['uuid'], c['instances'])
         for c in compute:
-            self.docker.remove(cluster_uuid, c['instances'])
+            self.docker.remove(cluster_uuid, c['uuid'], c['instances'])
         for s in storage:
             for i in s['instances']:
                 for v in i.volumes.keys():
                     volumes.append(v)
-            self.docker.remove(cluster_uuid, s['instances'])
+            self.docker.remove(cluster_uuid, c['uuid'], s['instances'])
 
         # Now remove the data directories. 
         for v in volumes:
@@ -989,7 +990,7 @@ class DockerManager(object):
         storage_entry = self._get_service_configuration(storage_uuid)
 
         # Allocate all the containers. 
-        containers = self._start_containers(cluster_uuid, plan, ctype="compute")
+        containers = self._start_containers(cluster_uuid, service_uuid, plan, ctype="compute")
 
         # Generate a configuration dir.
         if len(containers) > 0:
@@ -1115,7 +1116,7 @@ class DockerManager(object):
                                                  replace = replace)
 
         # Allocate all the containers. 
-        containers = self._start_containers(cluster_uuid, plan, ctype="storage")
+        containers = self._start_containers(cluster_uuid, service_uuid, plan, ctype="storage")
 
         # Generate a configuration dir.
         if len(containers) > 0:
@@ -1354,7 +1355,7 @@ class DockerManager(object):
                                                    name = name,
                                                    ports = ports, 
                                                    args = args)
-        containers = self._start_containers(cluster_uuid, plan, ctype="connector")
+        containers = self._start_containers(cluster_uuid, service_uuid, plan, ctype="connector")
 
         # Now generate the configuration files that will be
         # transferred to the containers. 

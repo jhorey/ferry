@@ -141,10 +141,10 @@ class SingleLauncher(object):
                                              
         # Instantiate the Nova client. The Nova client is used
         # to stop/restart instances.
-        nova_api_version = "3"
+        nova_api_version = "1.1"
         kwargs = {
             'username' : self.openstack_user,
-            'password' : self.openstack_pass,
+            'api_key' : self.openstack_pass,
             'tenant_id': self.tenant_id,
             'auth_url' : self.keystone_server,
             'service_type' : 'compute',
@@ -406,9 +406,12 @@ class SingleLauncher(object):
         Collect all the stack resources so that we can create
         additional plans and use IDs. 
         """
-        resources = self.heat.resources.list(stack_id)
-        descs = [r.to_dict() for r in resources]
-        return descs
+        try:
+            resources = self.heat.resources.list(stack_id)
+            descs = [r.to_dict() for r in resources]
+            return descs
+        except:
+            return []
 
     def _collect_subnet_info(self):
         """
@@ -534,7 +537,7 @@ class SingleLauncher(object):
     def _get_servers(self, resources):
         servers = []
         for r in resources.values(): 
-            if r["type"] == "OS::Nova::Server":
+            if type(r) is dict and r["type"] == "OS::Nova::Server":
                 servers.append(r)
         return servers
 
@@ -555,14 +558,15 @@ class SingleLauncher(object):
                     "lxc.network.flags = up"]
         return lxc_opts, ip
 
-    def _update_app_db(self, cluster_uuid, heat_plan):
+    def _update_app_db(self, cluster_uuid, service_uuid, heat_plan):
         # Make a copy of the plan before inserting into
         # mongo, otherwise the "_id" field will be added
         # silently. 
         heat_plan["_cluster_uuid"] = cluster_uuid
+        heat_plan["_service_uuid"] = service_uuid
         self.apps.insert(copy.deepcopy(heat_plan))
 
-    def alloc(self, cluster_uuid, container_info, ctype, proxy):
+    def alloc(self, cluster_uuid, service_uuid, container_info, ctype, proxy):
         """
         Allocate a new cluster. 
         """
@@ -615,7 +619,7 @@ class SingleLauncher(object):
 
         if resources:
             # Store the resources cluster ID. 
-            self._update_app_db(cluster_uuid, resources)
+            self._update_app_db(cluster_uuid, service_uuid, resources)
 
             servers = self._get_servers(resources)
             for i in range(0, len(container_info)):
@@ -643,13 +647,14 @@ class SingleLauncher(object):
 
         return containers
         
-    def _delete_stack(self, cluster_id):
+    def _delete_stack(self, cluster_uuid, service_uuid):
         # Find the relevant stack information. 
         ips = []
-        stacks = self.apps.find( { "_cluster_uuid" : cluster_id } )
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
+                                   "_service_uuid" : service_uuid } )
         for stack in stacks:
             for s in stack.values():
-                if s["type"] == "OS::Heat::Stack":
+                if type(s) is dict and s["type"] == "OS::Heat::Stack":
                     stack_id = s["id"]
 
                     # To delete the stack properly, we first need to disassociate
@@ -659,12 +664,18 @@ class SingleLauncher(object):
                         if r["resource_type"] == "OS::Neutron::FloatingIP":
                             self.neutron.update_floatingip(r["physical_resource_id"], {'floatingip': {'port_id': None}})
 
-                    # Now delete the stack. 
-                    self.heat.stacks.delete(stack_id)
-        self.apps.remove( { "_cluster_uuid" : cluster_id } )
+                    # Now try to delete the stack. Wrap this in a try-block so that
+                    # we don't completely fail even if the stack doesn't exist. 
+                    try:
+                        self.heat.stacks.delete(stack_id)
+                    except:
+                        logging.warning("Could not deletet stack %s" % str(stack_id))
+        self.apps.remove( { "_cluster_uuid" : cluster_uuid,
+                            "_service_uuid" : service_uuid } )
 
-    def _stop_stack(self, cluster_id):
-        stacks = self.apps.find( { "_cluster_uuid" : cluster_id } )
+    def _stop_stack(self, cluster_uuid, service_uuid):
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
+                                   "_service_uuid" : service_uuid } )
         for stack in stacks:
             servers = self._get_servers(stack)
             for s in servers:

@@ -95,7 +95,7 @@ class LocalFabric(object):
         time.sleep(2)
         return new_containers
 
-    def alloc(self, cluster_uuid, container_info, ctype):
+    def alloc(self, cluster_uuid, service_uuid, container_info, ctype):
         """
         Allocate several instances.
         """
@@ -188,7 +188,7 @@ class LocalFabric(object):
         for c in containers:
             self.cli.stop(c['container'])
 
-    def remove(self, cluster_uuid, containers):
+    def remove(self, cluster_uuid, service_uuid, containers):
         """
         Remove the running instances
         """
@@ -229,7 +229,7 @@ class LocalFabric(object):
         """        
         return self.cli.pull(image)
 
-    def halt(self, containers):
+    def halt(self, cluster_uuid, service_uuid, containers):
         """
         Safe stop the containers. 
         """

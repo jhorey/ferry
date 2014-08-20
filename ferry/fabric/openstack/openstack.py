@@ -157,11 +157,11 @@ class OpenStackFabric(object):
             return None, None
 
 
-    def alloc(self, cluster_uuid, container_info, ctype):
+    def alloc(self, cluster_uuid, service_uuid, container_info, ctype):
         """
         Allocate a new cluster. 
         """
-        return self.launcher.alloc(cluster_uuid, container_info, ctype, self.proxy)
+        return self.launcher.alloc(cluster_uuid, service_uuid, container_info, ctype, self.proxy)
 
     def stop(self, containers):
         """
@@ -169,7 +169,7 @@ class OpenStackFabric(object):
         """
         logging.warning("stopping " + str(containers))
 
-    def halt(self, containers):
+    def halt(self, cluster_uuid, service_uuid, containers):
         """
         Safe stop the containers. 
         """
@@ -180,16 +180,16 @@ class OpenStackFabric(object):
             self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
 
         # Now go ahead and stop the VMs. 
-        self.launcher._stop_stack(cluster_uuid)
+        self.launcher._stop_stack(cluster_uuid, service_uuid)
 
-    def remove(self, cluster_uuid, containers):
+    def remove(self, cluster_uuid, service_uuid, containers):
         """
         Remove the running instances
         """
         logging.warning("removing " + str(containers))
 
         # The only thing left to do is terminate the VMs.
-        self.launcher._delete_stack(cluster_uuid)
+        self.launcher._delete_stack(cluster_uuid, service_uuid)
 
     def copy(self, containers, from_dir, to_dir):
         """
