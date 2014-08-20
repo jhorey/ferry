@@ -90,6 +90,9 @@ class OpenStackFabric(object):
         """
         Restart the stopped containers.
         """
+        # First need to restart all the virtual machines.
+        # Then need to restart the Ferry, etc. 
+        # Finally, restart the stopped containers. 
         return []
 
     def _copy_public_keys(self, container, server):
@@ -186,9 +189,6 @@ class OpenStackFabric(object):
         """
         Remove the running instances
         """
-        logging.warning("removing " + str(containers))
-
-        # The only thing left to do is terminate the VMs.
         self.launcher._delete_stack(cluster_uuid, service_uuid)
 
     def copy(self, containers, from_dir, to_dir):

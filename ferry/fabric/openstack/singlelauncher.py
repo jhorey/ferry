@@ -15,7 +15,7 @@
 
 import copy
 from heatclient import client as heat_client
-from heatclient.exc import HTTPUnauthorized
+from heatclient.exc import HTTPUnauthorized, HTTPNotFound
 import json
 import logging
 import math
@@ -667,9 +667,11 @@ class SingleLauncher(object):
                     # Now try to delete the stack. Wrap this in a try-block so that
                     # we don't completely fail even if the stack doesn't exist. 
                     try:
+                        logging.warning("Deleting stack %s" % str(stack_id))
                         self.heat.stacks.delete(stack_id)
-                    except:
-                        logging.warning("Could not deletet stack %s" % str(stack_id))
+                    except HTTPNotFound as e:
+                        logging.warning(e)
+
         self.apps.remove( { "_cluster_uuid" : cluster_uuid,
                             "_service_uuid" : service_uuid } )
 
@@ -679,6 +681,4 @@ class SingleLauncher(object):
         for stack in stacks:
             servers = self._get_servers(stack)
             for s in servers:
-                logging.warning("STOPPING " + s["id"])
                 self.nova.servers.stop(s["id"])
-

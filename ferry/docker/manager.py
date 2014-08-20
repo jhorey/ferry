@@ -912,7 +912,7 @@ class DockerManager(object):
             for i in s['instances']:
                 for v in i.volumes.keys():
                     volumes.append(v)
-            self.docker.remove(cluster_uuid, c['uuid'], s['instances'])
+            self.docker.remove(cluster_uuid, s['uuid'], s['instances'])
 
         # Now remove the data directories. 
         for v in volumes:
@@ -1130,7 +1130,6 @@ class DockerManager(object):
         else:
             entry_point = {}
 
-        logging.warning("UPDATING SERVICE CONFIGURATION")
         container_info = self._serialize_containers(containers)
         service = {'uuid':service_uuid, 
                    'containers':container_info, 
