@@ -173,9 +173,13 @@ class OpenStackFabric(object):
         """
         Safe stop the containers. 
         """
+
+        # First stop the containers in the VMs. 
         cmd = '/service/sbin/startnode halt'
         for c in containers:
             self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
+
+        # Now go ahead and stop the VMs. 
 
     def remove(self, cluster_uuid, containers):
         """

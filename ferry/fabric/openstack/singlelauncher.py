@@ -16,6 +16,7 @@
 from heatclient import client as heat_client
 from heatclient.exc import HTTPUnauthorized
 from neutronclient.neutron import client as neutron_client
+from novaclient import client as nova_client
 import json
 import logging
 import math
@@ -70,6 +71,7 @@ class SingleLauncher(object):
 
             # OpenStack API endpoints. 
             self.keystone_server = servers['keystone']
+            self.nova_server = servers['nova']
             self.neutron_server = servers['neutron']
             if 'HEAT_URL' in os.environ:
                 self.heat_server = os.environ['HEAT_URL']
@@ -111,6 +113,7 @@ class SingleLauncher(object):
         return True
                 
     def _init_openstack_clients(self):
+        # Instantiate the Heat client. 
         if 'HEAT_API_VERSION' in os.environ:
             heat_api_version = os.environ['HEAT_API_VERSION']
         else:
@@ -128,10 +131,22 @@ class SingleLauncher(object):
                                        self.heat_server, 
                                        **kwargs)
 
+        # Instantiate the Neutron client.
+        # There should be a better way of figuring out the API version. 
         neutron_api_version = "2.0"
         kwargs['endpoint_url'] = self.neutron_server
-        self.neutron = neutron_client.Client(neutron_api_version, 
-                                             **kwargs)
+        self.neutron = neutron_client.Client(neutron_api_version, **kwargs)
+                                             
+        # Instantiate the Nova client. The Nova client is used
+        # to stop/restart instances.
+        nova_api_version = "3"
+        kwargs = {
+            'username' : self.openstack_user,
+            'password' : self.openstack_pass,
+            'tenant_id': self.tenant_id,
+            'auth_url' : self.keystone_server 
+        }
+        self.nova = nova_client.Client(nova_api_version, **kwargs)
 
     def _create_floating_ip(self, name, port):
         """
@@ -626,3 +641,9 @@ class SingleLauncher(object):
                     # Now delete the stack. 
                     self.heat.stacks.delete(stack_id)
         self.apps.remove( { "_cluster_uuid" : cluster_id } )
+
+    def _stop_stack(self, cluster_id):
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_id } )
+        for stack in stacks:
+            servers = self._get_servers(stack)
+
