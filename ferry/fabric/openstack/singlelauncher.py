@@ -13,13 +13,14 @@
 # limitations under the License.
 #
 
+import copy
 from heatclient import client as heat_client
 from heatclient.exc import HTTPUnauthorized
-from neutronclient.neutron import client as neutron_client
-from novaclient import client as nova_client
 import json
 import logging
 import math
+from neutronclient.neutron import client as neutron_client
+from novaclient import client as nova_client
 import os
 from pymongo import MongoClient
 import re
@@ -455,7 +456,6 @@ class SingleLauncher(object):
 
         servers = self.nova.servers.list()
         for s in servers:
-            logging.warning("INSTANCE: " + str(s.to_dict()))
             if s.name != "" and s.name in stack_desc:
                 instance_desc = stack_desc[s.name]
                 instance_desc["id"] = s.id
@@ -499,6 +499,7 @@ class SingleLauncher(object):
         stack_plan["Resources"] = dict(sec_group_plan["Resources"].items() + 
                                        ip_plan["Resources"].items() + 
                                        stack_plan["Resources"].items())
+
         stack_desc = dict(stack_desc.items() + 
                           sec_group_desc.items() +
                           ip_desc.items())
@@ -555,8 +556,11 @@ class SingleLauncher(object):
         return lxc_opts, ip
 
     def _update_app_db(self, cluster_uuid, heat_plan):
+        # Make a copy of the plan before inserting into
+        # mongo, otherwise the "_id" field will be added
+        # silently. 
         heat_plan["_cluster_uuid"] = cluster_uuid
-        self.apps.insert(heat_plan)
+        self.apps.insert(copy.deepcopy(heat_plan))
 
     def alloc(self, cluster_uuid, container_info, ctype, proxy):
         """
