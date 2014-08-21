@@ -129,7 +129,7 @@ def _allocate_compute(cluster_uuid, computes, key_name, storage_uuid):
         uuids.append( compute_uuid )
     return uuids, compute_plan
 
-def _restart_compute(computes):
+def _restart_compute(cluster_uuid, computes):
     uuids = []
     compute_plan = []
     for c in computes:
@@ -145,7 +145,7 @@ def _restart_compute(computes):
                                'containers' : containers,
                                'type' : compute_type, 
                                'start' : 'restart' } )
-        docker.restart_containers(service_uuid, containers)
+        docker.restart_containers(cluster_uuid, service_uuid, containers)
     return uuids, compute_plan
 
 def _allocate_backend(cluster_uuid,
@@ -215,7 +215,7 @@ def _allocate_backend(cluster_uuid,
                                    'containers' : containers,
                                    'type' : storage_type, 
                                    'start' : 'restart' } )
-            docker.restart_containers(storage_uuid, containers)
+            docker.restart_containers(cluster_uuid, storage_uuid, containers)
                                                   
         # Now allocate the compute backend. The compute is optional so
         # we should check if it even exists first. 
@@ -229,7 +229,7 @@ def _allocate_backend(cluster_uuid,
                 compute_uuids += compute_uuid
                 compute_plan += plan
             else:
-                compute_uuid, plan = _restart_compute(b['compute'])
+                compute_uuid, plan = _restart_compute(cluster_uuid, b['compute'])
                 compute_uuids += compute_uuid
                 compute_plan += plan
 

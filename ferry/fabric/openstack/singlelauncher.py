@@ -682,3 +682,11 @@ class SingleLauncher(object):
             servers = self._get_servers(stack)
             for s in servers:
                 self.nova.servers.stop(s["id"])
+
+    def _restart_stack(self, cluster_uuid, service_uuid):
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
+                                   "_service_uuid" : service_uuid } )
+        for stack in stacks:
+            servers = self._get_servers(stack)
+            for s in servers:
+                self.nova.servers.start(s["id"])

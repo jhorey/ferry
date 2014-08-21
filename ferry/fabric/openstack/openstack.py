@@ -86,11 +86,13 @@ class OpenStackFabric(object):
         """
         return "xfs"
 
-    def restart(self, containers):
+    def restart(self, cluster_uuid, service_uuid, containers):
         """
         Restart the stopped containers.
         """
         # First need to restart all the virtual machines.
+        self.launcher._restart_stack(cluster_uuid, service_uuid)
+        
         # Then need to restart the Ferry, etc. 
         # Finally, restart the stopped containers. 
         return []

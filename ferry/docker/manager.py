@@ -768,11 +768,11 @@ class DockerManager(object):
                                  container_info = plan['localhost']['containers'], 
                                  ctype = ctype);
 
-    def _restart_containers(self, containers):
+    def _restart_containers(self, cluster_uuid, service_uuid, containers):
         """
         Restart the stopped containers. 
         """
-        return self.docker.restart(containers)
+        return self.docker.restart(cluster_uuid, service_uuid, containers)
 
     def cancel_stack(self, cluster_uuid, backends, connectors):
         """
@@ -1075,13 +1075,13 @@ class DockerManager(object):
                         service = self.service[backend]['client']
                         service.stop_service(containers, entry_point, self.docker)
         
-    def restart_containers(self, service_uuid, containers):
+    def restart_containers(self, cluster_uuid, service_uuid, containers):
         """
         Restart an stopped storage cluster. This does not
         re-initialize the container. It just starts an empty
         container. 
         """
-        self._restart_containers(containers)
+        self._restart_containers(cluster_uuid, service_uuid, containers)
         container_info = self._serialize_containers(containers)
 
         service = {'uuid':service_uuid, 

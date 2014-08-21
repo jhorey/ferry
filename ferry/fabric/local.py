@@ -72,7 +72,7 @@ class LocalFabric(object):
         """
         return self.cli.get_fs_type()
 
-    def restart(self, containers):
+    def restart(self, cluster_uuid, service_uuid, containers):
         """
         Restart the stopped containers.
         """
