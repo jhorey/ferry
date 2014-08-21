@@ -440,7 +440,6 @@ def _allocate_new_worker(uuid, payload):
                                                                        backend_info = backend_info['uuids'])
 
         if success:
-            logging.warning("STARTING SERVICES")
             output = _start_all_services(backend_plan, connector_plan)
             docker.register_stack(backends = backend_info, 
                                   connectors = connector_info, 
@@ -453,7 +452,7 @@ def _allocate_new_worker(uuid, payload):
             reply['msgs'] = output
         else:
             # One or more connectors was not instantiated properly. 
-            docker.cancel_stack(backend_info, connector_info)
+            docker.cancel_stack(uuid, backend_info, connector_info)
             docker.register_stack(backends = { 'uuids':[] }, 
                                   connectors = [], 
                                   base = payload['_file'], 

@@ -166,11 +166,11 @@ class OpenStackFabric(object):
         """
         return self.launcher.alloc(cluster_uuid, service_uuid, container_info, ctype, self.proxy)
 
-    def stop(self, containers):
+    def stop(self, cluster_uuid, service_uuid, containers):
         """
         Stop the running containers
         """
-        logging.warning("stopping " + str(containers))
+        self._remove(cluster_uuid, service_uuid, containers)
 
     def halt(self, cluster_uuid, service_uuid, containers):
         """

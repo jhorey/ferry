@@ -181,7 +181,7 @@ class LocalFabric(object):
 
         return containers
 
-    def stop(self, containers):
+    def stop(self, cluster_uuid, service_uuid, containers):
         """
         Forceably stop the running containers
         """

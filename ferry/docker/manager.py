@@ -774,7 +774,7 @@ class DockerManager(object):
         """
         return self.docker.restart(containers)
 
-    def cancel_stack(self, backends, connectors):
+    def cancel_stack(self, cluster_uuid, backends, connectors):
         """
         The stack could not be instantiated correctly. Just get rid
         of these containers. 
@@ -783,18 +783,18 @@ class DockerManager(object):
             conf = self._get_service_configuration(b['storage'], detailed=True)
             if conf and 'containers' in conf:
                 for c in conf['containers']:
-                    self.docker.stop([c])
+                    self.docker.stop(cluster_uuid, b['storage'], [c])
             for compute in b['compute']:
                 conf = self._get_service_configuration(compute, detailed=True)
                 if conf and 'containers' in conf:
                     for c in conf['containers']:
-                        self.docker.stop([c])
+                        self.docker.stop(cluster_uuid, compute, [c])
 
         for b in connectors:
             s = self._get_service_configuration(b, detailed=True)
             if s and 'containers' in s:
                 for c in s['containers']:
-                    self.docker.stop([c])
+                    self.docker.stop(cluster_uuid, b, [c])
 
     def reserve_stack(self):
         """
