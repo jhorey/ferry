@@ -96,7 +96,7 @@ class OpenStackFabric(object):
         
         # Then need to restart Ferry on all the hosts. 
         logging.warning("RESTARTING FERRY")
-        cmd = "ferry server"
+        cmd = "source /etc/profile && ferry server"
         for ip in addrs:
             output, err = self.cmd_raw(self.cli.key, ip, cmd, self.docker_user)
             logging.warning("RESTART OUT: " + str(output))

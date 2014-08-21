@@ -238,6 +238,8 @@ class SingleLauncher(object):
                     "mount -o noatime /dev/vdb1 /ferry/data\n",
                     "export FERRY_SCRATCH=/ferry/data\n", 
                     "export FERRY_DIR=/ferry/master\n",
+                    "echo export FERRY_SCRATCH=/ferry/data >> /etc/profile\n", 
+                    "echo export FERRY_DIR=/ferry/master >> /etc/profile\n",
                     "export HOME=/root\n",
                     "export USER=root\n",
                     "mkdir /home/ferry/.ssh\n",
