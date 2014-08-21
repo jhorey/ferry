@@ -1237,7 +1237,7 @@ class DockerManager(object):
                                              'backend' : backend_info, 
                                              'start' : 'restart' } )
                     connector_info.append(cuid)
-                    self.restart_containers(cuid, containers)
+                    self.restart_containers(app_uuid, cuid, containers)
         return connector_info, connector_plan
 
     def allocate_snapshot_connectors(self, 

@@ -91,11 +91,27 @@ class OpenStackFabric(object):
         Restart the stopped containers.
         """
         # First need to restart all the virtual machines.
-        self.launcher._restart_stack(cluster_uuid, service_uuid)
+        addrs = self.launcher._restart_stack(cluster_uuid, service_uuid)
         
-        # Then need to restart the Ferry, etc. 
+        # Then need to restart Ferry on all the hosts.
+        cmd = "ferry server"
+        for ip in addrs:
+            self.cmd_raw(self.cli.key, ip, cmd, self.launcher.ssh_user)
+
         # Finally, restart the stopped containers. 
-        return []
+        for c in containers:
+            self.cli.start(image = c.image,
+                           container = c.container, 
+                           service_type = c.service_type,
+                           keydir = c.keydir,
+                           keyname = c.keyname,
+                           privatekey = c.privatekey,
+                           volumes = c.volumes,
+                           args = c.args,
+                           server = c.external_ip, 
+                           user = self.launcher.ssh_user,
+                           inspector = self.inspector)
+        return containers
 
     def _copy_public_keys(self, container, server):
         """
@@ -136,7 +152,7 @@ class OpenStackFabric(object):
                                  server = public_ip,
                                  user = self.launcher.ssh_user, 
                                  inspector = self.inspector,
-                                 background = True)
+                                 background = False)
         if container:
             container.internal_ip = private_ip
             if self.proxy:
@@ -179,10 +195,14 @@ class OpenStackFabric(object):
         Safe stop the containers. 
         """
 
-        # First stop the containers in the VMs. 
-        cmd = '/service/sbin/startnode halt'
+        # Stop the containers in the VMs. Stopping the container
+        # should jump us back out to the host. Afterwards, quit
+        # ferry so that we can restart later. 
+        halt = '/service/sbin/startnode halt'
+        ferry = 'ferry quit'
         for c in containers:
-            self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
+            self.cmd_raw(c.privatekey, c.external_ip, halt, c.default_user)
+            self.cmd_raw(self.cli.key, c.external_ip, ferry, self.launcher.ssh_user)
 
         # Now go ahead and stop the VMs. 
         self.launcher._stop_stack(cluster_uuid, service_uuid)
@@ -264,7 +284,8 @@ class OpenStackInspector(object):
 
         # We don't keep track of the container ID in single-network
         # mode, so use this to store the VM image instead. 
-        instance.container = self.fabric.launcher.default_image
+        # instance.container = self.fabric.launcher.default_image
+        instance.container = container
 
         # The port mapping should be 1-to-1 since we're using
         # the physical networking mode. 
