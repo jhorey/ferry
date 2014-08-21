@@ -78,17 +78,6 @@ def _get_ferry_dir(server):
         else:
             return os.environ['HOME'] + '/.ferry'
 
-def _get_ferry_scratch():
-    if 'FERRY_SCRATCH' in os.environ:
-        scratch_dir = os.environ['FERRY_SCRATCH']
-    else:
-        scratch_dir = os.path.join(_get_ferry_dir(server=True), 'scratch')
-
-    if not os.path.isdir(scratch_dir):
-        os.makedirs(scratch_dir)
-
-    return scratch_dir
-
 def _get_ferry_user():
     uid = pwd.getpwnam("root").pw_uid
     gid = grp.getgrnam("docker").gr_gid
@@ -159,7 +148,6 @@ FERRY_HOME=_get_ferry_home()
 DEFAULT_IMAGE_DIR=FERRY_HOME + '/data/dockerfiles'
 DEFAULT_KEY_DIR=FERRY_HOME + '/data/key'
 DEFAULT_SSH_KEY=DEFAULT_KEY_DIR + '/insecure_ferry_key.pem'
-DEFAULT_DOCKER_LOGIN=os.environ['HOME'] + '/.ferry.docker'
 DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'
@@ -168,6 +156,8 @@ DOCKER_CMD='docker-ferry'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_PID='/var/run/ferry.pid'
 DOCKER_DIR=_get_ferry_dir(server=True)
+USER_FERRY_CONFIG=os.environ['HOME'] + '/.ferry-config.yaml'
+SYSTEM_FERRY_CONFIG=FERRY_HOME + '/data/conf/ferry-default.yaml'
 DEFAULT_TEMPLATE_DIR=FERRY_HOME + '/data/templates'
 DEFAULT_BUILTIN_APPS=FERRY_HOME + '/data/plans'
 DEFAULT_FERRY_APPS=DOCKER_DIR + '/apps'
@@ -175,6 +165,23 @@ DEFAULT_MONGO_DB=DOCKER_DIR + '/mongo'
 DEFAULT_MONGO_LOG=DOCKER_DIR + '/mongolog'
 DEFAULT_REGISTRY_DB=DOCKER_DIR + '/registry'
 DEFAULT_DOCKER_LOG=DOCKER_DIR + '/docker.log'
+
+def read_ferry_config():
+    """
+    Read and store the Ferry user configuration. 
+    """
+    system = {}
+    user = {}
+        
+    if os.path.exists(ferry.install.SYSTEM_FERRY_CONFIG):
+        f = open(ferry.install.SYSTEM_FERRY_CONFIG, 'r')
+        system = yaml.load(f)
+
+    if os.path.exists(ferry.install.USER_FERRY_CONFIG):
+        f = open(ferry.install.USER_FERRY_CONFIG, 'r') 
+        user = yaml.load(f)
+            
+    return dict(system.items() + user.items())
 
 class Installer(object):
     def __init__(self, cli=None):
@@ -184,17 +191,12 @@ class Installer(object):
         self.mongo.fabric = self.fabric
         self.mongo.template_dir = DEFAULT_TEMPLATE_DIR + '/mongo/'
         self.cli = cli
+        self.config = read_ferry_config()
 
     def get_ferry_account(self):
-        """
-        Read in the remote Ferry DB account information. Used
-        for registering applications. 
-        """
-        with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
-            args = yaml.load(f)
-            args = args['ferry']
-            if all(k in args for k in ("user","key","server")):
-                return args['user'], args['key'], args['server']
+        args = self.config['ferry']
+        if all(k in args for k in ("user","key","server")):
+            return args['user'], args['key'], args['server']
         return None, None, None
 
     def create_signature(self, request, key):

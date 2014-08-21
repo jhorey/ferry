@@ -473,7 +473,7 @@ def _allocate_stopped(payload):
                           connectors = stack['connectors'],
                           base = stack['base'],
                           cluster_uuid = uuid,
-                          status='building', 
+                          status='restarting', 
                           key = stack['key'],
                           new_stack = False)
     return json.dumps({'status' : 'building',

@@ -109,18 +109,16 @@ class DockerManager(object):
         for n, o in inspect.getmembers(module):
             if inspect.isclass(o):
                 if o.__module__ == module_path and o.__name__ == clazz_name:
-                    return o(config = ferry.install.DEFAULT_DOCKER_LOGIN,
-                             bootstrap = False)
+                    return o(bootstrap = False)
         return None
 
     def _get_system_backend(self):
         """
         Return backend information 
         """
-        with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
-            args = yaml.load(f)
-            backend = args['system']['backend']
-            return self._load_class(backend)
+        config = ferry.install.read_ferry_config()
+        backend = config['system']['backend']
+        return self._load_class(backend)
 
     def _serialize_containers(self, containers):
         info = []
@@ -516,7 +514,7 @@ class DockerManager(object):
         """
         Create a new data directory
         """
-        scratch_dir = ferry.install._get_ferry_scratch()
+        scratch_dir = self.docker.get_data_dir()
 
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)
@@ -527,7 +525,7 @@ class DockerManager(object):
         """
         Create a new log directory
         """
-        scratch_dir = ferry.install._get_ferry_scratch()
+        scratch_dir = self.docker.get_data_dir()
 
         # First check if this data directory already exists. If so,
         # go ahead and delete it (this will hopefully get rid of all xattr stuff)

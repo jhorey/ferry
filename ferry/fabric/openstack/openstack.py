@@ -26,13 +26,11 @@ import yaml
 
 class OpenStackFabric(object):
 
-    def __init__(self, config=None, bootstrap=False):
+    def __init__(self, bootstrap=False):
         self.name = "openstack"
         self.repo = 'public'
 
-        self.config = config
-        self._init_openstack(self.config)
-
+        self._init_openstack()
         self.bootstrap = bootstrap
         self.cli = DockerCLI()
         self.cli.key = self._get_host_key()
@@ -50,29 +48,31 @@ class OpenStackFabric(object):
         for n, o in inspect.getmembers(module):
             if inspect.isclass(o):
                 if o.__module__ == module_path and o.__name__ == clazz_name:
-                    return o(self, self.config)
+                    return o(self)
         return None
 
-    def _init_openstack(self, conf_file):
-        with open(conf_file, 'r') as f:
-            args = yaml.load(f)
+    def _init_openstack(self):
+        conf = ferry.install.read_ferry_config()
 
-            # The actual OpenStack launcher. This lets us customize 
-            # launching into different OpenStack environments that each
-            # may be slightly different (HP Cloud, Rackspace, etc). 
-            launcher = args["system"]["mode"]
-            self.launcher = self._load_class(launcher)
+        # The actual OpenStack launcher. This lets us customize 
+        # launching into different OpenStack environments that each
+        # may be slightly different (HP Cloud, Rackspace, etc). 
+        launcher = conf["system"]["mode"]
+        self.launcher = self._load_class(launcher)
 
-            # The name of the data network device (eth*). 
-            self.data_network = args["system"]["network"]
+        # The name of the data network device (eth*). 
+        self.data_network = conf["system"]["network"]
 
-            # Determine if we are using this fabric in proxy
-            # mode. Proxy mode means that the client is external
-            # to the network, but controller has direct access. 
-            self.proxy = bool(args["system"]["proxy"])
+        # Determine if we are using this fabric in proxy
+        # mode. Proxy mode means that the client is external
+        # to the network, but controller has direct access. 
+        self.proxy = bool(conf["system"]["proxy"])
 
     def _get_host_key(self):
         return "/ferry/keys/" + self.launcher.ssh_key + ".pem"
+
+    def get_data_dir():
+        return "/ferry/data"
 
     def version(self):
         """
@@ -99,8 +99,6 @@ class OpenStackFabric(object):
         cmd = "source /etc/profile && ferry server"
         for ip in addrs:
             output, err = self.cmd_raw(self.cli.key, ip, cmd, self.docker_user)
-            logging.warning("RESTART OUT: " + str(output))
-            logging.warning("RESTART ERR: " + str(err))
 
         # Finally, restart the stopped containers. 
         logging.warning("RESTARTING CONTAINERS")
@@ -110,8 +108,6 @@ class OpenStackFabric(object):
             # container IDs. It should be stored on a cidfile. 
             output, err = self.cmd_raw(self.cli.key, c.external_ip, cmd, self.launcher.ssh_user)
             c.container = output.strip()
-            logging.warning("RESTART CONTAINER " + c.container)
-            logging.warning("CONTAINER ERR: " + str(err))
             self.cli.start(image = c.image,
                            container = c.container, 
                            service_type = c.service_type,

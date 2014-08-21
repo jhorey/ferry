@@ -24,7 +24,7 @@ import time
 import yaml
 
 class LocalFabric(object):
-    def __init__(self, config=None, bootstrap=False):
+    def __init__(self, bootstrap=False):
         self.name = "local"
         self.repo = 'public'
         self.cli = DockerCLI(ferry.install.DOCKER_REGISTRY)
@@ -59,6 +59,17 @@ class LocalFabric(object):
     def _get_host(self):
         cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         return Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+
+    def get_data_dir():
+        if 'FERRY_SCRATCH' in os.environ:
+            scratch_dir = os.environ['FERRY_SCRATCH']
+        else:
+            scratch_dir = os.path.join(_get_ferry_dir(server=True), 'scratch')
+
+        if not os.path.isdir(scratch_dir):
+            os.makedirs(scratch_dir)
+
+        return scratch_dir
 
     def version(self):
         """
@@ -272,18 +283,17 @@ class LocalFabric(object):
         Login to a remote registry. Use the login credentials
         found in the user's home directory. 
         """
-        with open(ferry.install.DEFAULT_DOCKER_LOGIN, 'r') as f:
-            args = yaml.load(f)
-            args = args['docker']
-            if all(k in args for k in ("user","password","email")):
-                if 'server' in args:
-                    server = args['server']
-                else:
-                    server = ''
-                return self.cli.login(user = args['user'], 
-                                      password = args['password'],
-                                      email = args['email'],
-                                      registry = server)
+        config = ferry.install.read_ferry_config()
+        args = config['docker']
+        if all(k in args for k in ("user","password","email")):
+            if 'server' in args:
+                server = args['server']
+            else:
+                server = ''
+            return self.cli.login(user = args['user'], 
+                                  password = args['password'],
+                                  email = args['email'],
+                                  registry = server)
         logging.error("Could not open login credentials " + ferry.install.DEFAULT_LOGIN_KEY)
         return False
 

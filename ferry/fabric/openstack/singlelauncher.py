@@ -14,6 +14,7 @@
 #
 
 import copy
+import ferry.install
 from heatclient import client as heat_client
 from heatclient.exc import HTTPUnauthorized, HTTPNotFound
 import json
@@ -36,75 +37,74 @@ class SingleLauncher(object):
     network for all communication. This makes it suitable for OpenStack
     environments that only support a single network (i.e., HP Cloud). 
     """
-    def __init__(self, controller, conf_file):
+    def __init__(self, controller):
         self.docker_registry = None
         self.docker_user = None
         self.heat_server = None
         self.openstack_key = None
 
         self.controller = controller
-        self._init_open_stack(conf_file)
+        self._init_open_stack()
         self._init_app_db()
 
     def _init_app_db(self):
         self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
         self.apps = self.mongo['openstack']['heat']
 
-    def _init_open_stack(self, conf_file):
-        with open(conf_file, 'r') as f:
-            args = yaml.load(f)
+    def _init_open_stack(self):
+        conf = ferry.install.read_ferry_config()
 
-            # First we need to know the deployment system
-            # we are using. 
-            self.data_device = args['system']['network']
-            provider = args['system']['provider']
+        # First we need to know the deployment system
+        # we are using. 
+        self.data_device = conf['system']['network']
+        provider = conf['system']['provider']
             
-            # Now get some basic OpenStack information
-            params = args[provider]['params']
-            self.default_dc = params['dc']
-            self.default_zone = params['zone']
+        # Now get some basic OpenStack information
+        params = conf[provider]['params']
+        self.default_dc = params['dc']
+        self.default_zone = params['zone']
 
-            # Some information regarding OpenStack
-            # networking. Necessary for 
-            servers = args[provider][self.default_dc]
-            self.manage_network = servers['network']
-            self.external_network = servers['extnet']
+        # Some information regarding OpenStack
+        # networking. Necessary for 
+        servers = conf[provider][self.default_dc]
+        self.manage_network = servers['network']
+        self.external_network = servers['extnet']
+        
+        # OpenStack API endpoints. 
+        self.region = servers['region']
+        self.keystone_server = servers['keystone']
+        self.nova_server = servers['nova']
+        self.neutron_server = servers['neutron']
+        if 'HEAT_URL' in os.environ:
+            self.heat_server = os.environ['HEAT_URL']
+        else:
+            self.heat_server = servers['heat']
 
-            # OpenStack API endpoints. 
-            self.region = servers['region']
-            self.keystone_server = servers['keystone']
-            self.nova_server = servers['nova']
-            self.neutron_server = servers['neutron']
-            if 'HEAT_URL' in os.environ:
-                self.heat_server = os.environ['HEAT_URL']
-            else:
-                self.heat_server = servers['heat']
+        # This gives us information about the image to use
+        # for the supplied provider. 
+        deploy = conf[provider]['deploy']
+        self.default_image = deploy['image']
+        self.ferry_volume = deploy['image-volume']
+        self.default_personality = deploy['personality']
+        self.ssh_key = deploy['ssh']
+        self.ssh_user = deploy['ssh-user']
 
-            # This gives us information about the image to use
-            # for the supplied provider. 
-            deploy = args[provider]['deploy']
-            self.default_image = deploy['image']
-            self.ferry_volume = deploy['image-volume']
-            self.default_personality = deploy['personality']
-            self.ssh_key = deploy['ssh']
-            self.ssh_user = deploy['ssh-user']
+        # Some OpenStack login credentials. 
+        if self._check_openstack_credentials():
+            self.openstack_user = os.environ['OS_USERNAME']
+            self.openstack_pass = os.environ['OS_PASSWORD']
+            self.tenant_id = os.environ['OS_TENANT_ID']
+            self.tenant_name = os.environ['OS_TENANT_NAME']
+            self.auth_tok = os.environ['OS_TOKEN']
+        else:
+            logging.error("Missing OpenStack credentials")
+            exit(1)
 
-            # Some OpenStack login credentials. 
-            if self._check_openstack_credentials():
-                self.openstack_user = os.environ['OS_USERNAME']
-                self.openstack_pass = os.environ['OS_PASSWORD']
-                self.tenant_id = os.environ['OS_TENANT_ID']
-                self.tenant_name = os.environ['OS_TENANT_NAME']
-                self.auth_tok = os.environ['OS_TOKEN']
-            else:
-                logging.error("Missing OpenStack credentials")
-                exit(1)
-
-            # Initialize the OpenStack clients and also
-            # download some networking information (subnet ID, 
-            # cidr, gateway, etc.)
-            self._init_openstack_clients()
-            self._collect_subnet_info()
+        # Initialize the OpenStack clients and also
+        # download some networking information (subnet ID, 
+        # cidr, gateway, etc.)
+        self._init_openstack_clients()
+        self._collect_subnet_info()
 
     def _check_openstack_credentials(self):
         envs = ['OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID',
