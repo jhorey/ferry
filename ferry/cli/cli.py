@@ -24,7 +24,6 @@ import os.path
 import pwd
 import requests
 import re
-import shutil
 import StringIO
 import sys
 from termcolor import colored

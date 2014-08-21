@@ -234,6 +234,7 @@ class SingleLauncher(object):
                     "mkfs.xfs /dev/vdb1\n", 
                     "mkdir /ferry/data\n",
                     "mkdir /ferry/keys\n",
+                    "mkdir /ferry/containers\n",
                     "mount -o noatime /dev/vdb1 /ferry/data\n",
                     "export FERRY_SCRATCH=/ferry/data\n", 
                     "export FERRY_DIR=/ferry/master\n",
@@ -244,8 +245,8 @@ class SingleLauncher(object):
                     "chown -R ferry:ferry /home/ferry/.ssh\n",
                     "chown -R ferry:ferry /ferry/data\n",
                     "chown -R ferry:ferry /ferry/keys\n",
-                    "dhclient eth1\n",
-                    "ferry server\n"
+                    "chown -R ferry:ferry /ferry/containers\n",
+                    "su ferry -c \"ferry server\"\n"
                   ]
               ]
           }}

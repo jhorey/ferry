@@ -139,6 +139,9 @@ def _touch_file(file_name, content, root=False):
     # "open" will throw an exception. 
     if not os.path.isdir(os.path.dirname(file_name)):
         os.makedirs(os.path.dirname(file_name))
+        if root:
+            uid, gid = _get_ferry_user()
+            os.chown(os.path.dirname(file_name), uid, gid)
 
     try:
         f = open(file_name, 'w+')
@@ -414,7 +417,7 @@ class Installer(object):
             sys.exit(1)
 
         ip = mongobox.internal_ip
-        _touch_file('/tmp/mongodb.ip', ip, root=True)
+        _touch_file('/tmp/ferry/mongodb.ip', ip, root=True)
 
         # Once the container is started, we'll need to copy over the
         # configuration files, and then manually send the 'start' command. 
@@ -457,8 +460,8 @@ class Installer(object):
 
     def stop_web(self, key):
         # Shutdown the mongo instance
-        if os.path.exists('/tmp/mongodb.ip'):
-            f = open('/tmp/mongodb.ip', 'r')
+        if os.path.exists('/tmp/ferry/mongodb.ip'):
+            f = open('/tmp/ferry/mongodb.ip', 'r')
             ip = f.read().strip()
             f.close()
 
@@ -470,7 +473,7 @@ class Installer(object):
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
             logging.warning(output)
-            os.remove('/tmp/mongodb.ip')
+            os.remove('/tmp/ferry/mongodb.ip')
 
         # Kill all the gunicorn instances. 
         logging.warning("stopping http servers")

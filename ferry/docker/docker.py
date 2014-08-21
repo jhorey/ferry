@@ -103,6 +103,7 @@ class DockerCLI(object):
         self.port_flag = ' -p'
         self.expose_flag = ' -expose'
         self.volume_flag = ' -v'
+        self.cid_file = ' --cidfile'
         self.lxc_flag = ' -lxc-conf'
         self.disable_net = ' -n=false'
         self.host_flag = ' -h'
@@ -115,18 +116,27 @@ class DockerCLI(object):
         """
         Execute the command on the server via ssh. 
         """
+
         if not server:
             # The server is not supplied, so just execute
             # the command locally. 
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         else:
-            # Wrap the command around an ssh command. 
+            # Do not store results in hosts file or warn about 
+            # changing ssh keys. Also use the key given to us by the fabric. 
+            flags = " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+            flags += " -i " + self.key
+
+            # If the user is given explicitly use that. Otherwise use the
+            # default user (which is probably root). 
             if user:
                 ip = user + '@' + server
             else:
                 ip = self.docker_user + '@' + server
+            flags += " -t -t " + ip
 
-            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + self.key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            # Wrap the command around an ssh command. 
+            ssh = 'ssh ' + flags + ' \'%s\'' % cmd
             logging.warning(ssh)
             proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
 
@@ -134,8 +144,7 @@ class DockerCLI(object):
             # Read both the standard out and error. 
             return proc.stdout.read(), proc.stderr.read()
         else:
-            # The user does not want to read right now,
-            # so just pass the child reference back. 
+            # The user does not want to read the output.
             return proc
         
     def get_fs_type(self, server=None):
@@ -294,16 +303,21 @@ class DockerCLI(object):
         logging.warning(cmd)
         self._execute_cmd(cmd, server)
 
-    def start(self, image, container, service_type, keydir, keyname, privatekey, volumes, args, server=None, user=None, inspector=None):
+    def start(self, image, container, service_type, keydir, keyname, privatekey, volumes, args, server=None, user=None, inspector=None, background=False):
         """
         Start a stopped container. 
         """
         cmd = self.docker + ' ' + self.start_cmd + ' ' + container
         logging.warning(cmd)
-        output, _ = self._execute_cmd(cmd, server, user)
+        
+        if background:
+            proc = self._execute_cmd(cmd, server, user, False)
+            container = None
+        else:
+            output, _ = self._execute_cmd(cmd, server, user, True)
+            container = output.strip()
 
         # Now parse the output to get the IP and port
-        container = output.strip()
         return inspector.inspect(image = image,
                                  container = container, 
                                  keydir = keydir,
@@ -362,19 +376,21 @@ class DockerCLI(object):
         if not default_cmd:
             default_cmd = ''
 
+        # The user does not want to print out the output (makes sense
+        # if the container "eats" up the physical network device). However
+        # we should still store the container ID somewhere. 
+        if background:
+            flags += self.cid_file + " /ferry/containers/container.pid"
+
         # Now construct the final docker command. 
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
 
         if background:
-            # The user wants to execute the Docker run command 
-            # in the background.
-            read_output = False
-            proc = self._execute_cmd(cmd, server, user, read_output)
+            proc = self._execute_cmd(cmd, server, user, False)
             container = None
         else:
-            read_output = True
-            output, error = self._execute_cmd(cmd, server, user, read_output)
+            output, error = self._execute_cmd(cmd, server, user, True)
             err = error.strip()
             if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
                 logging.error("Ferry docker daemon does not appear to be running")

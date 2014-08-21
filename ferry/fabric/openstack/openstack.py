@@ -91,15 +91,27 @@ class OpenStackFabric(object):
         Restart the stopped containers.
         """
         # First need to restart all the virtual machines.
+        logging.warning("RESTARTING VMs")
         addrs = self.launcher._restart_stack(cluster_uuid, service_uuid)
         
-        # Then need to restart Ferry on all the hosts.
+        # Then need to restart Ferry on all the hosts. 
+        logging.warning("RESTARTING FERRY")
         cmd = "ferry server"
         for ip in addrs:
-            self.cmd_raw(self.cli.key, ip, cmd, self.launcher.ssh_user)
+            output, err = self.cmd_raw(self.cli.key, ip, cmd, self.launcher.ssh_user)
+            logging.warning("RESTART OUT: " + str(output))
+            logging.warning("RESTART ERR: " + str(err))
 
         # Finally, restart the stopped containers. 
+        logging.warning("RESTARTING CONTAINERS")
+        cmd = "cat /service/sconf/container.pid"
         for c in containers:
+            # Before restarting the containers, we need to learn their
+            # container IDs. It should be stored on a cidfile. 
+            output, err = self.cmd_raw(self.cli.key, c.external_ip, cmd, self.launcher.ssh_user)
+            c.container = output.strip()
+            logging.warning("RESTART CONTAINER " + c.container)
+            logging.warning("CONTAINER ERR: " + str(err))
             self.cli.start(image = c.image,
                            container = c.container, 
                            service_type = c.service_type,
@@ -110,7 +122,8 @@ class OpenStackFabric(object):
                            args = c.args,
                            server = c.external_ip, 
                            user = self.launcher.ssh_user,
-                           inspector = self.inspector)
+                           inspector = self.inspector,
+                           background = True)
         return containers
 
     def _copy_public_keys(self, container, server):
@@ -152,7 +165,7 @@ class OpenStackFabric(object):
                                  server = public_ip,
                                  user = self.launcher.ssh_user, 
                                  inspector = self.inspector,
-                                 background = False)
+                                 background = True)
         if container:
             container.internal_ip = private_ip
             if self.proxy:
