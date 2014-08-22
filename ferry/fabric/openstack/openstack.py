@@ -71,7 +71,7 @@ class OpenStackFabric(object):
     def _get_host_key(self):
         return "/ferry/keys/" + self.launcher.ssh_key + ".pem"
 
-    def get_data_dir():
+    def get_data_dir(self):
         return "/ferry/data"
 
     def version(self):

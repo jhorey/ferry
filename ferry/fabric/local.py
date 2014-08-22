@@ -60,7 +60,7 @@ class LocalFabric(object):
         cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         return Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
 
-    def get_data_dir():
+    def get_data_dir(self):
         if 'FERRY_SCRATCH' in os.environ:
             scratch_dir = os.environ['FERRY_SCRATCH']
         else:

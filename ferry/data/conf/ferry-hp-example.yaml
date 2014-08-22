@@ -1,0 +1,35 @@
+system:
+  provider: hp
+  network: eth0
+  backend: ferry.fabric.openstack.openstack/OpenStackFabric
+  mode: ferry.fabric.openstack.singlelauncher/SingleLauncher
+  proxy: false
+hp:
+  params:
+    dc: uswest
+    zone: az2
+  uswest:
+     region: region-a.geo-1
+     keystone: https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/
+     neutron: https://region-a.geo-1.network.hpcloudsvc.com
+     nova: https://region-a.geo-1.compute.hpcloudsvc.com/v2/10089763026941
+     swift: https://region-a.geo-1.images.hpcloudsvc.com:443/v1.0
+     cinder: https://region-a.geo-1.block.hpcloudsvc.com/v1/10089763026941
+     network: 123-123-123
+     extnet: 123-123-123
+     router: 123-123-123
+  useast:
+     region: region-b.geo-1
+     keystone: https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/
+     neutron: https://region-b.geo-1.network.hpcloudsvc.com
+     swift: https://region-b.geo-1.images.hpcloudsvc.com:443/v1.0 
+     cinder: https://region-b.geo-1.block.hpcloudsvc.com/v1/10089763026941
+     nova: https://region-b.geo-1.compute.hpcloudsvc.com/v2/10089763026941
+     network: 123-123-123
+     extnet: 123-123-123
+     router: 123-123-123
+  deploy:
+     image: ferry-image
+     personality: standard.xsmall
+     ssh: ferry-keys
+     ssh-user: ferry
