@@ -91,17 +91,17 @@ class OpenStackFabric(object):
         Restart the stopped containers.
         """
         # First need to restart all the virtual machines.
-        logging.warning("RESTARTING VMs")
+        logging.warning("restarting virtual machines...")
         addrs = self.launcher._restart_stack(cluster_uuid, service_uuid)
         
         # Then need to restart Ferry on all the hosts. 
-        logging.warning("RESTARTING FERRY")
+        logging.warning("restarting ferry...")
         cmd = "source /etc/profile && ferry server"
         for ip in addrs:
             output, err = self.cmd_raw(self.cli.key, ip, cmd, self.docker_user)
 
         # Finally, restart the stopped containers. 
-        logging.warning("RESTARTING CONTAINERS")
+        logging.warning("restarting containers...")
         cmd = "cat /ferry/containers/container.pid && rm /ferry/containers/container.pid"
         for c in containers:
             # Before restarting the containers, we need to learn their
@@ -244,7 +244,7 @@ class OpenStackFabric(object):
             output = proc.stdout.read()
             err = proc.stderr.read()
             if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
-                logging.warning("COPY ERROR, TRY AGAIN")
+                logging.warning("copying error, trying again...")
                 time.sleep(3)
             else:
                 break

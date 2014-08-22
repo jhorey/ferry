@@ -75,6 +75,7 @@ class SingleLauncher(object):
         self.keystone_server = servers['keystone']
         self.nova_server = servers['nova']
         self.neutron_server = servers['neutron']
+
         if 'HEAT_URL' in os.environ:
             self.heat_server = os.environ['HEAT_URL']
         else:
@@ -113,7 +114,7 @@ class SingleLauncher(object):
             if not e in os.environ:
                 return False
         return True
-                
+
     def _init_openstack_clients(self):
         # Instantiate the Heat client. 
         if 'HEAT_API_VERSION' in os.environ:
@@ -275,6 +276,7 @@ class SingleLauncher(object):
                                            "availability_zone" : self.default_zone, 
                                            "networks" : []}}} 
         desc = { name : { "type" : "OS::Nova::Server",
+                          "name" : name,
                           "ports" : [],
                           "volumes" : [] }}
 
@@ -692,8 +694,21 @@ class SingleLauncher(object):
         stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
                                    "_service_uuid" : service_uuid } )
         for stack in stacks:
+            # Find the set of servers and restart them
+            # one by one. It would be nicer if Heat had a way to
+            # restart them all at once, but not sure how to do that...
             servers = self._get_servers(stack)
             for s in servers:
                 self.nova.servers.start(s["id"])
                 ips.append(self._get_public_ip(s, stack))
+
+            # Wait for the servers to actually be in the 
+            # "running" status before returning. 
+            for s in servers:
+                while(True):
+                    found = self.nova.servers.list(search_opts = { "name" : s["name"] })
+                    for f in found["servers"]:
+                        if f["status"] == "ACTIVE":
+                            break
+                    time.sleep(3)
         return ips

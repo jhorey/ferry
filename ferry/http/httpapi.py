@@ -433,7 +433,6 @@ def _allocate_new_worker(uuid, payload):
     # go ahead and allocate the connectors. 
     reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
-        logging.warning("ALLOCATING CONNECTORS")
         success, connector_info, connector_plan = _allocate_connectors(cluster_uuid = uuid,
                                                                        payload = payload, 
                                                                        key_name = key_name, 
