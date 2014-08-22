@@ -315,11 +315,11 @@ class SingleLauncher(object):
 
         return plan, desc
 
-    def _create_security_plan(self, cluster_uuid, ports):
+    def _create_security_plan(self, cluster_uuid, ports, ctype):
         """
         Update the security group. 
         """
-        sec_group_name = "ferry-sec-%s" % cluster_uuid
+        sec_group_name = "ferry-sec-%s-%s" % (cluster_uuid, ctype)
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : self._create_security_group(sec_group_name, ports) }
@@ -478,7 +478,8 @@ class SingleLauncher(object):
 
         logging.info("creating security group for %s" % cluster_uuid)
         sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
-                                                                      ports = security_group_ports)
+                                                                    ports = security_group_ports,
+                                                                    ctype = ctype)
 
         logging.info("creating instances for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 

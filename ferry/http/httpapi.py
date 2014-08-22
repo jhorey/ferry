@@ -424,6 +424,7 @@ def _allocate_new_worker(uuid, payload):
     """
     reply = {}
     key_name = payload['_key']
+    logging.info("creating backend...")
     backend_info, backend_plan = _allocate_backend(cluster_uuid = uuid,
                                                    payload = payload, 
                                                    key_name = key_name,
@@ -433,12 +434,14 @@ def _allocate_new_worker(uuid, payload):
     # go ahead and allocate the connectors. 
     reply['status'] = backend_info['status']
     if backend_info['status'] == 'ok':
+        logging.info("creating connectors...")
         success, connector_info, connector_plan = _allocate_connectors(cluster_uuid = uuid,
                                                                        payload = payload, 
                                                                        key_name = key_name, 
                                                                        backend_info = backend_info['uuids'])
 
         if success:
+            logging.info("starting services...")
             output = _start_all_services(backend_plan, connector_plan)
             docker.register_stack(backends = backend_info, 
                                   connectors = connector_info, 
@@ -451,6 +454,7 @@ def _allocate_new_worker(uuid, payload):
             reply['msgs'] = output
         else:
             # One or more connectors was not instantiated properly. 
+            logging.info("canceling stack...")
             docker.cancel_stack(uuid, backend_info, connector_info)
             docker.register_stack(backends = { 'uuids':[] }, 
                                   connectors = [], 
@@ -484,11 +488,14 @@ def _allocate_stopped_worker(payload):
     """
     uuid = payload['_file']
     stack = docker.get_stack(uuid)
+    logging.info("creating backend...")
     backend_info, backend_plan, key_name = _allocate_backend_from_stopped(payload = payload)
                                                                           
     if backend_info['status'] == 'ok':
+        logging.info("creating connectors...")
         connector_info, connector_plan = _allocate_connectors_from_stopped(payload = payload, 
                                                                            backend_info = backend_info['uuids'])
+        logging.info("starting services...")
         output = _start_all_services(backend_plan, connector_plan)
         docker.register_stack(backends = backend_info,
                               connectors = connector_info,

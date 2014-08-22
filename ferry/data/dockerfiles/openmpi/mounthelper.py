@@ -9,7 +9,9 @@ def mount(entry_point, mount_point):
     # go ahead and create it. 
     cmd = 'mount -t glusterfs %s %s' % (entry_point,
                                         mount_point)
-    output, err = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).stdout.read()
+    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+    output = proc.stdout.read()
+    err = proc.stderr.read()
     print output
     print err
 
