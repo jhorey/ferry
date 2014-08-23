@@ -30,6 +30,9 @@ app = Flask(__name__)
 installer = Installer()
 docker = DockerManager()
 
+# Set up the various logging facilities 
+logging.config.fileConfig(ferry.install.FERRY_HOME + "/logging.conf")
+
 def _stack_worker():
     """
     Worker thread.

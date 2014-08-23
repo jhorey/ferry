@@ -377,24 +377,6 @@ class SingleLauncher(object):
                                    "type": "OS::Heat::Stack" }
         return stack_desc
 
-    def _update_heat_plan(self, stack_id, stack_plan):
-        """
-        Update the cluster plan. 
-        """
-        self.heat.stacks.update(stack_id, template=stack_plan)
-
-    def release_ip_plan(self, ips):
-        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
-                 "Description" : "Ferry generated Heat plan",
-                 "Resources" : {} }
-
-        for i in ips:
-            plan["Resources"] = {
-                i["name"] : { "Type": "OS::Neutron::FloatingIPAssociation",
-                              "Properties": {} }}
-
-        return plan
-
     def _wait_for_stack(self, stack_id):
         """
         Wait for stack completion.
