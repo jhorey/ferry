@@ -165,7 +165,7 @@ class SingleLauncher(object):
         desc = { "type" : "OS::Neutron::FloatingIP" }
         return plan, desc
 
-    def _create_security_group(self, group_name, ports):
+    def _create_security_group(self, group_name, ports, internal):
         """
         Create and assign a security group to the supplied server. 
         """
@@ -182,11 +182,22 @@ class SingleLauncher(object):
                                                                "remote_ip_prefix": "0.0.0.0/0",
                                                                "port_range_min" : 22,
                                                                "port_range_max" : 22 }]}}}
-        # Additional ports for the security group. 
+        # Additional ports for the security group. These
+        # port values can be accessible from anywhere. 
         for p in ports:
             min_port = p[0]
             max_port = p[1]
             desc[group_name]["Properties"]["rules"].append({ "protocol" : "tcp",
+                                                             "remote_ip_prefix": "0.0.0.0/0",
+                                                             "port_range_min" : min_port,
+                                                             "port_range_max" : max_port })
+        # Additional ports for the security group. These
+        # port values can only be accessed from within the same network. 
+        for p in internal:
+            min_port = p[0]
+            max_port = p[1]
+            desc[group_name]["Properties"]["rules"].append({ "protocol" : "tcp",
+                                                             "remote_ip_prefix": self.subnet["cidr"],
                                                              "port_range_min" : min_port,
                                                              "port_range_max" : max_port })
         return desc
@@ -315,14 +326,14 @@ class SingleLauncher(object):
 
         return plan, desc
 
-    def _create_security_plan(self, cluster_uuid, ports, ctype):
+    def _create_security_plan(self, cluster_uuid, ports, internal, ctype):
         """
         Update the security group. 
         """
         sec_group_name = "ferry-sec-%s-%s" % (cluster_uuid, ctype)
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
-                 "Resources" : self._create_security_group(sec_group_name, ports) }
+                 "Resources" :  self._create_security_group(sec_group_name, ports, internal)}
         desc = { sec_group_name : { "type" : "OS::Neutron::SecurityGroup" }}
         return plan, desc
 
@@ -456,7 +467,7 @@ class SingleLauncher(object):
                 instance_desc["id"] = s.id
         return stack_desc
 
-    def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, assign_floating_ip, ctype):
+    def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
         security groups, and floating IPs. 
@@ -465,8 +476,9 @@ class SingleLauncher(object):
         logging.info("creating security group for %s" % cluster_uuid)
         sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
                                                                     ports = security_group_ports,
-                                                                    ctype = ctype)
-
+                                                                    internal = internal_ports, 
+                                                                    ctype = ctype) 
+        )
         logging.info("creating instances for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
                                                             num_instances = num_instances, 
@@ -597,10 +609,22 @@ class SingleLauncher(object):
                 else:
                     sec_group_ports.append( (s[0], s[1]) )
 
+            # Also see if there are any ports that should be
+            # open within the cluster (but not outside). Typically
+            # used for IPC (where ports may be assigned within a random range). 
+            internal_ports = []
+            for p in c['internal']:
+                s = p.split("-")
+                if len(s) == 1:
+                    internal_ports.append( (s[0], s[0]) )
+                else:
+                    internal_ports.append( (s[0], s[1]) )
+
         # Tell OpenStack to allocate the cluster. 
         resources = self._create_app_stack(cluster_uuid = cluster_uuid, 
                                            num_instances = len(container_info), 
                                            security_group_ports = sec_group_ports,
+                                           internal_ports = internal_ports, 
                                            assign_floating_ip = floating_ip,
                                            ctype = ctype)
         

@@ -52,13 +52,21 @@ class OpenMPIInitializer(object):
         """
         return 'openmpi_' + str(uuid)
 
-    def get_necessary_ports(self, num_instances):
+
+    def get_public_ports(self, num_instances):
         """
-        Get the ports necessary.
+        Ports to expose to the outside world. 
         """
         return []
 
-    def get_exposed_ports(self, num_instances):
+    def get_internal_ports(self, num_instances):
+        """
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
+        return []
+
+    def get_working_ports(self, num_instances):
         """
         Get the internal ports. 
         """

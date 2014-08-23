@@ -51,22 +51,29 @@ class CassandraClientInitializer(object):
     def _generate_config_dir(self, uuid):
         return 'cassandra_client' + str(uuid)
 
-    """
-    Get the ports necessary for Gluster. 
-    """
-    def get_necessary_ports(self, num_instances):
+    def get_public_ports(self, num_instances):
+        """
+        Ports to expose to the outside world. 
+        """
         return []
 
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
+    def get_internal_ports(self, num_instances):
+        """
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
         return []
 
-    """
-    Get total number of instances.
-    """
+    def get_working_ports(self, num_instances):
+        """
+        Ports necessary to get things working. 
+        """
+        return []
+
     def get_total_instances(self, num_instances, layers):
+        """
+        Get total number of instances.
+        """
         instances = []
 
         for i in range(num_instances):

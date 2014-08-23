@@ -48,36 +48,43 @@ class MetaStoreInitializer(object):
     def stop_service(self, containers, entry_point, fabric):
         self._execute_service(containers, entry_point, fabric, "stop")
 
-    """
-    Generate a new configuration.
-    """
     def _generate_config_dir(self, uuid):
+        """
+        Generate a new configuration.
+        """
         return 'hive_ms_' + str(uuid)
 
-    """
-    Get the ports necessary. 
-    """
-    def get_necessary_ports(self, num_instances):
+    def get_public_ports(self, num_instances):
+        """
+        Ports to expose to the outside world. 
+        """
+        return []
+
+    def get_internal_ports(self, num_instances):
+        """
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
+        return []
+
+    def get_working_ports(self, num_instances):
+        """
+        Ports necessary to get things working. 
+        """
         return [MetaStoreConfig.POSTGRES_PORT, 
                 MetaStoreConfig.METASTORE_PORT,
                 MetaStoreConfig.SERVER_PORT]
 
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
-        return []
-
-    """
-    Generate a new configuration
-    """
     def generate(self, num):
+        """
+        Generate a new configuration
+        """
         return MetaStoreConfig(num)
 
-    """
-    Generate the postgres configuration. 
-    """
     def _generate_postgres_site(self, new_config_dir):
+        """
+        Generate the postgres configuration. 
+        """
         in_file = open(self.template_dir + '/postgresql.conf', 'r')
         out_file = open(new_config_dir + '/postgresql.conf', 'w+')
 

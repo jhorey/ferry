@@ -561,13 +561,14 @@ class DockerManager(object):
         container_dir = service.container_data_dir
         log_dir = service.container_log_dir
         host_name = service.new_host_name(instance)
-        ports = service.get_necessary_ports(num_instances)
-        exposed = service.get_exposed_ports(num_instances)
+        ports = service.get_public_ports(num_instances)
+        internal = service.get_internal_ports(num_instances)
+        exposed = service.get_working_ports(num_instances)
         
         # Add SSH port for management purposes. 
         exposed.append(DockerManager.SSH_PORT)
 
-        return container_dir, log_dir, host_name, ports, exposed
+        return container_dir, log_dir, host_name, ports, exposed, internal
 
     def _read_key_dir(self, private_key):
         """
@@ -606,7 +607,7 @@ class DockerManager(object):
         for t in instances:
             instance_type = self._get_instance_image(t)
             service = self._get_service(t)
-            container_dir, log_dir, host_name, ports, exposed = self._get_service_environment(service, i, num_instances)
+            container_dir, log_dir, host_name, ports, exposed, internal = self._get_service_environment(service, i, num_instances)
             new_log_dir = self._new_log_dir(service_uuid, t, i, replace=replace)
             dir_info = { new_log_dir : log_dir }
 
@@ -625,6 +626,7 @@ class DockerManager(object):
                               'privatekey': key_name, 
                               'ports':ports,
                               'exposed':exposed, 
+                              'internal':internal,
                               'hostname':host_name,
                               'args':args}
             plan['localhost']['containers'].append(container_info)
@@ -657,7 +659,7 @@ class DockerManager(object):
         for t in instances:
             instance_type = self._get_instance_image(t)
             service = self._get_service(t)
-            container_dir, log_dir, host_name, ports, exposed = self._get_service_environment(service, i, num_instances)
+            container_dir, log_dir, host_name, ports, exposed, internal = self._get_service_environment(service, i, num_instances)
             new_log_dir = self._new_log_dir(service_uuid, t, i)
             dir_info = { new_log_dir : log_dir }
             container_info = {'image':instance_type,
@@ -669,6 +671,7 @@ class DockerManager(object):
                               'type':t, 
                               'ports':ports,
                               'exposed':exposed, 
+                              'internal':internal,
                               'hostname':host_name,
                               'args':args}
             plan['localhost']['containers'].append(container_info)
@@ -714,6 +717,7 @@ class DockerManager(object):
                            'type':connector_type, 
                            'ports':ports,
                            'exposed':[], 
+                           'internal':[],
                            'hostname':host_name,
                            'name':name, 
                            'args':args}

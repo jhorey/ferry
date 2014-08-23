@@ -75,28 +75,32 @@ class GlusterInitializer(object):
     def generate_config_dir(self, uuid):
         return 'gluster_' + str(uuid)
 
-    """
-    Get the ports necessary for Gluster. 
-    """
-    def get_necessary_ports(self, num_instances):
+    def get_public_ports(self, num_instances):
+        """
+        Ports to expose to the outside world. 
+        """
         return []
 
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
-        ports = []
-        
+    def get_internal_ports(self, num_instances):
+        """
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
+        return []
+
+    def get_working_ports(self, num_instances):
+        """
+        Ports necessary to get things working. 
+        """
         ports.append(str(GlusterConfig.MANAGEMENT_PORT))
         for i in range(0, num_instances):
             ports.append(str(GlusterConfig.BRICK_PORT + i))
-
         return ports
 
-    """
-    Get total number of instances.
-    """
     def get_total_instances(self, num_instances, layers):
+        """
+        Get total number of instances.
+        """
         instances = []
 
         for i in range(num_instances):

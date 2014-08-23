@@ -48,24 +48,32 @@ class TitanInitializer(object):
     def _generate_config_dir(self, uuid, container):
         return 'titan_' + str(uuid) + '_' + str(container['data_ip'])
 
-    """
-    Get the ports necessary. 
-    """
-    def get_necessary_ports(self, num_instances):
+    def get_public_ports(self, num_instances):
+        """
+        Ports to expose to the outside world. 
+        """
         return []
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
+
+    def get_internal_ports(self, num_instances):
+        """
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
+        return ["0-65535"]
+
+    def get_working_ports(self, num_instances):
+        """
+        Ports necessary to get things working. 
+        """
         return [TitanConfig.REXSTER_PORT, 
                 TitanConfig.REXPRO_PORT, 
                 TitanConfig.THRIFT_COM_PORT,
                 TitanConfig.NATIVE_COM_PORT]
 
-    """
-    Generate a new configuration
-    """
     def generate(self, num):
+        """
+        Generate a new configuration
+        """
         return TitanConfig(num)
 
     def _apply_rexster(self, host_dir, storage_entry, container):

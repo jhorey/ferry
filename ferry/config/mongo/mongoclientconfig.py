@@ -68,17 +68,24 @@ class MongoClientInitializer(object):
     def stop_service(self, containers, entry_point, fabric):        
         return self.mongo.stop_service(containers, entry_point, fabric)
 
-    """
-    Get the ports necessary.
-    """
-    def get_necessary_ports(self, num_instances):
-        return self.mongo.get_necessary_ports(num_instances)
+    def get_public_ports(self, num_instances):
+        """
+        Ports to expose to the outside world. 
+        """
+        return []
 
-    """
-    Get the internal ports. 
-    """
-    def get_exposed_ports(self, num_instances):
-        return self.mongo.get_exposed_ports(num_instances)
+    def get_internal_ports(self, num_instances):
+        """
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
+        return self.mongo.get_internal_ports(num_instances)
+
+    def get_working_ports(self, num_instances):
+        """
+        Ports necessary to get things working. 
+        """
+        return self.mongo.get_working_ports(num_instances)
 
     """
     Generate a new configuration

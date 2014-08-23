@@ -99,22 +99,31 @@ class HadoopInitializer(object):
         """
         return 'hadoop_' + str(uuid) + '_' + str(container['data_ip'])
 
-    def get_necessary_ports(self, num_instances):
+    def get_public_ports(self, num_instances):
         """
-        Get the ports necessary. 
+        Ports to expose to the outside world. 
         """
         return []
 
-    def get_exposed_ports(self, num_instances):
+    def get_internal_ports(self, num_instances):
         """
-        Get the ports to expose internally between containers
-        (but not outside containers). 
+        Ports needed for communication within the network. 
+        This is usually used for internal IPC.
+        """
+        return ["0-65535"]
+
+    def get_working_ports(self, num_instances):
+        """
+        Ports necessary to get things working. 
         """
         ports = []
         ports.append(HadoopConfig.YARN_SCHEDULER)
+        ports.append(HadoopConfig.YARN_TRACKER)
         ports.append(HadoopConfig.YARN_ADMIN)
         ports.append(HadoopConfig.YARN_IPC)
+        ports.append(HadoopConfig.YARN_LOCALIZER)
         ports.append(HadoopConfig.YARN_RESOURCE)
+        ports.append(HadoopConfig.YARN_NODE)
         ports.append(HadoopConfig.YARN_TRACKER)
         ports.append(HadoopConfig.YARN_HTTP)
         ports.append(HadoopConfig.YARN_HTTPS)
@@ -509,12 +518,18 @@ class HadoopConfig(object):
     config_directory = '/service/conf/hadoop'
 
     YARN_SCHEDULER = '8030'
+    YARN_TRACKER = '8031'
     YARN_IPC = '8032'
     YARN_ADMIN = '8033'
+    YARN_LOCALIZER = '8040'
     YARN_RESOURCE = '8041'
-    YARN_TRACKER = '8025'
+    YARN_NODE = '8042'
     YARN_HTTP = '8088'
     YARN_HTTPS = '8090'
+
+    # Not sure this is necessary? 
+    YARN_TRACKER = '8025'
+
     YARN_JOB_HISTORY = '10020'
     YARN_JOB_HISTORY_HTTP = '19888'
     HDFS_MASTER = '9000'

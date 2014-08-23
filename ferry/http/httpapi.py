@@ -16,6 +16,7 @@
 import json
 import logging
 from flask import Flask, request
+import ferry.install
 from ferry.install import Installer
 from ferry.docker.manager import DockerManager
 from ferry.docker.docker import DockerInstance
@@ -29,9 +30,6 @@ app = Flask(__name__)
 # Initialize the storage driver
 installer = Installer()
 docker = DockerManager()
-
-# Set up the various logging facilities 
-logging.config.fileConfig(ferry.install.FERRY_HOME + "/logging.conf")
 
 def _stack_worker():
     """
@@ -297,7 +295,7 @@ def _allocate_connectors(cluster_uuid, payload, key_name, backend_info):
                 else:
                     args = {}
 
-                # The user can choose to expose ports on the connectors.                
+                # The user can choose to expose ports on the connectors.
                 if 'ports' in c:
                     ports = c['ports']
                 else:
