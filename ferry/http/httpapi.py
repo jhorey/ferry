@@ -445,7 +445,7 @@ def _allocate_new(payload, key_name):
     return json.dumps({ 'text' : str(uuid),
                         'status' : 'building' })
 
-def _cancel_stack(uuid, base, backend_info, connector_info, base):
+def _cancel_stack(uuid, backend_info, connector_info, base):
     logging.info("canceling stack...")
     docker.cancel_stack(uuid, backend_info, connector_info)
     docker.register_stack(backends = { 'uuids':[] }, 

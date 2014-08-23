@@ -16,7 +16,7 @@
 import copy
 import ferry.install
 from heatclient import client as heat_client
-from heatclient.exc import HTTPUnauthorized, HTTPNotFound
+from heatclient.exc import HTTPUnauthorized, HTTPNotFound, HTTPBadRequest
 import json
 import logging
 import math
@@ -348,9 +348,19 @@ class SingleLauncher(object):
         """
         logging.info("launching heat plan: " + str(heat_plan))
         
-        # Instruct Heat to create the stack, and wait 
-        # for it to complete. 
-        resp = self.heat.stacks.create(stack_name=stack_name, template=heat_plan)
+        try:
+            # Try to create the application stack.
+            resp = self.heat.stacks.create(stack_name=stack_name, template=heat_plan)
+        except:
+            # We could not create the stack. This probably
+            # means that either the Heat server is down or the
+            # OpenStack cluster is down.
+            logging.error("could not create Heat stack (%s)" % resp["stack"]["id"])
+            return None
+
+        # Now wait for the stack to be in a completed state
+        # before returning. That way we'll know if the stack creation
+        # has failed or not. 
         if not self._wait_for_stack(resp["stack"]["id"]):
             logging.warning("Heat plan %s CREATE_FAILED" % resp["stack"]["id"])
             return None
@@ -398,8 +408,8 @@ class SingleLauncher(object):
                     return False
                 else:
                     time.sleep(2)
-            except HTTPUnauthorized as e:
-                logging.warning(e)
+            except:
+                logging.error("could not fetch stack status (%s)" % str(stack_id))
 
     def _collect_resources(self, stack_id):
         """
