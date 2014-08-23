@@ -497,10 +497,10 @@ class CLI(object):
 
         connector_ip = None
         for cg in json_value['connectors']:
-            if not connector_id:
+            if not connector_id and 'ip' in cg['entry']:
                 connector_ip = cg['entry']['ip']
                 break
-            elif connector_id == cg['uniq']:
+            elif connector_id == cg['uniq'] and 'ip' in cg['entry']:
                 connector_ip = cg['entry']['ip']
                 break
 

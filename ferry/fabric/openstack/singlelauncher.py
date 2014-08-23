@@ -340,12 +340,6 @@ class SingleLauncher(object):
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
             desc = dict(desc.items() + instance_desc.items())
 
-            # # Attach the Ferry image volume to the instance. 
-            # attach_name = "ferry-attach-%s-%s-%d" % (cluster_uuid, ctype, i)
-            # vol_plan, vol_desc = self._create_volume_attachment(attach_name, instance_name, self.ferry_volume)
-            # plan["Resources"] = dict(plan["Resources"].items() + vol_plan.items())
-            # desc = dict(desc.items() + vol_desc.items())
-
         return plan, desc
 
     def _launch_heat_plan(self, stack_name, heat_plan, stack_desc):
@@ -515,8 +509,7 @@ class SingleLauncher(object):
                           ip_desc.items())
         stack_desc = self._launch_heat_plan("ferry-app-%s-%s" % (ctype.upper(), cluster_uuid), stack_plan, stack_desc)
 
-        # Now find all the IP addresses of the various
-        # machines. 
+        # Now find all the IP addresses of the various machines. 
         if stack_desc:
             stack_desc = self._collect_instance_info(stack_desc)
             return self._collect_network_info(stack_desc)
@@ -645,15 +638,20 @@ class SingleLauncher(object):
                 if container:
                     mounts = dict(mounts.items() + cmounts.items())
                     containers.append(container)
-                
-        # Check if we need to set the file permissions
-        # for the mounted volumes. 
-        for c, i in mounts.items():
-            for _, v in i['vols']:
-                self.controller.cmd([c], 'chown -R %s %s' % (i['user'], v))
 
-        return containers
-        
+            # Check if we need to set the file permissions
+            # for the mounted volumes. 
+            for c, i in mounts.items():
+                for _, v in i['vols']:
+                    self.controller.cmd([c], 'chown -R %s %s' % (i['user'], v))
+            return containers
+        else:
+            # OpenStack failed to launch the application stack.
+            # This can be caused by improper OpenStack credentials
+            # or if the OpenStack cluster is under heavy load (i.e.,
+            # requests are getting timed out). 
+            return None
+
     def _delete_stack(self, cluster_uuid, service_uuid):
         # Find the relevant stack information. 
         ips = []

@@ -197,7 +197,7 @@ class OpenStackFabric(object):
         """
         Stop the running containers
         """
-        self._remove(cluster_uuid, service_uuid, containers)
+        self.remove(cluster_uuid, service_uuid, containers)
 
     def halt(self, cluster_uuid, service_uuid, containers):
         """

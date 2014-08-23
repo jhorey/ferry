@@ -989,18 +989,25 @@ class DockerManager(object):
 
         # Allocate all the containers. 
         containers = self._start_containers(cluster_uuid, service_uuid, plan, ctype="compute")
-
-        # Generate a configuration dir.
-        if len(containers) > 0:
+        if containers == None:
+            # The containers could not be allocated for some
+            # reason. Make sure the calling method knows this so
+            # that it can return a failure message.
+            return None, None
+        elif len(containers) > 0:
+            # The containers were instantiated successfully. 
+            # Generate storage-specific configuration and transfer
+            # it over to the new containers. 
             config_dirs, entry_point = self.config.generate_compute_configuration(service_uuid, 
                                                                                   containers, 
                                                                                   service, 
                                                                                   args, 
                                                                                   [storage_entry])
-
-            # Now copy over the configuration.
             self._transfer_config(config_dirs)
         else:
+            # The container allocator did not allocate any containers
+            # but it did so without any errors (perhaps the user requested
+            # zero containers?). 
             entry_point = {}
 
         # Update the service configuration. 
@@ -1115,17 +1122,24 @@ class DockerManager(object):
 
         # Allocate all the containers. 
         containers = self._start_containers(cluster_uuid, service_uuid, plan, ctype="storage")
-
-        # Generate a configuration dir.
-        if len(containers) > 0:
+        if containers == None:
+            # The containers could not be allocated for some
+            # reason. Make sure the calling method knows this so
+            # that it can return a failure message.
+            return None, None
+        elif len(containers) > 0:
+            # The containers were instantiated successfully. 
+            # Generate storage-specific configuration and transfer
+            # it over to the new containers. 
             config_dirs, entry_point = self.config.generate_storage_configuration(service_uuid, 
                                                                                   containers, 
                                                                                   service, 
                                                                                   args)
-
-            # Now copy over the configuration.
             self._transfer_config(config_dirs)
         else:
+            # The container allocator did not allocate any containers
+            # but it did so without any errors (perhaps the user requested
+            # zero containers?). 
             entry_point = {}
 
         container_info = self._serialize_containers(containers)

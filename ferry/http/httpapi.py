@@ -65,7 +65,7 @@ def _allocate_backend_from_snapshot(cluster_uuid, payload, key_name):
                                  payload = None,
                                  key_name = key_name, 
                                  backends = backends,
-        new_stack = True)
+                                 new_stack = True)
 
 def _allocate_backend_from_stopped(payload):
     """
@@ -122,11 +122,17 @@ def _allocate_compute(cluster_uuid, computes, key_name, storage_uuid):
                                                                    args = args, 
                                                                    num_instances = num_instances,
                                                                    layers = layers)
-        compute_plan.append( { 'uuid' : compute_uuid,
-                               'containers' : compute_containers,
-                               'type' : compute_type, 
-                               'start' : 'start' } )
-        uuids.append( compute_uuid )
+        if compute_uuid:
+            compute_plan.append( { 'uuid' : compute_uuid,
+                                   'containers' : compute_containers,
+                                   'type' : compute_type, 
+                                   'start' : 'start' } )
+            uuids.append( compute_uuid )
+        else:
+            # The manager could not allocate the compute backend
+            # properly. Return a failure so that we can update the
+            # status properly and cancel the stack.
+            return None, None
     return uuids, compute_plan
 
 def _restart_compute(cluster_uuid, computes):
@@ -200,10 +206,17 @@ def _allocate_backend(cluster_uuid,
                                                                        layers = layers,
                                                                        args = args,
                                                                        replace = replace)
-            storage_plan.append( { 'uuid' : storage_uuid,
-                                   'containers' : storage_containers,
-                                   'type' : storage_type, 
-                                   'start' : 'start' } )
+
+            if storage_uuid:
+                storage_plan.append( { 'uuid' : storage_uuid,
+                                       'containers' : storage_containers,
+                                       'type' : storage_type, 
+                                       'start' : 'start' } )
+            else:
+                # The storage was not allocated properly. Change 
+                # the status so that the stack can be properly cancelled. 
+                backend_info["status"] = 'failed'
+                return backend_info, None
         else:
             storage_uuid = storage['uuid']
             storage_type = storage['type']
@@ -226,8 +239,15 @@ def _allocate_backend(cluster_uuid,
                                                        computes = b['compute'], 
                                                        key_name = key_name, 
                                                        storage_uuid = storage_uuid) 
-                compute_uuids += compute_uuid
-                compute_plan += plan
+
+                if compute_uuid:
+                    compute_uuids += compute_uuid
+                    compute_plan += plan
+                else:
+                    # The storage was not allocated properly. Change 
+                    # the status so that the stack can be properly cancelled. 
+                    backend_info["status"] = 'failed'
+                    return backend_info, None
             else:
                 compute_uuid, plan = _restart_compute(cluster_uuid, b['compute'])
                 compute_uuids += compute_uuid
@@ -288,11 +308,18 @@ def _allocate_connectors(cluster_uuid, payload, key_name, backend_info):
                                                              name = connector_name, 
                                                              args = args,
                                                              ports = ports)
-                connector_plan.append( { 'uuid' : uuid,
-                                         'containers' : containers,
-                                         'type' : connector_type, 
-                                         'start' : 'start' } )
-                connector_info.append(uuid)
+                if uuid:
+                    connector_plan.append( { 'uuid' : uuid,
+                                             'containers' : containers,
+                                             'type' : connector_type, 
+                                             'start' : 'start' } )
+                    connector_info.append(uuid)
+                else:
+                    # The manager could not allocate the connectors
+                    # properly. Return a failure so that we can update the
+                    # status properly and cancel the stack.
+                    return Fail, [], connector_plan
+                    
     return True, connector_info, connector_plan
 
 def _allocate_connectors_from_snapshot(cluster_uuid, payload, key_name, backend_info):
@@ -418,6 +445,16 @@ def _allocate_new(payload, key_name):
     return json.dumps({ 'text' : str(uuid),
                         'status' : 'building' })
 
+def _cancel_stack(uuid, base, backend_info, connector_info, base):
+    logging.info("canceling stack...")
+    docker.cancel_stack(uuid, backend_info, connector_info)
+    docker.register_stack(backends = { 'uuids':[] }, 
+                          connectors = [], 
+                          base = base, 
+                          cluster_uuid = uuid, 
+                          status='failed', 
+                          new_stack=False)
+
 def _allocate_new_worker(uuid, payload):
     """
     Helper function to allocate and start a new stack. 
@@ -454,15 +491,11 @@ def _allocate_new_worker(uuid, payload):
             reply['msgs'] = output
         else:
             # One or more connectors was not instantiated properly. 
-            logging.info("canceling stack...")
-            docker.cancel_stack(uuid, backend_info, connector_info)
-            docker.register_stack(backends = { 'uuids':[] }, 
-                                  connectors = [], 
-                                  base = payload['_file'], 
-                                  cluster_uuid = uuid, 
-                                  status='failed', 
-                                  new_stack=False)
+            _cancel_stack(uuid, backend_info, connector_info, payload['_file'])
             reply['status'] = 'failed'
+    else:
+        _cancel_stack(uuid, backend_info, [], payload['_file'])
+        reply['status'] = 'failed'
 
     return json.dumps(reply)
 
