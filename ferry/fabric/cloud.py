@@ -24,18 +24,18 @@ from subprocess import Popen, PIPE
 import time
 import yaml
 
-class OpenStackFabric(object):
+class CloudFabric(object):
 
     def __init__(self, bootstrap=False):
-        self.name = "openstack"
+        self.name = "cloud"
         self.repo = 'public'
 
-        self._init_openstack()
+        self._init_cloudfabric()
         self.bootstrap = bootstrap
         self.cli = DockerCLI()
         self.cli.key = self._get_host_key()
         self.docker_user = self.cli.docker_user
-        self.inspector = OpenStackInspector(self)
+        self.inspector = CloudInspector(self)
 
     def _load_class(self, class_name):
         """
@@ -51,11 +51,11 @@ class OpenStackFabric(object):
                     return o(self)
         return None
 
-    def _init_openstack(self):
+    def _init_cloudfabric(self):
         conf = ferry.install.read_ferry_config()
 
-        # The actual OpenStack launcher. This lets us customize 
-        # launching into different OpenStack environments that each
+        # The actual cloud launcher. This lets us customize 
+        # launching into different cloud environments that each
         # may be slightly different (HP Cloud, Rackspace, etc). 
         launcher = conf["system"]["mode"]
         self.launcher = self._load_class(launcher)
@@ -137,7 +137,7 @@ class OpenStackFabric(object):
 
     def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
         """
-        Run the Docker container and use the OpenStack inspector to get information
+        Run the Docker container and use the cloud inspector to get information
         about the container/VM.
         """
 
@@ -280,7 +280,7 @@ class OpenStackFabric(object):
                 break
         return output, err
 
-class OpenStackInspector(object):
+class CloudInspector(object):
     def __init__(self, fabric):
         self.fabric = fabric
 

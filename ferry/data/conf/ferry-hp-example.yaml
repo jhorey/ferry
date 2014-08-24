@@ -1,7 +1,7 @@
 system:
   provider: hp
   network: eth0
-  backend: ferry.fabric.openstack.openstack/OpenStackFabric
+  backend: ferry.fabric.cloud/CloudFabric
   mode: ferry.fabric.openstack.singlelauncher/SingleLauncher
   proxy: false
 hp:
