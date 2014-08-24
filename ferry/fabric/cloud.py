@@ -186,7 +186,6 @@ class CloudFabric(object):
         else:
             return None, None
 
-
     def alloc(self, cluster_uuid, service_uuid, container_info, ctype):
         """
         Allocate a new cluster. 
