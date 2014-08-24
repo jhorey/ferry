@@ -494,15 +494,18 @@ class CLI(object):
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+        except ValueError:
+            json_value = None
 
         connector_ip = None
-        for cg in json_value['connectors']:
-            if not connector_id and 'ip' in cg['entry']:
-                connector_ip = cg['entry']['ip']
-                break
-            elif connector_id == cg['uniq'] and 'ip' in cg['entry']:
-                connector_ip = cg['entry']['ip']
-                break
+        if json_value and 'connectors' in json_value:
+            for cg in json_value['connectors']:
+                if not connector_id and 'ip' in cg['entry']:
+                    connector_ip = cg['entry']['ip']
+                    break
+                elif connector_id == cg['uniq'] and 'ip' in cg['entry']:
+                    connector_ip = cg['entry']['ip']
+                    break
 
         # Now form the ssh command. This just executes in the same shell. 
         if connector_ip:
@@ -516,6 +519,7 @@ class CLI(object):
             os.execv('/usr/bin/ssh', cmd.split())
         else:
             logging.warning("could not find connector %s" % connector_id)
+            return "could not connect to " + str(stack_id)
 
     def _parse_deploy_arg(self, param, args, default):
         pattern = re.compile('--%s=(\w+)' % param)

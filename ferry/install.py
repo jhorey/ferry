@@ -198,11 +198,6 @@ def read_ferry_config():
         user = yaml.load(f)
 
     _recursive_merge(system, user)
-    logging.warning("SYSTEM: " + json.dumps(system,
-                                            sort_keys=True,
-                                            indent=2,
-                                            separators=(',',':')))
-
     return system
 
 class Installer(object):

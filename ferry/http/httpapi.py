@@ -704,10 +704,23 @@ def inspect():
     Inspect a particular stack.
     """
     uuid = request.args['uuid']
+
     if docker.is_running(uuid) or docker.is_stopped(uuid):
+        # This is an active application stack. 
         return docker.inspect_stack(uuid)
     elif docker.is_installed(uuid):
+        # This is the name of an installed application.
         return docker.inspect_installed(uuid)
+    else:
+        # Try to see if this is an active service.
+        service = docker._get_service_configuration(uuid, detailed=True)
+        if service:
+            service_info = docker._get_inspect_info(uuid)
+            return json.dumps(service_info,
+                              sort_keys=True,
+                              indent=2,
+                              separators=(',',':'))
+    return "could not inspect " + str(uuid)
 
 @app.route('/logs', methods=['GET'])
 def logs():

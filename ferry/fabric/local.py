@@ -19,6 +19,7 @@ from ferry.ip.client import DHCPClient
 import ferry.install
 import json
 import logging
+import os
 from subprocess import Popen, PIPE
 import time
 import yaml
