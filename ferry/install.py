@@ -167,6 +167,21 @@ DEFAULT_HEAT_LOG=DOCKER_DIR + '/heatlog'
 DEFAULT_REGISTRY_DB=DOCKER_DIR + '/registry'
 DEFAULT_DOCKER_LOG=DOCKER_DIR + '/docker.log'
 
+def _recursive_merge(dict1, dict2):
+    """
+    Recursively merge the content of dict2 into dict1.
+    dict2 will always have precedence. 
+    """
+
+    for k, v in dict2.iteritems():
+        if type(v) is dict:
+            if not k in dict1:
+                dict1[k] = v
+            else:
+                _recursive_merge(dict1[k], v)
+        else:
+            dict1[k] = v
+
 def read_ferry_config():
     """
     Read and store the Ferry user configuration. 
@@ -181,8 +196,14 @@ def read_ferry_config():
     if os.path.exists(ferry.install.USER_FERRY_CONFIG):
         f = open(ferry.install.USER_FERRY_CONFIG, 'r') 
         user = yaml.load(f)
-            
-    return dict(system.items() + user.items())
+
+    _recursive_merge(system, user)
+    logging.warning("SYSTEM: " + json.dumps(system,
+                                            sort_keys=True,
+                                            indent=2,
+                                            separators=(',',':')))
+
+    return system
 
 class Installer(object):
     def __init__(self, cli=None):
@@ -404,7 +425,8 @@ class Installer(object):
                      'volumes':volumes,
                      'volume_user':DEFAULT_FERRY_OWNER, 
                      'ports':[],
-                     'exposed':self.mongo.get_exposed_ports(1), 
+                     'exposed':self.mongo.get_working_ports(1), 
+                     'internal':self.mongo.get_internal_ports(1),
                      'hostname':'ferrydb',
                      'netenable':True, 
                      'args': 'trust'

@@ -478,7 +478,7 @@ class SingleLauncher(object):
                                                                     ports = security_group_ports,
                                                                     internal = internal_ports, 
                                                                     ctype = ctype) 
-        )
+
         logging.info("creating instances for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
                                                             num_instances = num_instances, 
