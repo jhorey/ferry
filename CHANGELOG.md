@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3 series
+
+### 0.3.0 (2014-08-27)
+
+- Better key management
+- Inspect command shows individual services
+- Initial OpenStack backend
+
 ## 0.2 series
 
 ### 0.2.0 (2014-05-15)
@@ -32,7 +40,7 @@
 ### 0.2.3.1 (2014-07-11)
 
 - Fix PostGreSQL 9.3 upgrade
-	
+
 ## 0.1 series
 
 ### 0.1.23 (2014-03-24)

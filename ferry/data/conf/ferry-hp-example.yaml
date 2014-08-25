@@ -15,8 +15,8 @@ hp:
      nova: https://region-a.geo-1.compute.hpcloudsvc.com/v2/10089763026941
      swift: https://region-a.geo-1.images.hpcloudsvc.com:443/v1.0
      cinder: https://region-a.geo-1.block.hpcloudsvc.com/v1/10089763026941
+     extnet: 122c72de-0924-4b9f-8cf3-b18d5d3d292c
      network: 123-123-123
-     extnet: 123-123-123
      router: 123-123-123
   useast:
      region: region-b.geo-1
@@ -25,11 +25,11 @@ hp:
      swift: https://region-b.geo-1.images.hpcloudsvc.com:443/v1.0 
      cinder: https://region-b.geo-1.block.hpcloudsvc.com/v1/10089763026941
      nova: https://region-b.geo-1.compute.hpcloudsvc.com/v2/10089763026941
+     extnet: 122c72de-0924-4b9f-8cf3-b18d5d3d292c
      network: 123-123-123
-     extnet: 123-123-123
      router: 123-123-123
   deploy:
-     image: ferry-image
+     image: Ferry Base Image
      personality: standard.xsmall
      ssh: ferry-keys
      ssh-user: ferry

@@ -578,6 +578,7 @@ class SingleLauncher(object):
         # Now take the cluster and create the security group
         # to expose all the right ports. 
         sec_group_ports = []
+        internal_ports = []
         if ctype == "connector": 
             # Since this is a connector, we need to expose
             # the public ports. For now, we ignore the host port. 
@@ -612,8 +613,7 @@ class SingleLauncher(object):
             # Also see if there are any ports that should be
             # open within the cluster (but not outside). Typically
             # used for IPC (where ports may be assigned within a random range). 
-            internal_ports = []
-            for p in c['internal']:
+            for p in container_info[0]['internal']:
                 s = p.split("-")
                 if len(s) == 1:
                     internal_ports.append( (s[0], s[0]) )
