@@ -21,7 +21,7 @@ if [ $1 == "tera" ]; then
 elif [ $1 == "text" ]; then
     WGET1='wget http://www.gutenberg.org/cache/epub/20417/pg20417.txt -P /tmp/example-text/'
     WGET2='wget http://www.gutenberg.org/cache/epub/5000/pg5000.txt -P /tmp/example-text/'
-    COPY='hadoop dfs -copyFromLocal /tmp/example-text /service/data/example-text'
+    COPY='hdfs dfs -copyFromLocal /tmp/example-text /service/data/example-text'
     WORDCOUNT='hadoop jar /service/packages/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.3.0.jar wordcount /service/data/example-text /service/data/wordcount-output'
     WORDMEAN='hadoop jar /service/packages/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.3.0.jar wordmean /service/data/example-text /service/data/wordmean-output'
     WORDMEDIAN='hadoop jar /service/packages/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.3.0.jar wordmedian /service/data/example-text /service/data/wordmedian-output'
