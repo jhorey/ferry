@@ -163,7 +163,6 @@ DEFAULT_BUILTIN_APPS=FERRY_HOME + '/data/plans'
 DEFAULT_FERRY_APPS=DOCKER_DIR + '/apps'
 DEFAULT_MONGO_DB=DOCKER_DIR + '/mongo'
 DEFAULT_MONGO_LOG=DOCKER_DIR + '/mongolog'
-DEFAULT_HEAT_LOG=DOCKER_DIR + '/heatlog'
 DEFAULT_REGISTRY_DB=DOCKER_DIR + '/registry'
 DEFAULT_DOCKER_LOG=DOCKER_DIR + '/docker.log'
 
@@ -468,9 +467,11 @@ class Installer(object):
         # Reserve the Mongo IP.
         self.network.reserve_ip(ip)
 
-        # Start the Ferry HTTP servers
+        # Start the Ferry HTTP server. We used to start multiple
+        # workers, but since we operate in an asynch. manner, this
+        # shouldn't be necessary anymore. 
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)
-        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 3 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
+        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 1 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def _force_stop_web(self):
@@ -605,14 +606,21 @@ class Installer(object):
     def _docker_running(self):
         return os.path.exists('/var/run/ferry.sock')
 
+    def _check_dockerimage(self, image, repo):
+        qualified = repo + '/' + image
+        cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect ' + qualified + ' 2> /dev/null'
+        output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
+        if output.strip() == '[]':
+            return image
+        else:
+            return None
+
     def _check_dockerfile(self, dockerfile, repo):
         not_installed = []
         images = self._get_image(dockerfile)
         for image in images:
-            qualified = DEFAULT_DOCKER_REPO + '/' + image
-            cmd = DOCKER_CMD + ' -H=' + DOCKER_SOCK + ' inspect ' + qualified + ' 2> /dev/null'
-            output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
-            if output.strip() == '[]':
+            i = self._check_dockerimage(image, DEFAULT_DOCKER_REPO)
+            if i:
                 not_installed.append(image)
         return not_installed
 

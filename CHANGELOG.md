@@ -4,6 +4,7 @@
 
 ### 0.3.0 (2014-08-27)
 
+- Asynchronous stack operations
 - Better key management
 - More flexible way to acquire user parameters
 - Inspect command shows individual services
