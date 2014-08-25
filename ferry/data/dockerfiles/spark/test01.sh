@@ -27,10 +27,10 @@ if [ $1 == "python" ]; then
     fi
 elif [ $1 == "load" ]; then
     MKDIR='hdfs dfs -mkdir -p /spark/data'
-    COPY1='hadoop dfs -copyFromLocal $SPARK_HOME/mllib/data/als/test.data /spark/data/als.data'
-    COPY2='hadoop dfs -copyFromLocal $SPARK_HOME/mllib/data/sample_svm_data.txt /spark/data/svm.txt'
-    COPY3='hadoop dfs -copyFromLocal $SPARK_HOME/mllib/data/ridge-data/lpsa.data /spark/data/lpsa.data'
-    COPY4='hadoop dfs -copyFromLocal $SPARK_HOME/data/kmeans_data.txt /spark/data/kmeans.txt'
+    COPY1='hdfs dfs -copyFromLocal $SPARK_HOME/mllib/data/als/test.data /spark/data/als.data'
+    COPY2='hdfs dfs -copyFromLocal $SPARK_HOME/mllib/data/sample_svm_data.txt /spark/data/svm.txt'
+    COPY3='hdfs dfs -copyFromLocal $SPARK_HOME/mllib/data/ridge-data/lpsa.data /spark/data/lpsa.data'
+    COPY4='hdfs dfs -copyFromLocal $SPARK_HOME/data/kmeans_data.txt /spark/data/kmeans.txt'
 
     run_as_ferry "$MKDIR" "Making Spark data directories"
     run_as_ferry "$COPY1" "Upload dataset 1"

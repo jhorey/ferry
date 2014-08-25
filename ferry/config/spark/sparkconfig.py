@@ -32,16 +32,16 @@ class SparkInitializer(object):
         self.container_data_dir = None
         self.container_log_dir = SparkConfig.log_directory
 
-    """
-    Generate a new hostname
-    """
     def new_host_name(self, instance_id):
+        """
+        Generate a new hostname
+        """
         return 'spark' + str(instance_id)
 
-    """
-    Start the service on the containers. 
-    """
     def _execute_service(self, containers, entry_point, fabric, cmd):
+        """
+        Start the service on the containers. 
+        """
         all_output = {}
         master = entry_point['master']
         for c in containers:
@@ -61,10 +61,11 @@ class SparkInitializer(object):
         return self._execute_service(containers, entry_point, fabric, "restart")
     def stop_service(self, containers, entry_point, fabric):        
         return self._execute_service(containers, entry_point, fabric, "stop")
-    """
-    Generate a new configuration.
-    """
+
     def _generate_config_dir(self, uuid):
+        """
+        Generate a new configuration.
+        """
         return 'spark_' + str(uuid)
 
     def get_public_ports(self, num_instances):
@@ -78,16 +79,18 @@ class SparkInitializer(object):
         Ports needed for communication within the network. 
         This is usually used for internal IPC.
         """
-        return []
+        return ["0-65535"]
 
     def get_working_ports(self, num_instances):
         """
         Ports necessary to get things working. 
         """
-        return [SparkConfig.MASTER_PORT,
-                SparkConfig.SLAVE_PORT,
+        return [SparkConfig.WEBUI_DRIVER,
+                SparkConfig.WEBUI_HISTORY,
                 SparkConfig.WEBUI_MASTER,
-                SparkConfig.WEBUI_SLAVE]
+                SparkConfig.WEBUI_SLAVE,
+                SparkConfig.MASTER_PORT,
+                SparkConfig.SLAVE_PORT]
 
     def get_total_instances(self, num_instances, layers):
         instances = []
@@ -97,18 +100,18 @@ class SparkInitializer(object):
 
         return instances
 
-    """
-    Generate a new configuration
-    Param num Number of instances that need to be configured
-    Param image Image type of the instances
-    """
     def generate(self, num):
+        """
+        Generate a new configuration
+        Param num Number of instances that need to be configured
+        Param image Image type of the instances
+        """
         return SparkConfig(num)
 
-    """
-    Generate the core-site configuration for a local filesystem. 
-    """
     def _generate_spark_env(self, new_config_dir, master):
+        """
+        Generate the core-site configuration for a local filesystem. 
+        """
         in_file = open(self.template_dir + '/spark_env.sh.template', 'r')
         out_file = open(new_config_dir + '/spark_env.sh', 'w+')
 
@@ -124,10 +127,10 @@ class SparkInitializer(object):
         # executable by all. 
         os.chmod(new_config_dir + '/spark_env.sh', 0755)
 
-    """
-    Apply the configuration to the instances
-    """
     def apply(self, config, containers):
+        """
+        Apply the configuration to the instances
+        """
         entry_point = { 'type' : 'spark' }
         entry_point['ip'] = containers[0]['manage_ip']
         config_dirs = []
@@ -175,14 +178,11 @@ class SparkConfig(object):
 
     MASTER_PORT = '7077'
     SLAVE_PORT = '7078'
+    WEBUI_DRIVER = '4040'
     WEBUI_MASTER = '8080'
     WEBUI_SLAVE = '8081'
+    WEBUI_HISTORY = '18080'
 
     def __init__(self, num):
-        self.num = num
-        self.btl_port_min = 0
-        self.btl_port_range = 0
-        self.oob_port_min = 0
-        self.oob_port_range = 0
         self.config_directory = SparkConfig.config_directory
         self.log_directory = SparkConfig.log_directory
