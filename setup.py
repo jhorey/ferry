@@ -35,7 +35,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=install_requires,
-    scripts=['docker/docker-ferry'], 
+    scripts=['docker/docker-ferry', 'install/ferry-install'], 
     entry_points="""
     [console_scripts]
     ferry=ferry.cli.cli:main
