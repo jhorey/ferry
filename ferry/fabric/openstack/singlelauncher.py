@@ -82,12 +82,12 @@ class SingleLauncher(object):
         # server. Not all OpenStack clusters provide
         # Heat. If not, we'll need to start a local instance. 
         if 'HEAT_URL' in os.environ:
-            logging.warning("using HEAT URL")
             self.heat_server = os.environ['HEAT_URL']
         elif 'heat' in servers:
             self.heat_server = servers['heat']
         else:
             self.heat_server = self._check_and_start_heat()
+        logging.info("using heat server " + str(self.heat_server))
 
         # This gives us information about the image to use
         # for the supplied provider. 

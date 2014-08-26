@@ -96,7 +96,7 @@ class GlusterInitializer(object):
         ports.append(str(GlusterConfig.PORT_MAPPER))
         ports.append(str(GlusterConfig.NFS_PORT1))
         ports.append(str(GlusterConfig.NFS_PORT2))
-        ports.append(str(GlusterConfig.NFS_PORT3)
+        ports.append(str(GlusterConfig.NFS_PORT3))
         ports.append(str(GlusterConfig.MANAGEMENT_PORT))
         for i in range(0, num_instances):
             ports.append(str(GlusterConfig.BRICK_PORT + i))

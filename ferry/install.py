@@ -247,6 +247,46 @@ class Installer(object):
         """
         self.network.clean_rules()
 
+    def _install_perform_build(self, options, num_tries):
+        # Normally we don't want to build the Dockerfiles,
+        # but sometimes we may for testing, etc. 
+        build = False
+        if options and '-b' in options:
+            build = True
+
+        if options and '-u' in options:
+            if len(options['-u']) > 0 and options['-u'][0] != True:
+                logging.warning("performing select rebuild (%s)" % str(options['-u']))
+                self.build_from_list(options['-u'], 
+                                     DEFAULT_IMAGE_DIR,
+                                     DEFAULT_DOCKER_REPO, build, recurse=False)
+            else:
+                logging.warning("performing forced rebuild")
+                self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO, build)
+        else:
+            # We want to be selective about which images
+            # to rebuild. Useful if one image breaks, etc. 
+            to_build = self.check_images(DEFAULT_IMAGE_DIR,
+                                         DEFAULT_DOCKER_REPO)
+            if len(to_build) > 0:
+                logging.warning("performing select rebuild (%s)" % str(to_build))
+                self.build_from_list(to_build, 
+                                     DEFAULT_IMAGE_DIR,
+                                     DEFAULT_DOCKER_REPO, build)
+
+        # Check that all the images were built.
+        not_installed = self._check_all_images()
+        if len(not_installed) == 0:
+            return 'installed ferry'
+        else:
+            logging.error('images not built: ' + str(not_installed))
+            if num_tries == 0:
+                return 'Some images were not installed. Please type \'ferry install\' again.'
+            else:
+                # Try building the images again.
+                logging.info("retrying install (%d)" % num_tries)
+                return self._install_perform_build(options, num_tries - 1)
+
     def install(self, args, options):
         # Check if the host is actually 64-bit. If not raise a warning and quit.
         if not _supported_arch():
@@ -283,39 +323,14 @@ class Installer(object):
             logging.error('ferry docker daemon not started')
             return msg
 
-        # Normally we don't want to build the Dockerfiles,
-        # but sometimes we may for testing, etc. 
-        build = False
-        if options and '-b' in options:
-            build = True
-
-        if options and '-u' in options:
-            if len(options['-u']) > 0 and options['-u'][0] != True:
-                logging.warning("performing select rebuild (%s)" % str(options['-u']))
-                self.build_from_list(options['-u'], 
-                                     DEFAULT_IMAGE_DIR,
-                                     DEFAULT_DOCKER_REPO, build, recurse=False)
-            else:
-                logging.warning("performing forced rebuild")
-                self.build_from_dir(DEFAULT_IMAGE_DIR, DEFAULT_DOCKER_REPO, build)
+        # Perform the actual build/download. Sometimes the download
+        # may fail so give the user a chance to automatically retry
+        # a few times before giving up. 
+        if options and '-r' in options:
+            num_tries = int(options['-r'])
         else:
-            # We want to be selective about which images
-            # to rebuild. Useful if one image breaks, etc. 
-            to_build = self.check_images(DEFAULT_IMAGE_DIR,
-                                         DEFAULT_DOCKER_REPO)
-            if len(to_build) > 0:
-                logging.warning("performing select rebuild (%s)" % str(to_build))
-                self.build_from_list(to_build, 
-                                     DEFAULT_IMAGE_DIR,
-                                     DEFAULT_DOCKER_REPO, build)
-
-        # Check that all the images were built.
-        not_installed = self._check_all_images()
-        if len(not_installed) == 0:
-            return 'installed ferry'
-        else:
-            logging.error('images not built: ' + str(not_installed))
-            return 'Some images were not installed. Please type \'ferry install\' again.'
+            num_tries = 0
+        return self._install_perform_build(options, num_tries)
 
     def _check_all_images(self):
         not_installed = []
