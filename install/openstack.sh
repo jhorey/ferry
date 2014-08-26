@@ -50,7 +50,6 @@ function check_openstack_credentials {
     : ${OS_EXT_NET?"Please set OS_EXT_NET to the ID of your external network"}
 }
 
-
 function save_ferry_image {
     #
     # Save the running instance as a new image. 

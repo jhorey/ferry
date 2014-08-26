@@ -7,3 +7,6 @@ sh>=1.09
 Sphinx>=1.2.1
 sphinxcontrib-httpdomain>=1.2.0
 termcolor==1.1.0
+python-novaclient==2.18.1
+python-neutronclient==2.3.5
+python-heatclient==0.2.10
