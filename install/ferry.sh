@@ -25,6 +25,13 @@ function install_ferry {
 
     for cmd in "${Cmds[@]}"
     do
-	ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${OS_KEY_LOCATION}/${OS_KEY}.pem -t -t ${SERVER} '${cmd}'
+	if [[ $SERVER == "localhost" ]]; then
+	    # Just execute the command locally.
+	    cmd
+	else
+	    # Execute the command via ssh. This assumes that the user
+	    # has password-less access to the external machine.
+	    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${OS_KEY_LOCATION}/${OS_KEY}.pem -t -t ${SERVER} '${cmd}'
+        fi
     done
 }
