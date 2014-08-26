@@ -1371,12 +1371,17 @@ class DockerManager(object):
                                                    ports = ports, 
                                                    args = args)
         containers = self._start_containers(cluster_uuid, service_uuid, plan, ctype="connector")
-
-        # Now generate the configuration files that will be
-        # transferred to the containers. 
-        entry_points = {}
-        backend_names = []
-        if len(containers) > 0:
+        if containers == None:
+            # The containers could not be allocated for some
+            # reason. Make sure the calling method knows this so
+            # that it can return a failure message.
+            return None, None
+        elif len(containers) > 0:            
+            # The containers were instantiated successfully. 
+            # Generate storage-specific configuration and transfer
+            # it over to the new containers.         
+            entry_points = {}
+            backend_names = []
             services, backend_names = self._get_client_services(storage_entry, compute_entry)
             for service in services:
                 config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
@@ -1391,6 +1396,12 @@ class DockerManager(object):
                 # Now copy over the configuration.
                 self._transfer_config(config_dirs)
                 self._transfer_env_vars(containers, env_vars)
+        else:
+            # The container allocator did not allocate any containers
+            # but it did so without any errors (perhaps the user requested
+            # zero containers?). 
+            entry_points = {}
+            backend_names = []
 
         # Update the connector state. 
         container_info = self._serialize_containers(containers)
