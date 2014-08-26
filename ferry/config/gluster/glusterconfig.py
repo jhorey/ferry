@@ -86,13 +86,17 @@ class GlusterInitializer(object):
         Ports needed for communication within the network. 
         This is usually used for internal IPC.
         """
-        return []
+        return ["0-65535"]
 
     def get_working_ports(self, num_instances):
         """
         Ports necessary to get things working. 
         """
         ports = []
+        ports.append(str(GlusterConfig.PORT_MAPPER))
+        ports.append(str(GlusterConfig.NFS_PORT1))
+        ports.append(str(GlusterConfig.NFS_PORT2))
+        ports.append(str(GlusterConfig.NFS_PORT3)
         ports.append(str(GlusterConfig.MANAGEMENT_PORT))
         for i in range(0, num_instances):
             ports.append(str(GlusterConfig.BRICK_PORT + i))
@@ -203,6 +207,10 @@ class GlusterConfig(object):
     log_directory = '/service/logs/'
     config_directory = '/service/conf/gluster/'
 
+    PORT_MAPPER = 111
+    NFS_PORT1 = 34865
+    NFS_PORT2 = 34866
+    NFS_PORT3 = 34867
     BRICK_PORT = 24009
     MANAGEMENT_PORT = 24007
 

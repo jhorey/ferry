@@ -31,5 +31,6 @@ hp:
   deploy:
      image: Ferry Server
      personality: standard.xsmall
+     default-user: ubuntu
      ssh: ferry-keys
      ssh-user: ferry

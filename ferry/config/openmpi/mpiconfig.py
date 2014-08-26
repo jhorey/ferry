@@ -64,7 +64,7 @@ class OpenMPIInitializer(object):
         Ports needed for communication within the network. 
         This is usually used for internal IPC.
         """
-        return []
+        return ["0-65535"]
 
     def get_working_ports(self, num_instances):
         """

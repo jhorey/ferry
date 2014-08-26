@@ -94,6 +94,7 @@ class SingleLauncher(object):
         deploy = conf[provider]['deploy']
         self.default_image = deploy['image']
         self.default_personality = deploy['personality']
+        self.default_user = deploy['default-user']
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
 
@@ -297,8 +298,8 @@ class SingleLauncher(object):
                     "export HOME=/root\n",
                     "export USER=root\n",
                     "mkdir /home/ferry/.ssh\n",
-                    "cp /home/ubuntu/.ssh/authorized_keys /home/ferry/.ssh/\n",
-                    "cp /home/ubuntu/.ssh/authorized_keys /root/.ssh/\n",
+                    "cp /home/%s/.ssh/authorized_keys /home/ferry/.ssh/\n" % self.default_user,
+                    "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user,
                     "chown -R ferry:ferry /home/ferry/.ssh\n",
                     "chown -R ferry:ferry /ferry/data\n",
                     "chown -R ferry:ferry /ferry/keys\n",
