@@ -92,6 +92,7 @@ class GlusterInitializer(object):
         """
         Ports necessary to get things working. 
         """
+        ports = []
         ports.append(str(GlusterConfig.MANAGEMENT_PORT))
         for i in range(0, num_instances):
             ports.append(str(GlusterConfig.BRICK_PORT + i))

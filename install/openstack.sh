@@ -6,8 +6,8 @@ UBUNTU_IMAGE_NAME="Ubuntu Server 14.04 (amd64) - Ferry Image"
 #
 # Ferry configuration
 #
-FERRY_INSTANCE="ferry-base"
-FERRY_IMAGE="ferry-base-image"
+FERRY_INSTANCE="Ferry"
+FERRY_IMAGE="Ferry Server"
 
 #
 # Global vars
@@ -69,16 +69,16 @@ function import_ubuntu_image {
 
 	# First need to download the Ubuntu 14.04 image and
 	# untar it so that we can get to the image.
-	wget https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box
-	tar xzf trusty-server-cloudimg-amd64-vagrant-disk1.box
+	wget https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img
 
 	# Now upload to Glance. 
-	glance image-create --name $UBUNTU_IMAGE_NAME --disk-format=vmdk --container-format=bare --file=./box-disk1.vmdk
+	glance image-create --name $UBUNTU_IMAGE_NAME --disk-format=raw --container-format=bare --file=./trusty-server-cloudimg-amd64-disk1.img
     fi
 }
 
 function install_on_openstack {
-    source openstack.sh
+    # Include the basic Ferry installation functions. 
+    source ferry.sh
 
     # Check for OpenStack credentials
     echo -e "Checking OpenStack credentials"

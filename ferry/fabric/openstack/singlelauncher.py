@@ -82,6 +82,7 @@ class SingleLauncher(object):
         # server. Not all OpenStack clusters provide
         # Heat. If not, we'll need to start a local instance. 
         if 'HEAT_URL' in os.environ:
+            logging.warning("using HEAT URL")
             self.heat_server = os.environ['HEAT_URL']
         elif 'heat' in servers:
             self.heat_server = servers['heat']
@@ -92,7 +93,6 @@ class SingleLauncher(object):
         # for the supplied provider. 
         deploy = conf[provider]['deploy']
         self.default_image = deploy['image']
-        self.ferry_volume = deploy['image-volume']
         self.default_personality = deploy['personality']
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
@@ -408,7 +408,7 @@ class SingleLauncher(object):
             # We could not create the stack. This probably
             # means that either the Heat server is down or the
             # OpenStack cluster is down.
-            logging.error("could not create Heat stack (%s)" % resp["stack"]["id"])
+            logging.error("could not create Heat stack (%s)" % str(resp))
             return None
 
         # Now wait for the stack to be in a completed state
