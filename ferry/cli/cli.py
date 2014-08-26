@@ -393,14 +393,24 @@ class CLI(object):
 
     def _stop_all(self, private_key):
         try:
-            constraints = { 'status' : 'running' }
-            payload = { 'constraints' : json.dumps(constraints) }
-            res = requests.get(self.ferry_server + '/query', params=payload)
-            stacks = json.loads(res.text)
-            for uuid in stacks.keys():
-                self._manage_stacks({'uuid' : uuid,
-                                     'key' : private_key, 
-                                     'action' : 'stop'})
+            # We used to stop all the services when quitting
+            # Ferry, but this does not seem safe since a user
+            # may want to keep running a Hadoop cluster even if
+            # Ferry is shutdown.  
+
+            # constraints = { 'status' : 'running' }
+            # payload = { 'constraints' : json.dumps(constraints) }
+            # res = requests.get(self.ferry_server + '/query', params=payload)
+            # stacks = json.loads(res.text)
+            # for uuid in stacks.keys():
+            #     self._manage_stacks({'uuid' : uuid,
+            #                          'key' : private_key, 
+            #                          'action' : 'stop'})
+
+            # Shutdown any backend services that may have
+            # been started (e.g., OpenStack Heat server, etc.). 
+            res = requests.post(self.ferry_server + '/quit')
+            logging.info(res.text)
         except ConnectionError:
             logging.error("could not connect to ferry server")
         

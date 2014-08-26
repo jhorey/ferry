@@ -28,6 +28,7 @@ from pymongo import MongoClient
 import re
 import sys
 import time
+import uuid
 import yaml
 
 class SingleLauncher(object):
@@ -81,6 +82,7 @@ class SingleLauncher(object):
         # Check if the user has provided a Heat
         # server. Not all OpenStack clusters provide
         # Heat. If not, we'll need to start a local instance. 
+        self.heatuuid = None
         if 'HEAT_URL' in os.environ:
             self.heat_server = os.environ['HEAT_URL']
         elif 'heat' in servers:
@@ -125,30 +127,42 @@ class SingleLauncher(object):
         logging.info("Check for Heat image")
         self.installer._check_and_pull_image("ferry/heatserver")
 
+        # Check if the Heat log directory exists yet. If not
+        # go ahead and create it. 
+        heatlogs = ferry.install.DOCKER_DIR + "/heatlog"
+        try:
+            if not os.path.isdir(heatlogs):
+                os.makedirs(heatlogs)
+                self.installer._change_permission(heatlogs)
+        except OSError as e:
+            logging.error(e.strerror)
+            sys.exit(1)
+
         # Start the Heat image and capture the IP address. We can
         # then hand over this IP to the rest of the configuration. 
-        volumes = { ferry.install.DOCKER_DIR + "/heatlog" : "/var/log/heat" }
+        volumes = { heatlogs : "/var/log/heat" }
         heatplan = {'image':'ferry/heatserver',
-                     'type':'ferry/heatserver', 
-                     'keydir': {},
-                     'keyname': None, 
-                     'privatekey': None, 
-                     'volumes':volumes,
-                     'volume_user':DEFAULT_FERRY_OWNER, 
-                     'ports':[],
-                     'exposed':["8024:8004","8020:8000"], 
-                     'internal':[],
-                     'hostname':'heatserver',
-                     'netenable':True, 
-                     'args': 'trust'
+                    'type':'ferry/heatserver', 
+                    'keydir': {},
+                    'keyname': None, 
+                    'privatekey': None, 
+                    'volumes':volumes,
+                    'volume_user':ferry.install.DEFAULT_FERRY_OWNER, 
+                    'ports':[],
+                    'exposed':["8004","8000"], 
+                    'internal':[],
+                    'hostname':'heatserver',
+                    'netenable':True, 
+                    'default_cmd' : '',
+                    'args': 'trust'
                      }
-        heatuuid = 'fht-' + str(uuid.uuid4()).split('-')[0]
-        box = self.installer.fabric.alloc(heatuuid, heatuuid, [heatplan], "HEAT")
-        if not box:
+        self.heatuuid = 'fht-' + str(uuid.uuid4()).split('-')[0]
+        self.heatbox = self.installer.fabric.alloc(self.heatuuid, self.heatuuid, [heatplan], "HEAT")[0]
+        if not self.heatbox:
             logging.error("Could not start Heat server")
             sys.exit(1)
         else:
-            return box.internal_ip
+            return self.heatbox.internal_ip
 
     def _check_openstack_credentials(self):
         envs = ['OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID',
@@ -770,3 +784,11 @@ class SingleLauncher(object):
                             break
                     time.sleep(3)
         return ips
+
+    def quit(self):
+        """
+        Check if the Heat server is running, and if so
+        go ahead and stop it. 
+        """
+        if self.heatuuid:
+            self.installer.fabric.stop(self.heatuuid, self.heatuuid, [self.heatbox])

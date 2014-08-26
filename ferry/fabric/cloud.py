@@ -86,6 +86,13 @@ class CloudFabric(object):
         """
         return "xfs"
 
+    def quit(self):
+        """
+        Quit the cloud fabric. 
+        """
+        logging.info("quitting cloud fabric")
+        self.launcher.quit()
+
     def restart(self, cluster_uuid, service_uuid, containers):
         """
         Restart the stopped containers.
@@ -144,7 +151,9 @@ class CloudFabric(object):
         host_map = None
         host_map_keys = []
         mounts = {}
-        cinfo['default_cmd'] = "/service/sbin/startnode init"
+
+        if not 'default_cmd' in cinfo:
+            cinfo['default_cmd'] = "/service/sbin/startnode init"
         container = self.cli.run(service_type = cinfo['type'], 
                                  image = cinfo['image'], 
                                  volumes = cinfo['volumes'],

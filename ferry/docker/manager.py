@@ -442,6 +442,12 @@ class DockerManager(object):
                           indent=2,
                           separators=(',',':'))
 
+    def quit(self):
+        """
+        Tell the backend services to quit. 
+        """
+        self.docker.quit()
+
     def _new_service_uuid(self):
         """
         Allocate new UUIDs. 

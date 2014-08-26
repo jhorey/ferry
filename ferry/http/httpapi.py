@@ -673,6 +673,14 @@ def allocate_stack():
     else:
         return "Could not start " + payload['_file']
 
+@app.route('/quit', methods=['POST'])
+def quit():
+    """
+    Quit any backend services that may be running. 
+    """
+    docker.quit()
+    return ""
+
 @app.route('/query', methods=['GET'])
 def query_stacks():
     """

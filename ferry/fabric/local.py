@@ -84,6 +84,12 @@ class LocalFabric(object):
         """
         return self.cli.get_fs_type()
 
+    def quit(self):
+        """
+        Quit the local fabric. 
+        """
+        logging.info("quitting local fabric")
+
     def restart(self, cluster_uuid, service_uuid, containers):
         """
         Restart the stopped containers.
@@ -150,7 +156,8 @@ class LocalFabric(object):
 
             # Start a container with a specific image, in daemon mode,
             # without TTY, and on a specific port
-            c['default_cmd'] = "/service/sbin/startnode init"
+            if not 'default_cmd' in c:
+                c['default_cmd'] = "/service/sbin/startnode init"
             container = self.cli.run(service_type = c['type'], 
                                      image = c['image'], 
                                      volumes = c['volumes'],
@@ -198,7 +205,10 @@ class LocalFabric(object):
         Forceably stop the running containers
         """
         for c in containers:
-            self.cli.stop(c['container'])
+            if type(c) is dict:
+                self.cli.stop(c['container'])
+            else:
+                self.cli.stop(c.container)
 
     def remove(self, cluster_uuid, service_uuid, containers):
         """
@@ -257,10 +267,11 @@ class LocalFabric(object):
             self.copy_raw(c.privatekey, c.internal_ip, from_dir, to_dir, c.default_user)
 
     def copy_raw(self, key, ip, from_dir, to_dir, user):
-        opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-        scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
-        logging.warning(scp)
-        output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
+        if key:
+            opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+            scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
+            logging.warning(scp)
+            output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
 
     def cmd(self, containers, cmd):
         """
@@ -273,11 +284,14 @@ class LocalFabric(object):
         return all_output
 
     def cmd_raw(self, key, ip, cmd, user):
-        ip = user + '@' + ip
-        ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
-        logging.warning(ssh)
-        output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
-        return output
+        if key:
+            ip = user + '@' + ip
+            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            logging.warning(ssh)
+            output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
+            return output
+        else:
+            return ''
 
     def login(self):
         """
