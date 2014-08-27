@@ -11,6 +11,6 @@ This documentation has the following resources:
    :maxdepth: 1
    
    Home <index>
-   install
+   install/index
    examples/index
    references/index
