@@ -110,6 +110,12 @@ class SingleLauncher(object):
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
 
+        # Make sure that the ssh key is actually present. 
+        keypath = self.controller._get_host_key()
+        if not os.path.exists(keypath):
+            logging.error("could not find ssh key (%s)" % self.ssh_key)
+            exit(1)
+
         # Initialize the OpenStack clients and also
         # download some networking information (subnet ID, 
         # cidr, gateway, etc.)
