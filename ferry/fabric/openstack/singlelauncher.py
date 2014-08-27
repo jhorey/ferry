@@ -418,6 +418,9 @@ class SingleLauncher(object):
         try:
             # Try to create the application stack.
             resp = self.heat.stacks.create(stack_name=stack_name, template=heat_plan)
+        except HTTPBadRequest as e:
+            logging.error(e.strerror)
+            return None
         except:
             # We could not create the stack. This probably
             # means that either the Heat server is down or the

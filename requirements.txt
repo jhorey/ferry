@@ -10,3 +10,4 @@ termcolor==1.1.0
 python-novaclient==2.18.1
 python-neutronclient==2.3.5
 python-heatclient==0.2.10
+threading2==0.3.1
