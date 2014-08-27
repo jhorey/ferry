@@ -710,11 +710,16 @@ class SingleLauncher(object):
                 # Get the LXC networking options
                 lxc_opts, private_ip = self._get_net_info(server, self.subnet, resources)
 
-                # Now get an addressable IP address. Normally we would use
-                # a private IP address since we should be operating in the same VPC.
-                public_ip = self._get_public_ip(server, resources)
-                self.controller._copy_public_keys(container_info[i], public_ip)
-                container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, public_ip)
+                # Now get an addressable IP address. If we're acting as a proxy within
+                # the same cluster, we can just use the private address. Otherwise
+                # we'll need to route via the public IP address. 
+                if proxy:
+                    server_ip = private_ip
+                else:
+                    server_ip = self._get_public_ip(server, resources)
+
+                self.controller._copy_public_keys(container_info[i], server_ip)
+                container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip)
                 
                 if container:
                     mounts = dict(mounts.items() + cmounts.items())
