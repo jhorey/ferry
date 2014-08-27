@@ -67,6 +67,16 @@ class SingleLauncher(object):
         self.default_dc = params['dc']
         self.default_zone = params['zone']
 
+        # Some OpenStack login credentials. 
+        if self._check_openstack_credentials():
+            self.openstack_user = os.environ['OS_USERNAME']
+            self.openstack_pass = os.environ['OS_PASSWORD']
+            self.tenant_id = os.environ['OS_TENANT_ID']
+            self.tenant_name = os.environ['OS_TENANT_NAME']
+        else:
+            logging.error("Missing OpenStack credentials")
+            exit(1)
+
         # Some information regarding OpenStack
         # networking. Necessary for 
         servers = conf[provider][self.default_dc]
@@ -88,8 +98,8 @@ class SingleLauncher(object):
         elif 'heat' in servers:
             self.heat_server = servers['heat']
         else:
-            self.heat_server = self._check_and_start_heat()
-        logging.info("using heat server " + str(self.heat_server))
+            self.heat_server = self._check_and_start_heat(self.tenant_id)
+        logging.warning("using heat server " + str(self.heat_server))
 
         # This gives us information about the image to use
         # for the supplied provider. 
@@ -100,24 +110,13 @@ class SingleLauncher(object):
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
 
-        # Some OpenStack login credentials. 
-        if self._check_openstack_credentials():
-            self.openstack_user = os.environ['OS_USERNAME']
-            self.openstack_pass = os.environ['OS_PASSWORD']
-            self.tenant_id = os.environ['OS_TENANT_ID']
-            self.tenant_name = os.environ['OS_TENANT_NAME']
-            self.auth_tok = os.environ['OS_TOKEN']
-        else:
-            logging.error("Missing OpenStack credentials")
-            exit(1)
-
         # Initialize the OpenStack clients and also
         # download some networking information (subnet ID, 
         # cidr, gateway, etc.)
         self._init_openstack_clients()
         self._collect_subnet_info()
 
-    def _check_and_start_heat(self):
+    def _check_and_start_heat(self, tenant_id):
         """
         Check and start the Ferry Heat image.
         """
@@ -162,11 +161,12 @@ class SingleLauncher(object):
             logging.error("Could not start Heat server")
             sys.exit(1)
         else:
-            return self.heatbox.internal_ip
+            return "http://%s:8004/v1/%s" % (str(self.heatbox.internal_ip),
+                                             tenant_id)
 
     def _check_openstack_credentials(self):
-        envs = ['OS_USERNAME', 'OS_PASSWORD', 'OS_TENANT_ID',
-                'OS_TENANT_NAME', 'OS_TOKEN']
+        envs = ['OS_USERNAME', 'OS_PASSWORD', 
+                'OS_TENANT_ID', 'OS_TENANT_NAME']
         for e in envs:
             if not e in os.environ:
                 return False
@@ -184,7 +184,6 @@ class SingleLauncher(object):
             'include_pass' : True,
             'tenant_id': self.tenant_id,
             'tenant_name': self.tenant_name,
-            'token': self.auth_tok,
             'auth_url' : self.keystone_server
         }
         self.heat = heat_client.Client(heat_api_version, 
@@ -423,7 +422,7 @@ class SingleLauncher(object):
             # We could not create the stack. This probably
             # means that either the Heat server is down or the
             # OpenStack cluster is down.
-            logging.error("could not create Heat stack (%s)" % str(resp))
+            logging.error("could not create Heat stack")
             return None
 
         # Now wait for the stack to be in a completed state

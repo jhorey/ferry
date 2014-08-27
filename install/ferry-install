@@ -33,24 +33,6 @@ function start_ubuntu_image {
     nova floating-ip-associate $FERRY_INSTANCE $FLOATING_IP
 }
 
-function check_install_credentials {
-    #
-    # Check if the user has specified the various OpenStack credentials
-    # 
-    : ${OS_USERNAME?"Please set OS_USERNAME to your username"}
-    : ${OS_PASSWORD?"Please set OS_PASSWORD to your password"}
-    : ${OS_TENANT_ID?"Please set OS_TENANT_ID to your tenant ID"}
-    : ${OS_TENANT_NAME?"Please set OS_TENANT_NAME to your tenant name"}
-    : ${OS_AUTH_URL?"Please set OS_AUTH_URL to the Keystone URL"}
-    : ${OS_REGION_NAME?"Please set OS_REGION_NAME to the OpenStack region"}
-    : ${OS_FLAVOR?"Please set OS_FLAVOR to the default flavor name (e.g., standard.xsmall)"}
-    : ${OS_KEY_NAME?"Pleas set OS_KEY_NAME to the name of the ssh key (e.g., my-key)"}
-    : ${OS_KEY_LOCATION?"Please set OS_KEY_LOCATION to the location of the private key"}
-    : ${OS_SEC?"Please set OS_SEC to your default security group"}
-    : ${OS_EXT_NET?"Please set OS_EXT_NET to the ID of your external network"}
-}
-
-
 function check_openstack_credentials {
     #
     # Check if the user has specified the various OpenStack credentials
@@ -61,6 +43,18 @@ function check_openstack_credentials {
     : ${OS_TENANT_NAME?"Please set OS_TENANT_NAME to your tenant name"}
     : ${OS_AUTH_URL?"Please set OS_AUTH_URL to the Keystone URL"}
     : ${OS_REGION_NAME?"Please set OS_REGION_NAME to the OpenStack region"}
+}
+
+function check_install_credentials {
+    #
+    # Check if the user has specified the various OpenStack credentials
+    # 
+    check_openstack_credentials
+    : ${OS_FLAVOR?"Please set OS_FLAVOR to the default flavor name (e.g., standard.xsmall)"}
+    : ${OS_KEY_NAME?"Pleas set OS_KEY_NAME to the name of the ssh key (e.g., my-key)"}
+    : ${OS_KEY_LOCATION?"Please set OS_KEY_LOCATION to the location of the private key"}
+    : ${OS_SEC?"Please set OS_SEC to your default security group"}
+    : ${OS_EXT_NET?"Please set OS_EXT_NET to the ID of your external network"}
 }
 
 function save_ferry_image {
