@@ -13,6 +13,7 @@ FERRY_IMAGE="Ferry Server"
 # Global vars
 #
 FLOATING_IP="127.0.0.1"
+TOKEN=""
 
 function start_ubuntu_image {
     # 
@@ -29,7 +30,7 @@ function start_ubuntu_image {
     done
 
     # Create a floating IP and then associate the instance with it. 
-    FLOATING_IP=$(neutron floatingip-create $EXT_NET -f value | sed -n 3p )
+    FLOATING_IP=$(neutron --os-token $TOKEN floatingip-create $EXT_NET -f value | sed -n 3p )
     nova floating-ip-associate $FERRY_INSTANCE $FLOATING_IP
 }
 
@@ -55,6 +56,13 @@ function check_install_credentials {
     : ${OS_KEY_LOCATION?"Please set OS_KEY_LOCATION to the location of the private key"}
     : ${OS_SEC?"Please set OS_SEC to your default security group"}
     : ${OS_EXT_NET?"Please set OS_EXT_NET to the ID of your external network"}
+}
+
+function get_keystone_token {
+    #
+    # Download a token from keystone. Used by other ClI tools (Neutron, etc.). 
+    # 
+    TOKEN=$(keystone token-get 2> /dev/null | sed -n '5p' | awk '{print $4}')
 }
 
 function save_ferry_image {
@@ -86,6 +94,7 @@ function install_on_openstack {
     # Check for OpenStack credentials
     echo -e "Checking OpenStack install credentials"
     check_install_credentials
+    get_keystone_token
 
     # We need to check if the user has specified
     # a base Ubuntu image. If not, we need to import one. 
@@ -146,11 +155,11 @@ function install_ferry {
 function print_net_info {
     echo ""    
     echo "Networks:"
-    neutron --os-url $1 net-list 2> /dev/null
+    neutron --os-token $TOKEN --os-url $1 net-list 2> /dev/null
 
     echo ""
     echo "Routers:"
-    neutron --os-url $1 router-list 2> /dev/null
+    neutron --os-token $TOKEN --os-url $1 router-list 2> /dev/null
 }
 
 # 
@@ -164,6 +173,7 @@ if [[ $# == 0 ]]; then
     install_ferry "root" "localhost"
 elif [[ $1 == "os-info" ]]; then
     check_openstack_credentials
+    get_keystone_token
 
     # Now find out the list of servers, etc. 
     echo "====US West===="
