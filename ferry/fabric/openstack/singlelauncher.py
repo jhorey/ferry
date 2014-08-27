@@ -111,7 +111,7 @@ class SingleLauncher(object):
         self.ssh_user = deploy['ssh-user']
 
         # Make sure that the ssh key is actually present. 
-        keypath = self.controller._get_host_key()
+        keypath = self._get_host_key()
         if not os.path.exists(keypath):
             logging.error("could not find ssh key (%s)" % self.ssh_key)
             exit(1)
@@ -121,6 +121,16 @@ class SingleLauncher(object):
         # cidr, gateway, etc.)
         self._init_openstack_clients()
         self._collect_subnet_info()
+
+    def _get_host_key(self):
+        """
+        Get the location of the private ssh key. 
+        """
+        p = self.ssh_key.split("/")
+        if len(p) == 1:
+            return "/ferry/keys/" + self.ssh_key + ".pem"
+        else:
+            return self.ssh_key + ".pem"
 
     def _check_and_start_heat(self, tenant_id):
         """

@@ -33,7 +33,7 @@ class CloudFabric(object):
         self._init_cloudfabric()
         self.bootstrap = bootstrap
         self.cli = DockerCLI()
-        self.cli.key = self._get_host_key()
+        self.cli.key = self.launcher._get_host_key()
         self.docker_user = self.cli.docker_user
         self.inspector = CloudInspector(self)
 
@@ -67,16 +67,6 @@ class CloudFabric(object):
         # mode. Proxy mode means that the client is external
         # to the network, but controller has direct access. 
         self.proxy = bool(conf["system"]["proxy"])
-
-    def _get_host_key(self):
-        """
-        Get the location of the private ssh key. 
-        """
-        p = self.launcher.ssh_key.split("/")
-        if len(p) == 1:
-            return "/ferry/keys/" + self.launcher.ssh_key + ".pem"
-        else:
-            return self.launcher.ssh_key + ".pem"
 
     def get_data_dir(self):
         return "/ferry/data"
