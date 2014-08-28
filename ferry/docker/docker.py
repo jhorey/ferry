@@ -155,6 +155,8 @@ class DockerCLI(object):
 
         if read_output:
             # Read both the standard out and error. 
+            if not err:
+                err = proc.stderr.read()
             return proc.stdout.read(), err
         else:
             # The user does not want to read the output.
