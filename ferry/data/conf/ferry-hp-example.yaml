@@ -29,8 +29,8 @@ hp:
      network: 123-123-123
      router: 123-123-123
   deploy:
-     image: Ferry Server (xsmall)
-     personality: standard.xsmall
+     image: Ferry Server (small)
+     personality: standard.small
      default-user: ubuntu
      ssh: ferry-keys
      ssh-user: ferry
