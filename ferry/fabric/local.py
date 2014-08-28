@@ -268,7 +268,7 @@ class LocalFabric(object):
 
     def copy_raw(self, key, ip, from_dir, to_dir, user):
         if key:
-            opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+            opts = '-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
             scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
             logging.warning(scp)
             output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
@@ -286,7 +286,7 @@ class LocalFabric(object):
     def cmd_raw(self, key, ip, cmd, user):
         if key:
             ip = user + '@' + ip
-            ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            ssh = 'ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
             output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
             return output

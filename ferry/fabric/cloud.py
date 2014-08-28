@@ -235,7 +235,7 @@ class CloudFabric(object):
             self.copy_raw(c.privatekey, c.external_ip, from_dir, to_dir, c.default_user)
 
     def copy_raw(self, key, ip, from_dir, to_dir, user):
-        opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        opts = '-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
         logging.warning(scp)
 
@@ -269,7 +269,7 @@ class CloudFabric(object):
 
     def cmd_raw(self, key, ip, cmd, user):
         ip = user + '@' + ip
-        ssh = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+        ssh = 'ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
 
         # All the possible errors that might happen when

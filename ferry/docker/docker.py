@@ -124,7 +124,7 @@ class DockerCLI(object):
         else:
             # Do not store results in hosts file or warn about 
             # changing ssh keys. Also use the key given to us by the fabric. 
-            flags = " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+            flags = " -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
             flags += " -i " + self.key
 
             # If the user is given explicitly use that. Otherwise use the
