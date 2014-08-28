@@ -741,12 +741,18 @@ class SingleLauncher(object):
                 else:
                     server_ip = self._get_public_ip(server, resources)
 
+                # Copy over the public keys, but also verify that it does
+                # get copied over properly. 
                 self.controller._copy_public_keys(container_info[i], server_ip)
-                container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip)
+                if self.controller._verify_public_keys(server_ip):
+                    container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip)
                 
-                if container:
-                    mounts = dict(mounts.items() + cmounts.items())
-                    containers.append(container)
+                    if container:
+                        mounts = dict(mounts.items() + cmounts.items())
+                        containers.append(container)
+                else:
+                    logging.error("could not copy over ssh key!")
+                    return None
 
             # Check if we need to set the file permissions
             # for the mounted volumes. 

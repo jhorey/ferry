@@ -449,7 +449,6 @@ class DockerInspector(object):
         if type(data) is list:
             data = data[0]
 
-            
         # Check if the container is running. It is an error
         # if the container is not running.
         if not bool(data['State']['Running']):

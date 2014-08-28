@@ -139,6 +139,19 @@ class CloudFabric(object):
                       to_dir = "/ferry/keys/",
                       user = self.launcher.ssh_user)
 
+    def _verify_public_keys(self, server):
+        """
+        Verify that the public key has been copied over correctly. 
+        """
+        out, _ self.cmd_raw(key = self.cli.key, 
+                            ip = server, 
+                            cmd = "ls /ferry/keys",
+                            user = self.launcher.ssh_user)
+        if out.strip == "":
+            return False
+        else:
+            return True
+
     def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
         """
         Run the Docker container and use the cloud inspector to get information
@@ -235,7 +248,7 @@ class CloudFabric(object):
             self.copy_raw(c.privatekey, c.external_ip, from_dir, to_dir, c.default_user)
 
     def copy_raw(self, key, ip, from_dir, to_dir, user):
-        opts = '-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        opts = '-o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
         logging.warning(scp)
 
@@ -251,8 +264,9 @@ class CloudFabric(object):
             err = proc.stderr.read()
             if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("copying error, trying again...")
-                time.sleep(4)
+                time.sleep(6)
             else:
+                logging.warning("copying msg: " + err)
                 break
 
     def cmd(self, containers, cmd):
@@ -267,7 +281,7 @@ class CloudFabric(object):
 
     def cmd_raw(self, key, ip, cmd, user):
         ip = user + '@' + ip
-        ssh = 'ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+        ssh = 'ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
 
         # All the possible errors that might happen when
@@ -282,7 +296,7 @@ class CloudFabric(object):
             err = proc.stderr.read()
             if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("ssh error, try again")
-                time.sleep(4)
+                time.sleep(6)
             else:
                 break
         return output, err
