@@ -150,7 +150,7 @@ class CloudFabric(object):
         if out.strip() == "":
             return False
         else:
-            logging.warning("found ssh key: " + out.strip()
+            logging.warning("found ssh key: " + out.strip())
             return True
 
     def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
