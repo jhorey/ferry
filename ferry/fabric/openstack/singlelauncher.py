@@ -214,7 +214,7 @@ class SingleLauncher(object):
                 connected = True
                 break
             except:
-                time.sleep(3)
+                time.sleep(4)
                 connected = False
         if not connected:
             raise ValueError("Could not connect to Heat")
@@ -488,7 +488,7 @@ class SingleLauncher(object):
                 elif stack.status == "FAILED":
                     return False
                 else:
-                    time.sleep(2)
+                    time.sleep(4)
             except:
                 logging.error("could not fetch stack status (%s)" % str(stack_id))
 
@@ -818,7 +818,7 @@ class SingleLauncher(object):
                     for f in found["servers"]:
                         if f["status"] == "ACTIVE":
                             break
-                    time.sleep(3)
+                    time.sleep(4)
         return ips
 
     def quit(self):

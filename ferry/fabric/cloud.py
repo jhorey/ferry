@@ -253,8 +253,6 @@ class CloudFabric(object):
                 logging.warning("copying error, trying again...")
                 time.sleep(4)
             else:
-                logging.warning("copying success: " + output)
-                logging.warning("copying err: " + err)
                 break
 
     def cmd(self, containers, cmd):
@@ -283,8 +281,8 @@ class CloudFabric(object):
             output = proc.stdout.read()
             err = proc.stderr.read()
             if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
-                logging.warning("SSH ERROR, TRY AGAIN")
-                time.sleep(3)
+                logging.warning("ssh error, try again")
+                time.sleep(4)
             else:
                 break
         return output, err
