@@ -121,6 +121,7 @@ class DockerCLI(object):
             # The server is not supplied, so just execute
             # the command locally. 
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+            err = None
         else:
             # Do not store results in hosts file or warn about 
             # changing ssh keys. Also use the key given to us by the fabric. 
