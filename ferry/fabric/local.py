@@ -15,6 +15,7 @@
 
 from ferry.docker.docker import DockerCLI
 from ferry.docker.docker import DockerInspector
+from ferry.fabric.com import robust_com
 from ferry.ip.client import DHCPClient
 import ferry.install
 import json
@@ -271,7 +272,7 @@ class LocalFabric(object):
             opts = '-o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
             scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
             logging.warning(scp)
-            output = Popen(scp, stdout=PIPE, shell=True).stdout.read()
+            robust_com(scp)
 
     def cmd(self, containers, cmd):
         """
@@ -288,8 +289,8 @@ class LocalFabric(object):
             ip = user + '@' + ip
             ssh = 'ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
-            output = Popen(ssh, stdout=PIPE, shell=True).stdout.read()
-            return output
+            out, _ = robust_com(ssh)
+            return out
         else:
             return ''
 

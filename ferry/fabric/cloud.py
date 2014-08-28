@@ -15,6 +15,7 @@
 
 import ferry.install
 from ferry.docker.docker import DockerInstance, DockerCLI
+from ferry.fabric.com import robust_com
 import importlib
 import inspect
 import json
@@ -252,25 +253,8 @@ class CloudFabric(object):
         opts = '-o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         scp = 'scp ' + opts + ' -i ' + key + ' -r ' + from_dir + ' ' + user + '@' + ip + ':' + to_dir
         logging.warning(scp)
-
-        # All the possible errors that might happen when
-        # we try to connect via ssh. 
-        route_closed = re.compile('.*No route to host.*', re.DOTALL)
-        conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
-        refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
-        timed_out = re.compile('.*timed out*', re.DOTALL)
-        permission = re.compile('.*Permission denied.*', re.DOTALL)
-        while(True):
-            proc = Popen(scp, stdout=PIPE, stderr=PIPE, shell=True)
-            output = proc.stdout.read()
-            err = proc.stderr.read()
-            if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
-                logging.warning("copying error, trying again...")
-                time.sleep(6)
-            else:
-                logging.warning("copying msg: " + err)
-                break
-
+        robust_com(scp)
+        
     def cmd(self, containers, cmd):
         """
         Run a command on all the containers and collect the output. 
@@ -285,24 +269,7 @@ class CloudFabric(object):
         ip = user + '@' + ip
         ssh = 'ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
-
-        # All the possible errors that might happen when
-        # we try to connect via ssh. 
-        route_closed = re.compile('.*No route to host.*', re.DOTALL)
-        conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
-        refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
-        timed_out = re.compile('.*timed out*', re.DOTALL)
-        permission = re.compile('.*Permission denied.*', re.DOTALL)
-        while(True):
-            proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
-            output = proc.stdout.read()
-            err = proc.stderr.read()
-            if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
-                logging.warning("ssh error, try again")
-                time.sleep(6)
-            else:
-                break
-        return output, err
+        return robust_com(ssh)
 
 class CloudInspector(object):
     def __init__(self, fabric):

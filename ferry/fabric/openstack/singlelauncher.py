@@ -208,13 +208,15 @@ class SingleLauncher(object):
         # Check to make sure that the Heat client can actually 
         # connect to the Heat server. This is because we may 
         # have just started the Heat server, so it can a while to refresh. 
-        for i in range(0, 3):
+        for i in range(0, 10):
             try:
                 stacks = self.heat.stacks.list()
+                for s in stacks:
+                    logging.warning("found Heat stack: " + str(s))
                 connected = True
                 break
             except:
-                time.sleep(4)
+                time.sleep(12)
                 connected = False
         if not connected:
             raise ValueError("Could not connect to Heat")

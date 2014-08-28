@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from ferry.fabric.com import robust_com
 import json
 import logging
 import os
@@ -142,21 +143,7 @@ class DockerCLI(object):
             # All the possible errors that might happen when
             # we try to connect via ssh. 
             if read_output:
-                route_closed = re.compile('.*No route to host.*', re.DOTALL)
-                conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
-                refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
-                timed_out = re.compile('.*timed out*', re.DOTALL)
-                permission = re.compile('.*Permission denied.*', re.DOTALL)
-                while(True):
-                    proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
-                    err = proc.stderr.read()
-                    if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
-                        logging.warning("ssh cmd error, trying again...")
-                        time.sleep(4)
-                    else:
-                        # We were finally able to execute the command properly.
-                        # Return the output. 
-                        return proc.stdout.read(), err
+                out, err = robust_com(ssh)
             else:
                 # The user does not want us to read the output.
                 # That means we can't really check for errors :(
