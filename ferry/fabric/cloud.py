@@ -248,6 +248,8 @@ class CloudFabric(object):
             proc = Popen(scp, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
             err = proc.stderr.read()
+            logging.warning(output)
+            logging.warning(err)
             if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("copying error, trying again...")
                 time.sleep(3)
