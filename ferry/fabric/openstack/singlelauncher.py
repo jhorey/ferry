@@ -75,7 +75,7 @@ class SingleLauncher(object):
             self.tenant_name = os.environ['OS_TENANT_NAME']
         else:
             logging.error("Missing OpenStack credentials")
-            exit(1)
+            raise ValueError("Missing OpenStack credentials")
 
         # Some information regarding OpenStack
         # networking. Necessary for 
@@ -114,14 +114,13 @@ class SingleLauncher(object):
         keypath = self._get_host_key()
         if not os.path.exists(keypath):
             logging.error("could not find ssh key (%s)" % self.ssh_key)
-            exit(1)
+            raise ValueError("Missing ssh keys")
 
         # Initialize the OpenStack clients and also
         # download some networking information (subnet ID, 
         # cidr, gateway, etc.)
         self._init_openstack_clients()
         self._collect_subnet_info()
-
     def _get_host_key(self):
         """
         Get the location of the private ssh key. 
