@@ -121,7 +121,6 @@ class DockerCLI(object):
             # The server is not supplied, so just execute
             # the command locally. 
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-            err = None
         else:
             # Do not store results in hosts file or warn about 
             # changing ssh keys. Also use the key given to us by the fabric. 
@@ -142,24 +141,29 @@ class DockerCLI(object):
 
             # All the possible errors that might happen when
             # we try to connect via ssh. 
-            conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
-            refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
-            timed_out = re.compile('.*timed out*', re.DOTALL)
-            permission = re.compile('.*Permission denied.*', re.DOTALL)
-            while(True):
+            if read_output:
+                conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
+                refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
+                timed_out = re.compile('.*timed out*', re.DOTALL)
+                permission = re.compile('.*Permission denied.*', re.DOTALL)
+                while(True):
+                    proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
+                    err = proc.stderr.read()
+                    if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
+                        logging.warning("ssh cmd error, trying again...")
+                        time.sleep(3)
+                    else:
+                        # We were finally able to execute the command properly.
+                        # Return the output. 
+                        return proc.stdout.read(), err
+            else:
+                # The user does not want us to read the output.
+                # That means we can't really check for errors :(
                 proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
-                err = proc.stderr.read()
-                if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
-                    logging.warning("ssh cmd error, trying again...")
-                    time.sleep(3)
-                else:
-                    break
 
         if read_output:
             # Read both the standard out and error. 
-            if not err:
-                err = proc.stderr.read()
-            return proc.stdout.read(), err
+            return proc.stdout.read(), proc.stderr.read()
         else:
             # The user does not want to read the output.
             return proc
