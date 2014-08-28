@@ -205,6 +205,20 @@ class SingleLauncher(object):
                                        self.heat_server, 
                                        **kwargs)
 
+        # Check to make sure that the Heat client can actually 
+        # connect to the Heat server. This is because we may 
+        # have just started the Heat server, so it can a while to refresh. 
+        for i in range(0, 3):
+            try:
+                stacks = self.heat.stacks.list()
+                connected = True
+                break
+            except:
+                time.sleep(3)
+                connected = False
+        if not connected:
+            raise ValueError("Could not connect to Heat")
+            
         # Instantiate the Neutron client.
         # There should be a better way of figuring out the API version. 
         neutron_api_version = "2.0"
