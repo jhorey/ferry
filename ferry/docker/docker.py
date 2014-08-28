@@ -143,12 +143,13 @@ class DockerCLI(object):
             # All the possible errors that might happen when
             # we try to connect via ssh. 
             conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
+            refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
             timed_out = re.compile('.*timed out*', re.DOTALL)
             permission = re.compile('.*Permission denied.*', re.DOTALL)
             while(True):
                 proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
                 err = proc.stderr.read()
-                if conn_closed.match(err) or timed_out.match(err) or permission.match(err):
+                if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
                     logging.warning("ssh cmd error, trying again...")
                     time.sleep(3)
                 else:
