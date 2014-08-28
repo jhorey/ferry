@@ -143,10 +143,10 @@ class CloudFabric(object):
         """
         Verify that the public key has been copied over correctly. 
         """
-        out, _ self.cmd_raw(key = self.cli.key, 
-                            ip = server, 
-                            cmd = "ls /ferry/keys",
-                            user = self.launcher.ssh_user)
+        out, _ = self.cmd_raw(key = self.cli.key, 
+                              ip = server, 
+                              cmd = "ls /ferry/keys",
+                              user = self.launcher.ssh_user)
         if out.strip == "":
             return False
         else:
