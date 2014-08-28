@@ -147,9 +147,10 @@ class CloudFabric(object):
                               ip = server, 
                               cmd = "ls /ferry/keys",
                               user = self.launcher.ssh_user)
-        if out.strip == "":
+        if out.strip() == "":
             return False
         else:
+            logging.warning("found ssh key: " + out.strip()
             return True
 
     def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
@@ -254,6 +255,7 @@ class CloudFabric(object):
 
         # All the possible errors that might happen when
         # we try to connect via ssh. 
+        route_closed = re.compile('.*No route to host.*', re.DOTALL)
         conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
         refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
         timed_out = re.compile('.*timed out*', re.DOTALL)
@@ -262,7 +264,7 @@ class CloudFabric(object):
             proc = Popen(scp, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
             err = proc.stderr.read()
-            if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
+            if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("copying error, trying again...")
                 time.sleep(6)
             else:
@@ -286,6 +288,7 @@ class CloudFabric(object):
 
         # All the possible errors that might happen when
         # we try to connect via ssh. 
+        route_closed = re.compile('.*No route to host.*', re.DOTALL)
         conn_closed = re.compile('.*Connection closed.*', re.DOTALL)
         refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
         timed_out = re.compile('.*timed out*', re.DOTALL)
@@ -294,7 +297,7 @@ class CloudFabric(object):
             proc = Popen(ssh, stdout=PIPE, stderr=PIPE, shell=True)
             output = proc.stdout.read()
             err = proc.stderr.read()
-            if conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
+            if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
                 logging.warning("ssh error, try again")
                 time.sleep(6)
             else:
