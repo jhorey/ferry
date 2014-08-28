@@ -449,6 +449,14 @@ class DockerInspector(object):
         if type(data) is list:
             data = data[0]
 
+            
+        # Check if the container is running. It is an error
+        # if the container is not running.
+        if not bool(data['State']['Running']):
+            logging.error("container for %s is not running" % image)
+            return None
+
+        # Otherwise start collecting the various container information. 
         instance.image = data['Config']['Image']
         instance.container = data['ID']
         instance.internal_ip = data['NetworkSettings']['IPAddress']
