@@ -604,6 +604,8 @@ class SingleLauncher(object):
                           ip_desc.items())
         stack_desc = self._launch_heat_plan("ferry-app-%s-%s" % (ctype.upper(), cluster_uuid), stack_plan, stack_desc)
 
+        # 
+
         # Now find all the IP addresses of the various machines. 
         if stack_desc:
             stack_desc = self._collect_instance_info(stack_desc)

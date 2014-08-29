@@ -160,12 +160,12 @@ class CloudFabric(object):
         """
         out, _ = self.cmd_raw(key = self.cli.key, 
                               ip = server, 
-                              cmd = "cat /var/run/ferry.pid 2> /dev/null",
+                              cmd = "if [ -f /var/run/ferry.pid ]; then echo \"launched\"; fi",
                               user = self.launcher.ssh_user)
         if out.strip() == "":
             return False
         else:
-            logging.warning("docker daemon running " + out.strip())
+            logging.warning("docker daemon " + out.strip())
             return True
 
     def _execute_server_init(self, server):
@@ -174,7 +174,7 @@ class CloudFabric(object):
         """
         out, err = self.cmd_raw(key = self.cli.key, 
                                 ip = server, 
-                                cmd = "ferry clean && ferry server -n && sleep 3",
+                                cmd = "ferry server -n && sleep 3",
                                 user = self.launcher.ssh_user)
         logging.warning("restart ferry out: " + out)
         logging.warning("restart ferry err: " + err)
