@@ -2,6 +2,8 @@
 :description: Running Ferry on HP OpenStack Cloud
 :keywords: ferry, installation, openstack, hpcloud
 
+.. _hpcloud:
+
 HP Cloud
 ========
 

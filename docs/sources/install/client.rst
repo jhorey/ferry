@@ -2,6 +2,8 @@
 :description: Installing Ferry on your local machine
 :keywords: ferry, installation
 
+.. _client:
+
 Install
 =======
 
