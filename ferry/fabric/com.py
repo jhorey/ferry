@@ -32,7 +32,7 @@ def robust_com(cmd):
         err = proc.stderr.read()
         if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
             logging.warning("com error, trying again...")
-            time.sleep(6)
+            time.sleep(10)
         else:
             logging.warning("com msg: " + err)
             break

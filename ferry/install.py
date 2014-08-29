@@ -387,6 +387,11 @@ class Installer(object):
         # Check if the ssh key permission is properly set. 
         self._check_and_change_ssh_keyperm()
 
+        # Check if we're operating in naked mode. If so, 
+        # we just needed to start the docker daemon, so we're all done!
+        if options and '-n' in options:
+            return
+
         # Check if the user-application directory exists.
         # If not, create it. 
         try:
@@ -798,10 +803,10 @@ class Installer(object):
                     bflag = ' -s btrfs'
 
                 # Explicitly supply the DNS.
-                if options and '-n' in options:
+                if options and '-d' in options:
                     logging.warning("using custom dns")
                     dflag = ''
-                    for d in options['-n']:
+                    for d in options['-d']:
                         dflag += ' --dns %s' % d
                 else:
                     logging.warning("using public dns")

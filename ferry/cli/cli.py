@@ -41,9 +41,11 @@ class CLI(object):
         self.cmds.usage = "ferry COMMAND [arg...]"
         self.cmds.add_option("-b", "--build", "Build Ferry default images")
         self.cmds.add_option("-c", "--conf", "Deployment configuration")
+        self.cmds.add_option("-d", "--dns", "Specify DNS servers")
         self.cmds.add_option("-k", "--key", "Specify key directory")
         self.cmds.add_option("-l", "--log", "Log configuration file")
         self.cmds.add_option("-m", "--mode", "Deployment mode")
+        self.cmds.add_option("-n", "--naked", "Start in naked mode")
         self.cmds.add_option("-r", "--retry", "Retry action on failure")
         self.cmds.add_option("-t", "--net", "Use host network device")
         self.cmds.add_option("-u", "--upgrade", "Upgrade Ferry")
