@@ -158,15 +158,16 @@ class CloudFabric(object):
         """
         Verify that the docker daemon is actually running on the server. 
         """
-        out, _ = self.cmd_raw(key = self.cli.key, 
-                              ip = server, 
-                              cmd = "if [ -f /var/run/ferry.pid ]; then echo \"launched\"; fi",
-                              user = self.launcher.ssh_user)
-        if out.strip() == "":
-            return False
-        else:
-            logging.warning("docker daemon " + out.strip())
-            return True
+        for i in range(0, 2):
+            out, _ = self.cmd_raw(key = self.cli.key, 
+                                  ip = server, 
+                                  cmd = "if [ -f /var/run/ferry.pid ]; then echo \"launched\"; fi",
+                                  user = self.launcher.ssh_user)
+            if out.strip() != "":
+                logging.warning("docker daemon " + out.strip())
+                return True
+            time.sleep(2)
+        return False
 
     def _execute_server_init(self, server):
         """
