@@ -348,7 +348,8 @@ class SingleLauncher(object):
                     "chown -R ferry:ferry /ferry/data\n",
                     "chown -R ferry:ferry /ferry/keys\n",
                     "chown -R ferry:ferry /ferry/containers\n",
-                    "ferry server -n\n"
+                    "ferry server -n\n",
+                    "sleep 3\n"
                   ]
               ]
           }}

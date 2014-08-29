@@ -174,7 +174,7 @@ class CloudFabric(object):
         """
         out, err = self.cmd_raw(key = self.cli.key, 
                                 ip = server, 
-                                cmd = "ferry server -n && sleep 3",
+                                cmd = "ferry clean && ferry server -n && sleep 3",
                                 user = self.launcher.ssh_user)
         logging.warning("restart ferry out: " + out)
         logging.warning("restart ferry err: " + err)

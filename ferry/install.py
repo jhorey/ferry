@@ -447,11 +447,13 @@ class Installer(object):
                      }
         mongoconf = self.mongo.generate(1)
         mongoconf.uuid = 'fdb-' + str(uuid.uuid4()).split('-')[0]
-        mongobox = self.fabric.alloc(mongoconf.uuid,
+        containers = self.fabric.alloc(mongoconf.uuid,
                                      mongoconf.uuid,
                                      [mongoplan], 
-                                     "MONGO")[0]
-        if not mongobox:
+                                     "MONGO")
+        if containers and len(containers) > 0:
+            mongobox = containers[0]
+        else:
             logging.error("Could not start MongoDB image")
             sys.exit(1)
 
@@ -819,7 +821,7 @@ class Installer(object):
                 Popen(cmd, stdout=PIPE, shell=True)
 
                 # Wait a second to let the docker daemon do its thing.
-                time.sleep(2)
+                time.sleep(3)
                 return True, "Ferry daemon running on /var/run/ferry.sock"
             else:
                 return False, "Ferry appears to be already running. If this is an error, please type \'ferry clean\' and try again."
