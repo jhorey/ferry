@@ -154,6 +154,31 @@ class CloudFabric(object):
             logging.warning("found ssh key: " + out.strip())
             return True
 
+    def _verify_ferry_server(self, server):
+        """
+        Verify that the docker daemon is actually running on the server. 
+        """
+        out, _ = self.cmd_raw(key = self.cli.key, 
+                              ip = server, 
+                              cmd = "cat /var/run/ferry.pid 2> /dev/null",
+                              user = self.launcher.ssh_user)
+        if out.strip() == "":
+            return False
+        else:
+            logging.warning("docker daemon running " + out.strip())
+            return True
+
+    def _execute_server_init(self, server):
+        """
+        Restart the Ferry docker daemon. 
+        """
+        out, err = self.cmd_raw(key = self.cli.key, 
+                                ip = server, 
+                                cmd = "ferry server -n && sleep 3",
+                                user = self.launcher.ssh_user)
+        logging.warning("restart ferry out: " + out)
+        logging.warning("restart ferry err: " + err)
+        
     def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
         """
         Run the Docker container and use the cloud inspector to get information

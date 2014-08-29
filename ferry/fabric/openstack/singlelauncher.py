@@ -743,6 +743,12 @@ class SingleLauncher(object):
                 else:
                     server_ip = self._get_public_ip(server, resources)
 
+                # Verify that the user_data processes all started properly
+                # and that the docker daemon is actually running. If it is
+                # not running, try re-executing. 
+                if not self.controller._verify_ferry_server(server_ip):
+                    self.controller._execute_server_init(server_ip)
+
                 # Copy over the public keys, but also verify that it does
                 # get copied over properly. 
                 self.controller._copy_public_keys(container_info[i], server_ip)
