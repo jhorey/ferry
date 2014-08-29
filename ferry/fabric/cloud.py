@@ -228,6 +228,10 @@ class CloudFabric(object):
                 mounts[container] = {'user':cinfo['volume_user'],
                                      'vols':cinfo['volumes'].items()}
 
+            # We should wait for a second to let the ssh server start
+            # on the containers (otherwise sometimes we get a connection refused)
+            time.sleep(3)
+
             return container, mounts
         else:
             return None, None

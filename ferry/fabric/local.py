@@ -191,7 +191,7 @@ class LocalFabric(object):
 
                 # We should wait for a second to let the ssh server start
                 # on the containers (otherwise sometimes we get a connection refused)
-                time.sleep(2)
+                time.sleep(3)
 
         # Check if we need to set the file permissions
         # for the mounted volumes. 
