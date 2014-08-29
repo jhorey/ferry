@@ -781,6 +781,8 @@ class SingleLauncher(object):
         ips = []
         stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
                                    "_service_uuid" : service_uuid } )
+
+        logging.warning("Deleting cluster %s" % str(cluster_uuid))
         for stack in stacks:
             for s in stack.values():
                 if type(s) is dict and s["type"] == "OS::Heat::Stack":

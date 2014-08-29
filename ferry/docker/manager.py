@@ -789,20 +789,25 @@ class DockerManager(object):
         """
         for b in backends['uuids']:
             conf = self._get_service_configuration(b['storage'], detailed=True)
+            
             if conf and 'containers' in conf:
-                for c in conf['containers']:
-                    self.docker.stop(cluster_uuid, b['storage'], [c])
+                self.docker.stop(cluster_uuid, b['storage'], conf['containers'])
+            else:
+                self.docker.stop(cluster_uuid, b['storage'], [])
+
             for compute in b['compute']:
                 conf = self._get_service_configuration(compute, detailed=True)
                 if conf and 'containers' in conf:
-                    for c in conf['containers']:
-                        self.docker.stop(cluster_uuid, compute, [c])
+                    self.docker.stop(cluster_uuid, compute, conf['containers'])
+                else:
+                    self.docker.stop(cluster_uuid, compute, [])
 
         for b in connectors:
             s = self._get_service_configuration(b, detailed=True)
             if s and 'containers' in s:
-                for c in s['containers']:
-                    self.docker.stop(cluster_uuid, b, [c])
+                self.docker.stop(cluster_uuid, b, s['containers'])
+            else:
+                self.docker.stop(cluster_uuid, b, [])
 
     def reserve_stack(self):
         """
