@@ -16,6 +16,7 @@
 import logging
 import re
 from subprocess import Popen, PIPE
+import time
 
 def robust_com(cmd):
     # All the possible errors that might happen when
