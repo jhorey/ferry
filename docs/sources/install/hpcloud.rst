@@ -96,10 +96,13 @@ You want your configuration to look like this:
          network: 123-123-123
          router: 123-123-123
 
-Let's skip over most of the configuration for now, and focus on the parts that we need
-to configure. 
 
-Under `hp` and `uswest`, there are two fields called `network` and `router`. To fill in these
+First let's fill in the `openstack.params.zone` and `openstack.homedc.region` values.
+
+- `openstack.params.zone` : the default availability zone (`az1`, `az2`, `az3`)
+- `openstack.homedc.region` : the default region  (`region-a.geo-1`, `region-b.geo-1`)
+
+Now under `hp` and `uswest`, there are two fields called `network` and `router`. To fill in these
 values, you can use the `ferry-install os-info` command. Just type that in and you should see
 something like this:
 
@@ -123,15 +126,15 @@ something like this:
 
 Just copy the the ID of the `myuser-network` and `myuser-router` into the `network` and `router` fields.
 
-Next, you need to configure your HP Cloud key. Notice that under `hp` and `deploy`, there's a field
-called `ssh`. Replace `ferry-keys` with the name of your HP Cloud key. You'll also need a copy
-of the private key placed in the `/ferry/keys/` directory. This key is used by Ferry to connect to
-the VMs and to start the various Ferry processes. 
+Next you need to configure your ssh key. 
+
+- `hp.deploy.ssh` : name of the ssh key you'd like to use for VM creation 
+
+On your client, you'll need to place a  copy of the private key placed in the `/ferry/keys/` directory.
 
 Finally, here are the list of optional values that you can set.
 
 - `system.proxy` : set to `true` if you're running your client in the OpenStack cluster.
-- `hp.params.zone` : availability zone (set to `az1`, `az2`, or `az3`)
 - `hp.deploy.personality` : the default personality to use. Highly recommended to use `standard.small` or larger
 
 Running Examples

@@ -112,7 +112,7 @@ Next we need to supply the OpenStack service endpoints.
 - `openstack.homedc.cinder` : location of the block storage service
 - `openstack.homedc.heat` : location of the orchestration service (optional)
 
-Now, under `openstack` and `homedc`, there are three fields called `extnet`, `network`, and `router`. To fill in these
+Now under `openstack` and `homedc`, there are three fields called `extnet`, `network`, and `router`. To fill in these
 values, you can use the `ferry-install os-info` command. Just type that in and you should see
 something like this:
 
@@ -124,14 +124,14 @@ something like this:
     +--------------------------------------+----------------+--------------------------------------------------+
     | id                                   | name           | subnets                                          |
     +--------------------------------------+----------------+--------------------------------------------------+
-    | 122c72de-0924-4b9f-8cf3-b18d5d3d292c | Ext-Net        | c2ca2626-97db-429a-bb20-1ea42e13e033             |
+    | 11111111-2222-3333-4444-555555555555 | Ext-Net        | 1111111111111-2222-3333-444444444444             |
     | 11111111-2222-3333-4444-555555555555 | myuser-network | 1111111111111-2222-3333-444444444444 10.0.0.0/24 |
     +--------------------------------------+----------------+--------------------------------------------------+
     Routers:
     +--------------------------------------+---------------+-----------------------------------------------------------------------------+
     | id                                   | name          | external_gateway_info                                                       |
     +--------------------------------------+---------------+-----------------------------------------------------------------------------+
-    | 11111111-2222-3333-4444-555555555555 | myuser-router | {"network_id": "122c72de-0924-4b9f-8cf3-b18d5d3d292c", "enable_snat": true} |
+    | 11111111-2222-3333-4444-555555555555 | myuser-router | {"network_id": "11111111-2222-3333-4444-555555555555", "enable_snat": true} |
     +--------------------------------------+---------------+-----------------------------------------------------------------------------+
 
 Just copy the the ID of the `Ext-Net`, `myuser-network` and `myuser-router` into the respective `extnet`, `network` and `router` fields.
