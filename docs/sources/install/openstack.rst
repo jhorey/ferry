@@ -69,10 +69,29 @@ To verify if Ferry has been installed, you can just type:
     UUID        Storage     Compute     Connectors      Status         Base       Time
     ----        -------     -------     ----------      ------         ----       ----
 
+OpenStack Heat
+--------------
+
+Ferry uses the Heat orchestration engine to launch clusters on OpenStack. If your
+OpenStack cluster already has Heat installed, then you can skip this step. Otherwise, Ferry
+will use its own "stand-alone" Heat server. To use the stand-alone Heat server, you'll need 
+to download the Ferry Heat image. 
+
+.. code-block:: bash
+
+    $ sudo ferry server
+    $ sudo ferry pull image://ferry/heatserver
+
 Save Image
 ----------
 
-Now that you have Ferry installed, create a *snapshot* of the instance. You can name the
+Now that you have Ferry installed, go ahead and stop Ferry.  
+
+.. code-block:: bash
+
+    $ sudo ferry quit
+
+Afterwards, create a *snapshot* of the instance. You can name the
 snapshot whatever you want, but users will need this name later when configuring the client. 
 Something like "Ferry Server" should do. 
 

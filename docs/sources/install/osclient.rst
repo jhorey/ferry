@@ -1,19 +1,24 @@
-:title: Ferry on HP Cloud
-:description: Running Ferry on HP OpenStack Cloud
-:keywords: ferry, installation, openstack, hpcloud
+:title: Ferry on OpenStack
+:description: Running Ferry on an OpenStack Cloud
+:keywords: ferry, installation, openstack
 
-.. _hpcloud:
+.. _osclient:
 
-HP Cloud
-========
+OpenStack
+=========
 
-Ferry images are pre-installed on HP Cloud, so launching new big data clusters 
-on HP Cloud is relatively straightforward. 
+This documentation is meant for Ferry end users.  Before we can get started, 
+however, the Ferry server image will need to be installed in the OpenStack cluster.
+Normally a system adminstrator would do that part. 
+
+- Installing the Ferry image :ref:`instructions <openstack>`
+
+Once that's done, we can launch our Ferry client. 
 
 Launch Summary
 --------------
 
-1. Launch a new Ferry client using the "Ferry Server (small)" image
+1. Launch a new Ferry client using the Ferry server image
 2. Set OpenStack credentials
 3. Create a new Ferry configuration file
 4. Start the Ferry server as root via `sudo ferry server`
@@ -22,15 +27,14 @@ Launching the Client
 --------------------
 
 This documentation assumes that the Ferry client is launched from a VM running in
-the HP Cloud. This isn't strictly necessary however. If you already have Ferry
+the OpenStack cluster. This isn't strictly necessary however. If you already have Ferry
 installed on your local machine, you can skip this step and begin setting up
 your OpenStack credentials. 
 
-If you're launching a new Ferry client, OpenCore provides pre-built images for HP Cloud. 
-
-- Start by launching a new instance using the "Ferry Server (small)" image.
-- Use at least the "standard.small" instance size
-- Associate a floating IP with the instance so that can ssh into it later. 
+1. Start by launching a new instance using the Ferry server image. If you don't know the
+name of the image, ask your system adminstrator (it's probably named something like "Ferry Server")
+2. Use an instance type with more than 10GB of root storage. 
+3. Associate a floating IP with the instance so that can ssh into it later. 
 
 The Ferry image is based on an Ubuntu 14.04 image, so after the instance is fully launched, log in
 using the `ubuntu` account.
@@ -55,51 +59,60 @@ Afterwards, set the following environment variables:
 - OS_REGION_NAME
 - OS_AUTH_URL
 
-These values can be readily found using the HP Cloud web interface . OS_TENANT_ID and OS_TENANT_NAME can be found under "Identity, Projects". 
-OS_REGION_NAME should be set to either `region-a.geo-1` (for US West) or `region-b.geo-1` for (US East). Finally, you can find the
-OS_AUTH_URL under "Project, Access & Security, API Access". Specifically, you'll want the URL for the "Identity" service. 
+These values can be readily found using the OpenStack Horizon web interface.
 
 Configuring the Client
 ----------------------
 
-After setting your OpenStack environment variables, you need to create a new Ferry configuration file. If you're running your
-client using the HP Cloud image, just open the file `/root/.ferry-config.yaml`. Otherwise, go ahead and create the file now. 
-
-You want your configuration to look like this: 
+After setting your OpenStack environment variables, you need to create a new Ferry configuration file. 
+Create a new file called  `/root/.ferry-config.yaml` and use the following example to populate it. 
 
 .. code-block:: yaml
 
     system:
-      provider: hp
+      provider: openstack
       network: eth0
       backend: ferry.fabric.cloud/CloudFabric
       mode: ferry.fabric.openstack.singlelauncher/SingleLauncher
       proxy: false
-    hp:
+    openstack:
       params:
-        dc: uswest
-        zone: az2
+        dc: homedc
+        zone: ZONE
       deploy:
-         image: Ferry Server (small)
+         image: Ferry Server
          personality: standard.small
          default-user: ubuntu
          ssh: ferry-keys
          ssh-user: ferry
-      uswest:
-         region: region-a.geo-1
-         keystone: https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/
-         neutron: https://region-a.geo-1.network.hpcloudsvc.com
-         nova: https://region-a.geo-1.compute.hpcloudsvc.com/v2/10089763026941
-         swift: https://region-a.geo-1.images.hpcloudsvc.com:443/v1.0
-         cinder: https://region-a.geo-1.block.hpcloudsvc.com/v1/10089763026941
-         extnet: 122c72de-0924-4b9f-8cf3-b18d5d3d292c
+      homedc:
+         region: REGION
+         keystone: https://<IDENTITYSERVICE>.com
+         neutron: https://<NETWORKSERVICE>.com
+         nova: https://<COMPUTESERVICE>.com
+         swift: https://<STORAGESERVICE>.com
+         cinder: https://<DISKSERVICE>.com
+         heat: https://<ORCHSERVICE>.com
+         extnet: 123-123-123
          network: 123-123-123
          router: 123-123-123
 
-Let's skip over most of the configuration for now, and focus on the parts that we need
-to configure. 
 
-Under `hp` and `uswest`, there are two fields called `network` and `router`. To fill in these
+First let's fill in the `openstack.params.zone` and `openstack.homedc.region` values.
+
+- `openstack.params.zone` : the default availability zone
+- `openstack.homedc.region` : the default region 
+
+Next we need to supply the OpenStack service endpoints. 
+
+- `openstack.homedc.keystone` : location of the identity service
+- `openstack.homedc.neutron` : location of the network service
+- `openstack.homedc.nova` : location of the compute service
+- `openstack.homedc.swift` : location of the storage service
+- `openstack.homedc.cinder` : location of the block storage service
+- `openstack.homedc.heat` : location of the orchestration service (optional)
+
+Now, under `openstack` and `homedc`, there are three fields called `extnet`, `network`, and `router`. To fill in these
 values, you can use the `ferry-install os-info` command. Just type that in and you should see
 something like this:
 
@@ -121,18 +134,18 @@ something like this:
     | 11111111-2222-3333-4444-555555555555 | myuser-router | {"network_id": "122c72de-0924-4b9f-8cf3-b18d5d3d292c", "enable_snat": true} |
     +--------------------------------------+---------------+-----------------------------------------------------------------------------+
 
-Just copy the the ID of the `myuser-network` and `myuser-router` into the `network` and `router` fields.
+Just copy the the ID of the `Ext-Net`, `myuser-network` and `myuser-router` into the respective `extnet`, `network` and `router` fields.
 
-Next, you need to configure your HP Cloud key. Notice that under `hp` and `deploy`, there's a field
-called `ssh`. Replace `ferry-keys` with the name of your HP Cloud key. You'll also need a copy
-of the private key placed in the `/ferry/keys/` directory. This key is used by Ferry to connect to
-the VMs and to start the various Ferry processes. 
+Next you need to configure your ssh key. 
+
+- `openstack.deploy.ssh` : name of the ssh key you'd like to use for VM creation 
+
+On your client, you'll need to place a  copy of the private key placed in the `/ferry/keys/` directory.
 
 Finally, here are the list of optional values that you can set.
 
 - `system.proxy` : set to `true` if you're running your client in the OpenStack cluster.
-- `hp.params.zone` : availability zone (set to `az1`, `az2`, or `az3`)
-- `hp.deploy.personality` : the default personality to use. Highly recommended to use `standard.small` or larger
+- `openstack.deploy.personality` : the default personality to use. Highly recommended to use an image with more than 2 virtual CPUs. 
 
 Running Examples
 ----------------
@@ -159,7 +172,7 @@ Afterwards, you should be able to start a new application stack.
 
     $ sudo ferry start hadoop
 
-Starting the Hadoop stack can take 10 minutes or longer. If you login to your HP Cloud web interface, 
+Starting the Hadoop stack can take 10 minutes or longer. If you login to your Horizon web interface, 
 you should be able to see the VMs being instantiated. You can also check the status via Ferry:
 
 .. code-block:: bash
