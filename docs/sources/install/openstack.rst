@@ -44,16 +44,22 @@ we'll be installing all the Ferry images.
 Installing Ferry
 ----------------
 
-After instantiating the Ubuntu instance, you'll need to install Ferry. 
-
-- Detailed Ferry :ref:`instructions <client>`
-
-You can also use our automated installation script:
+After instantiating the Ubuntu instance, you'll need to install Ferry. The easiest way is to use our automated installation script:
 
 .. code-block:: bash
 
     $ git clone https://github.com/opencore/ferry.git
     $ sudo ferry/install/ferry-install
+
+However you can also install Ferry manually.
+
+- Detailed Ferry :ref:`instructions <client>`
+
+One point of note: you'll need to first create and set an alternative Ferry data directory. 
+
+.. code-block:: bash
+
+    $ mkdir -p /ferry/master && export FERRY_DIR=/ferry/master
 
 The installation process can take quite a while (it will download approximately
 5GB of Docker images). 
