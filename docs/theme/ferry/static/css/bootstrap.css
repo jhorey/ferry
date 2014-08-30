@@ -973,8 +973,8 @@ code,
 pre {
   padding: 0 3px 2px;
   font-family: Menlo, Consolas, Monaco, "Courier New", monospace;
-  font-size: 9px;
-  font-weight:lighter;
+  font-size: 7px;
+  font-weight:light;
   color: #333333;
   -webkit-border-radius: 3px;
      -moz-border-radius: 3px;
