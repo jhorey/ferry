@@ -4,8 +4,8 @@
 
 .. _osclient:
 
-OpenStack
-=========
+OpenStack Client
+================
 
 This documentation is meant for Ferry end users.  Before we can get started, 
 however, the Ferry server image will need to be installed in the OpenStack cluster.

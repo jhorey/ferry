@@ -11,6 +11,7 @@ Installation
 
    client
    openstack
+   osclient
    hpcloud
    rackspace
    aws
