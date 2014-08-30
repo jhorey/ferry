@@ -4,8 +4,8 @@
 
 .. _client:
 
-Install
-=======
+Client Install
+==============
 
 Ferry currently relies on a relatively new version of Linux (Ubuntu 13.10 and 14.04 have both been tested). While other distros will probably work, these instructions are not guaranteed to work on those environments. If you decide to go ahead and try anyway, please let us know how it went and file any issues on Github!
 
