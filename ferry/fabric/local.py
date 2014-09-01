@@ -66,7 +66,7 @@ class LocalFabric(object):
         if 'FERRY_SCRATCH' in os.environ:
             scratch_dir = os.environ['FERRY_SCRATCH']
         else:
-            scratch_dir = os.path.join(_get_ferry_dir(server=True), 'scratch')
+            scratch_dir = os.path.join(ferry.install._get_ferry_dir(server=True), 'scratch')
 
         if not os.path.isdir(scratch_dir):
             os.makedirs(scratch_dir)

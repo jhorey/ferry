@@ -2,6 +2,10 @@
 
 ## 0.3 series
 
+### 0.3.1 (2014-09-01)
+
+- Fix local mode refactor
+	
 ### 0.3.0 (2014-08-27)
 
 - Asynchronous stack operations
