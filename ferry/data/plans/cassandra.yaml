@@ -2,7 +2,9 @@ metadata:
    author: James Horey
    version: 0.2.0
    description: Cassandra stack
-   tags: [infrastructure,cassandra]
+   icon: cassandra.png
+   tags: [infrastructure,big data,nosql,cassandra]
+   url: http://cassandra.apache.org
 params:
    resolver: ferry.docker.resolve.DefaultResolver
 questions:

@@ -2,7 +2,9 @@ metadata:
    author: James Horey
    version: 0.2.0
    description: MongoDB stack
-   tags: [infrastructure,mongodb]
+   icon: mongo.png
+   tags: [infrastructure,nosql,mongodb]
+   url: http://www.mongodb.org
 backend:
    - storage:
         personality: "mongodb"

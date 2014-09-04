@@ -24,8 +24,12 @@ import Queue
 import threading2
 import time
 
+from flask.ext.cors import CORS
+
 # Initialize Flask
 app = Flask(__name__)
+
+CORS(app, resources=r'/*', headers='Content-Type')
 
 # Initialize the storage driver
 installer = Installer()
@@ -704,7 +708,12 @@ def apps():
     """
     Get list of installed applications.
     """
-    return docker.query_applications()
+    if 'app' in request.args:
+        app = request.args['app']
+    else:
+        app = None
+
+    return docker.query_applications(app)
 
 @app.route('/stack', methods=['GET'])
 def inspect():
@@ -717,7 +726,6 @@ def inspect():
         # This is an active application stack. 
         return docker.inspect_stack(uuid)
     elif docker.is_installed(uuid):
-        # This is the name of an installed application.
         return docker.inspect_installed(uuid)
     else:
         # Try to see if this is an active service.

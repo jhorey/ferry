@@ -1,8 +1,10 @@
 metadata:
    author: James Horey
    version: 0.2.0
+   icon: openmpi.png
    description: Open MPI over GlusterFS
    tags: [infrastructure,openmpi,glusterfs]
+   url: http://www.open-mpi.org
 params:
    resolver: ferry.docker.resolve.DefaultResolver
 questions:

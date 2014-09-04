@@ -220,6 +220,7 @@ class CloudFabric(object):
                 # VMs via their public IP address. 
                 container.external_ip = public_ip
 
+            container.vm = self.launcher.default_personality
             container.default_user = self.cli.docker_user
 
             if 'name' in cinfo:

@@ -1,8 +1,10 @@
 metadata:
    author: James Horey
    version: 0.2.0
+   icon: spark.png
    description: Spark over Hadoop
-   tags: [infrastructure,hadoop,spark]
+   tags: [infrastructure,big data,hadoop,spark]
+   url: https://spark.apache.org
 params:
    resolver: ferry.docker.resolve.DefaultResolver
 questions:

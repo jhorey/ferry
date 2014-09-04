@@ -318,7 +318,7 @@ class CLI(object):
         for app in json_data.keys():
             authors.append(json_data[app]['author'])
             versions.append(json_data[app]['version'])
-            descriptions.append(json_data[app]['description'])            
+            descriptions.append(json_data[app]['short'])            
 
         t = PrettyTable()
         t.add_column("App", json_data.keys())

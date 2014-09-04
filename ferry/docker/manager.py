@@ -355,36 +355,55 @@ class DockerManager(object):
                 apps.add(c)
         return apps
 
-    def _query_application(self, directory):
+    def _query_application(self, directory, app):
         apps = {}
         app_files = self._list_applications(directory)
         for f in app_files:
             file_path = directory + '/' + f
             n, e = f.split(".")
             content = None
-            if e == 'json':
-                json_string = self._read_file_arg(file_path)
-                content = json.loads(json_string)
-            elif e == 'yaml' or e == 'yml':
-                yaml_file = open(file_path, 'r')
-                content = yaml.load(yaml_file)
 
-            if content and 'metadata' in content:
-                apps[n] = { 'author' : content['metadata']['author'],
-                            'version': content['metadata']['version'],
-                            'description': content['metadata']['description'][:21] + "..." }
-            else:
-                apps[n] = { 'author' : "Unknown",
-                            'version': "Unknown",
-                            'description': "Unknown" }
+            # Check if there is a filter or not. 
+            if not app or app == n:
+                if e == 'json':
+                    json_string = self._read_file_arg(file_path)
+                    content = json.loads(json_string)
+                elif e == 'yaml' or e == 'yml':
+                    yaml_file = open(file_path, 'r')
+                    content = yaml.load(yaml_file)
+
+                if content and 'metadata' in content:
+                    apps[n] = { 'name' : n,
+                                'tags' : content['metadata']['tags'],
+                                'author' : content['metadata']['author'],
+                                'version': content['metadata']['version'],
+                                'url': content['metadata']['url'],
+                                'short' : content['metadata']['description'][:21] + "...", 
+                                'description': content['metadata']['description'] }
+
+                    # See if the application author has provided an icon name.
+                    # This is completely optional. 
+                    if 'icon' in content['metadata']:
+                        apps[n]['icon'] = content['metadata']['icon']
+                    else:
+                        apps[n]['icon'] = ""
+                else:
+                    apps[n] = { 'name' : n,
+                                'tags' : [], 
+                                'author' : "Unknown",
+                                'version': "Unknown",
+                                'url': "",
+                                'short' : "", 
+                                'icon': "",
+                                'description': "Unknown" }
         return apps
     
-    def query_applications(self):
+    def query_applications(self, app):
         """
         Get list of installed applications.
         """
-        builtin = self._query_application(ferry.install.DEFAULT_BUILTIN_APPS)
-        installed = self._query_application(ferry.install.DEFAULT_FERRY_APPS)
+        builtin = self._query_application(ferry.install.DEFAULT_BUILTIN_APPS, app)
+        installed = self._query_application(ferry.install.DEFAULT_FERRY_APPS, app)
         return json.dumps(dict(builtin.items() + installed.items()))
         
     def query_snapshots(self, constraints=None):

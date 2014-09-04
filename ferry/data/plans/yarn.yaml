@@ -1,8 +1,10 @@
 metadata:
    author: James Horey
    version: 0.2.0
-   description: Hadoop YARN over GlusterFS
-   tags: [infrastructure,hadoop,glusterfs]
+   icon: hadoop.png
+   description: This stack provides complete Hadoop functionality over GlusterFS via YARN.
+   tags: [infrastructure,big data,hadoop,glusterfs]
+   url: http://hadoop.apache.org
 params:
    resolver: ferry.docker.resolve.DefaultResolver
 questions:

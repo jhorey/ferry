@@ -28,6 +28,7 @@ class DockerInstance(object):
     def __init__(self, json_data=None):
         if not json_data:
             self.container = ''
+            self.vm = 'local'
             self.service_type = None
             self.host_name = None
             self.external_ip = None
@@ -43,6 +44,7 @@ class DockerInstance(object):
             self.args = None
         else:
             self.container = json_data['container']
+            self.vm = json_data['vm']
             self.service_type = json_data['type']
             self.host_name = json_data['hostname']
             self.external_ip = json_data['external_ip']
@@ -67,6 +69,7 @@ class DockerInstance(object):
                        'ports' : self.ports,
                        'hostname' : self.host_name,
                        'container' : self.container,
+                       'vm' : self.vm,
                        'image' : self.image,
                        'type': self.service_type, 
                        'keydir' : self.keydir,

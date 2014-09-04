@@ -493,7 +493,8 @@ class Installer(object):
         # workers, but since we operate in an asynch. manner, this
         # shouldn't be necessary anymore. 
         logging.warning("starting http servers on port 4000 and mongo %s" % ip)
-        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 1 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
+        # cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 1 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
+        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 1 -b 0.0.0.0:4000 ferry.http.httpapi:app &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
 
     def _force_stop_web(self):
