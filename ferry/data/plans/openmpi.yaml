@@ -2,7 +2,7 @@ metadata:
    author: James Horey
    version: 0.2.0
    icon: openmpi.png
-   description: Open MPI over GlusterFS
+   description: The Open MPI Project is an open source Message Passing Interface implementation that is developed and maintained by a consortium of academic, research, and industry partners. This stack combines OpenMPI with GlusterFS, an distributed file system capable of scaling to several petabytes and handling thousands of clients.
    tags: [infrastructure,openmpi,glusterfs]
    url: http://www.open-mpi.org
 params:

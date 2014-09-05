@@ -2,7 +2,7 @@ metadata:
    author: James Horey
    version: 0.2.0
    icon: hadoop.png
-   description: This stack provides complete Hadoop functionality over GlusterFS via YARN.
+   description: This stack provides complete Hadoop functionality over a GlusterFS storage layer. GlusterFS is an open source, distributed file system capable of scaling to several petabytes and handling thousands of clients. GlusterFS is based on a stackable user space design and can deliver exceptional performance for diverse workloads. By combining GlusterFS with Hadoop, users are able to access data via traditional POSIX mounts but still execute traditional Hadoop jobs over the data.  
    tags: [infrastructure,big data,hadoop,glusterfs]
    url: http://hadoop.apache.org
 params:

@@ -1,8 +1,8 @@
 metadata:
    author: James Horey
    version: 0.2.0
-   description: MongoDB stack
-   icon: mongo.png
+   description: MongoDB is open-source document database. MongoDB stores JSON-like documents, making it perfect for modern, high-performance web application development.
+   icon: mongodb.png
    tags: [infrastructure,nosql,mongodb]
    url: http://www.mongodb.org
 params:
