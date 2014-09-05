@@ -288,7 +288,8 @@ class DockerManager(object):
         """
         Inspect a running stack. 
         """
-        json_reply = {}
+        json_reply = { 'uuid' : stack_uuid,
+                       'status' : 'stack' }
 
         # Get the collection of all backends and connector UUIDS.
         cluster = self.cluster_collection.find_one( {'uuid': stack_uuid} )
@@ -323,9 +324,7 @@ class DockerManager(object):
             json_reply['compute'].append(self._get_inspect_info(uuid))
 
         # Now append some snapshot info. 
-        json_reply['snapshots'] = self._get_snapshot_info(stack_uuid)
-           
-        json_reply['status'] = 'stack'
+        json_reply['snapshots'] = self._get_snapshot_info(stack_uuid)    
         return json.dumps(json_reply, 
                           sort_keys=True,
                           indent=2,
@@ -374,12 +373,23 @@ class DockerManager(object):
 
                 if content and 'metadata' in content:
                     apps[n] = { 'name' : n,
+                                'file' : file_path, 
                                 'tags' : content['metadata']['tags'],
                                 'author' : content['metadata']['author'],
                                 'version': content['metadata']['version'],
                                 'url': content['metadata']['url'],
-                                'short' : content['metadata']['description'][:21] + "...", 
-                                'description': content['metadata']['description'] }
+                                'short' : content['metadata']['description'][:21] + "...",
+                                'description': content['metadata']['description'],
+                                'plan' : { 'params' : content['params'],
+                                           'backend' : content['backend'],
+                                           'connectors' : content['connectors'] }}
+
+                    # Check if this application template has any
+                    # user questions. 
+                    if 'questions' in content:
+                        apps[n]['questions'] = content['questions']
+                    else:
+                        apps[n]['questions'] = []
 
                     # See if the application author has provided an icon name.
                     # This is completely optional. 
@@ -389,16 +399,19 @@ class DockerManager(object):
                         apps[n]['icon'] = ""
                 else:
                     apps[n] = { 'name' : n,
+                                'file' : '', 
                                 'tags' : [], 
                                 'author' : "Unknown",
                                 'version': "Unknown",
                                 'url': "",
                                 'short' : "", 
                                 'icon': "",
-                                'description': "Unknown" }
+                                'description': "",
+                                'questions': [],
+                                'plan' : {} }
         return apps
     
-    def query_applications(self, app):
+    def query_applications(self, app=None):
         """
         Get list of installed applications.
         """

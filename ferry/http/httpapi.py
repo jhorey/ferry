@@ -662,9 +662,8 @@ def allocate_stack():
     Create some new storage infrastructure
     """
     payload = json.loads(request.form['payload'])
-    mode = request.form['mode']
-    conf = request.form['conf']
     key_name = request.form['key']
+    logging.warning("PAYLOAD: " + str(payload))
 
     # Check whether the user wants to start from fresh or
     # start with a snapshot.

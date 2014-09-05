@@ -5,6 +5,8 @@ metadata:
    icon: mongo.png
    tags: [infrastructure,nosql,mongodb]
    url: http://www.mongodb.org
+params:
+   resolver: ferry.docker.resolve.DefaultResolver
 backend:
    - storage:
         personality: "mongodb"

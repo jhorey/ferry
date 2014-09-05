@@ -293,11 +293,7 @@ class CLI(object):
         """
         Create a new stack. 
         """
-        mode = self._parse_deploy_arg('mode', args, default='local')
-        conf = self._parse_deploy_arg('conf', args, default='default')
         payload = { 'payload' : json.dumps(stack_description),
-                    'mode' : mode, 
-                    'conf' : conf,
                     'key' : private_key }
         try:
             res = requests.post(self.ferry_server + '/create', data=payload)
