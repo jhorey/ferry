@@ -9,38 +9,6 @@ NC='\e[0m'
 
 VERSION='0.3.1'
 
-# Compare two version numbers. 
-function vercomp () {
-    if [[ $1 == $2 ]]
-    then
-        return 0
-    fi
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    # fill empty fields in ver1 with zeros
-    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
-    do
-        ver1[i]=0
-    done
-    for ((i=0; i<${#ver1[@]}; i++))
-    do
-        if [[ -z ${ver2[i]} ]]
-        then
-            # fill empty fields in ver2 with zeros
-            ver2[i]=0
-        fi
-        if ((10#${ver1[i]} > 10#${ver2[i]}))
-        then
-            return 1
-        fi
-        if ((10#${ver1[i]} < 10#${ver2[i]}))
-        then
-            return 2
-        fi
-    done
-    return 0
-}
-
 # Prepare the docker environment for docker-in-docker. This code is from
 # jpetazzo/dind
 function prepare_dind {
@@ -133,106 +101,6 @@ function make_images_internal {
     echo -e "${GREEN}${OUTPUT}${NC}"
 }
 
-# Helper to build the Ferry image. 
-function make_ferry_image {
-    OUTPUT=$(docker inspect ferry/ferry-server | grep "\[")
-    if [[ $OUTPUT == "[]" ]] || [[ $1 == "-f" ]]; then
-	if [[ $1 == "-f" ]]; then
-    	    echo -e "${GREEN}building the ferry image${NC}"
-    	    docker build --rm=true -t ferry/ferry-server .
-	    docker tag ferry/ferry-server ferry/ferry-server:$VERSION
-	else
-    	    echo -e "${GREEN}pulling the ferry image${NC}"
-    	    docker pull ferry/ferry-server
-	fi
-    else
-    	echo -e "${BLUE}found ferry image, proceeding${NC}"
-    fi
-}
-
-# Build all the images. Assumed that it is being 
-# called from externally. 
-function make_images_external {
-    # Check if the 'ferry' image is actually built. If not
-    # go ahead and build the image. 
-    make_ferry_image $1
-
-    # Now go ahead and run the ferry server. 
-    if [[ $1 == "-u" ]]; then
-	if [ -z "$FERRY_DIR" ]; then
-    	    echo -e "${RED}you must set the FERRY_DIR environment variable${NC}"
-	else
-    	    echo -e "${BLUE}starting ferry, using $FERRY_DIR to save state${NC}"
-	    docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e USER=$USER -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh internal $1
-	fi
-    fi
-}
-
-# Function to connect to the Ferry image. 
-function run_ferry_server {
-    # Check if the 'ferry' image is actually built. If not
-    # go ahead and build the image. 
-    make_ferry_image
-
-    if [ -z "$FERRY_DIR" ]; then
-    	echo -e "${RED}you must set the FERRY_DIR environment variable${NC}"
-    else
-    	echo -e "${BLUE}starting ferry client${NC}"
-	docker run --privileged -v $FERRY_DIR:/var/lib/ferry -e FERRY_SCRATCH=/var/lib/ferry/scratch -e USER=$USER -e HOME=/var/lib/ferry -e FERRY_HOME=/usr/local/lib/python2.7/dist-packages/ferry -i -t ferry/ferry-server /service/sbin/make.sh console
-    fi
-}
-
-# Check what version of Docker is running. Since we're running Docker in Docker,
-# we need at least version 0.6.0. 
-function check_docker_version {
-    MINVERSION="0.6.0"
-    VERSION=$(docker version | grep Server | awk '{print $3}')
-    vercomp $VERSION $MINVERSION
-    case $? in
-	2) echo -e "${RED}Docker version >= $MINVERSION required, found $VERSION${NC}" 
-	    exit 1
-	    ;;
-	*) echo -e "${GREEN}Docker version $VERSION accepted${NC}" ;;
-    esac
-}
-
-# Check if the user has quit the external docker container
-# without shutting down Ferry properly. 
-function check_ghost_mongo {
-    OUTPUT=$(ferry clean)
-    echo -e "${GREEN}${OUTPUT}${NC}"
-}
-
-#
-# Authorize the public key for password-less ssh. 
-#
-function authorize_keys {
-    cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-}
-
-#
-# Start an SSH server. 
-#
-function start_ssh {
-    /usr/sbin/sshd -D
-}
-
-# Display the usage information. 
-if [ "$#" == 0 ]; then
-    echo "Usage: make.sh CMD <OPTIONS>"
-    echo ""
-    echo "Options:"
-    echo "    -u       Force upgrade"
-    echo "    -f       Build Ferry server image"
-    echo ""
-    echo "Commands:"
-    echo "    install  Install all the Ferry images"
-    echo "    ssh      Start server in ssh mode"
-    echo "    start    Log into the Ferry client"
-    echo ""
-    exit 1
-fi 
-
 # Parse any options. 
 ARG=""
 if [ "$#" == 2 ]; then
@@ -246,14 +114,4 @@ if [[ $1 == "internal" ]]; then
 elif [[ $1 == "console" ]]; then
     prepare_dind
     exec bash
-elif [[ $1 == "ssh" ]]; then
-    prepare_dind
-    authorize_keys
-    start_ssh
-elif [[ $1 == "install" ]]; then
-    check_docker_version
-    make_images_external $ARG
-elif [[ $1 == "start" ]]; then
-    check_docker_version
-    run_ferry_server
 fi
