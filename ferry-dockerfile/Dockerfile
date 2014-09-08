@@ -5,6 +5,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 36A1D7869245C8950F9
 RUN sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
 
 RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get --yes upgrade
 RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install lxc iptables ca-certificates cgroup-lite aufs-tools build-essential python-dev python-pip python-babel openssh-server
 
 # Create docker group & ferry user
