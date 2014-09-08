@@ -293,7 +293,8 @@ class CloudFabric(object):
         all_output = {}
         for c in containers:
             output, _ = self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
-            all_output[c.host_name] = output.strip()
+            if output.strip() != "":
+                all_output[c.host_name] = output.strip()
         return all_output
 
     def cmd_raw(self, key, ip, cmd, user):

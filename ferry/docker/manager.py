@@ -295,8 +295,9 @@ class DockerManager(object):
         cluster = self.cluster_collection.find_one( {'uuid': stack_uuid} )
         json_reply['key'] = cluster['key']
         json_reply['base'] = cluster['base']
-        json_reply['ts'] = cluster['base']
-        
+        json_reply['ts'] = str(cluster['ts'])
+        json_reply['output'] = cluster['output']
+
         connector_uuids = []
         if cluster and 'connectors' in cluster:
             connector_uuids = cluster['connectors']
@@ -850,7 +851,7 @@ class DockerManager(object):
         """
         return self._new_stack_uuid()
 
-    def register_stack(self, backends, connectors, base, cluster_uuid, status, key=None, new_stack=True):
+    def register_stack(self, backends, connectors, base, cluster_uuid, status, output=None, key=None, new_stack=True):
         """
         Register the set of services under a single cluster identifier. 
         """
@@ -863,6 +864,7 @@ class DockerManager(object):
                     'backends' : backends,
                     'connectors' : connectors, 
                     'status': status,
+                    'output' : output, 
                     'key' : key, 
                     'ts':ts }
 

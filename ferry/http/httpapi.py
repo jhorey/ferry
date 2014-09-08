@@ -491,6 +491,7 @@ def _allocate_new_worker(uuid, payload):
                                   key = key_name,
                                   cluster_uuid = uuid, 
                                   status='running', 
+                                  output = output,
                                   new_stack=False)
             reply['text'] = str(uuid)
             reply['msgs'] = output
@@ -540,6 +541,7 @@ def _allocate_stopped_worker(payload):
                               base = stack['base'],
                               cluster_uuid = uuid,
                               status='running', 
+                              output = output,
                               key = stack['key'],
                               new_stack = False)
         return json.dumps({'status' : 'ok',
@@ -586,6 +588,7 @@ def _allocate_snapshot_worker(uuid, payload):
                               base = payload['_file'],
                               cluster_uuid = uuid,
                               status='running', 
+                              output = output,
                               key = key_name,
                               new_stack = True)
         return json.dumps({'status' : 'ok',
