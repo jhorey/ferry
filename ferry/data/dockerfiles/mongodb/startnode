@@ -53,6 +53,12 @@ function start_mongo {
     chown -R ferry:ferry /service/data
     chown -R ferry:ferry /service/logs
 
+    # Check if there was an unclean shutdown. If so, remove
+    # the Mongo lock, and run repair. 
+    if [[ -e /service/data/mongod.lock ]]; then
+	rm /service/data/mongod.lock
+    fi
+
     # Start the mongo server. MongoDB can be started in either
     # trusted or non-trusted modes. Trusted means that authentication
     # is turned off (should only be used by the installer). 
