@@ -804,6 +804,9 @@ class Installer(object):
                 if self._is_running_btrfs():
                     logging.warning("using btrfs backend")
                     bflag = ' -s btrfs'
+                else:
+                    logging.warning("using devmapper backend")
+                    bflag = ' -s devicemapper'
 
                 # Explicitly supply the DNS.
                 if options and '-d' in options:

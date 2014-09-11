@@ -653,11 +653,11 @@ class DockerManager(object):
             new_log_dir = self._new_log_dir(service_uuid, t, i, replace=replace)
             dir_info = { new_log_dir : log_dir }
 
-            # Only use a data directory mapping if we're not
-            # using BTRFS (this is to get around the xattr problem). 
-            if self.docker.get_fs_type() != "btrfs":
-                new_data_dir = self._new_data_dir(service_uuid, t, i)
-                dir_info[new_data_dir] = container_dir
+            # Create an external data directory so that we can
+            # easily restart containers without losing data. Also
+            # helps with overall performance. 
+            new_data_dir = self._new_data_dir(service_uuid, t, i)
+            dir_info[new_data_dir] = container_dir
 
             container_info = {'image':instance_type,
                               'type':t, 
