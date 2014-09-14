@@ -19,6 +19,10 @@ import os
 from flask import Flask, request
 from pymongo import MongoClient
 from ferry.ip.nat import NAT
+import sys
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 
 class DHCP(object):
     def __init__(self):
@@ -249,3 +253,9 @@ def set_owner():
     args = json.loads(request.form['args'])
     dhcp.set_owner(args['ip'], args['container'])
     return ""
+
+if __name__ == '__main__':
+    http_server = HTTPServer(WSGIContainer(app))
+    http_server.listen(port=int(sys.argv[2]),
+                       address=sys.argv[1])
+    IOLoop.instance().start()

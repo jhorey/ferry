@@ -288,11 +288,18 @@ class DockerManager(object):
         """
         Inspect a running stack. 
         """
+
+        # Check if the cluster is running or not first.
+        cluster = self.cluster_collection.find_one( {'uuid': stack_uuid} )
+        if not cluster:
+            return None
+        elif cluster['status'] != 'running' and cluster['status'] != 'stopped':
+            return None
+
         json_reply = { 'uuid' : stack_uuid,
                        'status' : 'stack' }
 
         # Get the collection of all backends and connector UUIDS.
-        cluster = self.cluster_collection.find_one( {'uuid': stack_uuid} )
         json_reply['key'] = cluster['key']
         json_reply['base'] = cluster['base']
         json_reply['ts'] = str(cluster['ts'])

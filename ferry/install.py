@@ -210,10 +210,21 @@ class Installer(object):
         self.config = read_ferry_config()
 
     def get_ferry_account(self):
-        args = self.config['ferry']
-        if all(k in args for k in ("user","key","server")):
-            return args['user'], args['key'], args['server']
+        """
+        Get the Ferry authentication information. 
+        """
+        if 'ferry' in self.config:
+            args = self.config['ferry']
+            if all(k in args for k in ("user","key","server")):
+                return args['user'], args['key'], args['server']
         return None, None, None
+
+    def _get_worker_info(self):
+        """
+        Get information regarding how to start the remote HTTP API. 
+        """
+        args = self.config['web']
+        return int(args['workers']), args['bind'], args['port']
 
     def create_signature(self, request, key):
         """
@@ -482,20 +493,21 @@ class Installer(object):
 
         # Start the DHCP server
         logging.warning("starting dhcp server")
-        cmd = 'gunicorn -t 3600 -b 127.0.0.1:5000 -w 1 ferry.ip.dhcp:app &'
+        # cmd = 'gunicorn -t 3600 -b 127.0.0.1:5000 -w 1 ferry.ip.dhcp:app &'
+        cmd = 'python %s/ip/dhcp.py 127.0.0.1 5000  &' % FERRY_HOME
         Popen(cmd, stdout=PIPE, shell=True, env=my_env)
         time.sleep(2)
 
         # Reserve the Mongo IP.
         self.network.reserve_ip(ip)
 
-        # Start the Ferry HTTP server. We used to start multiple
-        # workers, but since we operate in an asynch. manner, this
-        # shouldn't be necessary anymore. 
-        logging.warning("starting http servers on port 4000 and mongo %s" % ip)
-        # cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 1 -b 127.0.0.1:4000 ferry.http.httpapi:app &' % FERRY_HOME
-        cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w 1 -b 0.0.0.0:4000 ferry.http.httpapi:app &' % FERRY_HOME
-        Popen(cmd, stdout=PIPE, shell=True, env=my_env)
+        # Start the Ferry HTTP server. Read in the web configuration
+        # so that we know how many workers to start, etc. 
+        workers, bind, port = self._get_worker_info()
+        logging.warning("starting API servers on (%s:%s) and (mongo:%s)" % (bind, port, ip))
+        # cmd = 'gunicorn -e FERRY_HOME=%s -t 3600 -w %d -b %s:%s ferry.http.httpapi:app &' % (FERRY_HOME, workers, bind, port)
+        cmd = 'export FERRY_HOME=%s && python %s/http/httpapi.py %s %s &' % (FERRY_HOME, FERRY_HOME, bind, port)
+        Popen(cmd, shell=True, env=my_env)
 
     def _force_stop_web(self):
         logging.warning("stopping docker http servers")

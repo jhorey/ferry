@@ -1,2 +1,6 @@
 system:
   backend: ferry.fabric.local/LocalFabric
+web:
+  workers: 1
+  bind: 127.0.0.1
+  port: 4000

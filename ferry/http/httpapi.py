@@ -20,16 +20,18 @@ import ferry.install
 from ferry.install import Installer
 from ferry.docker.manager import DockerManager
 from ferry.docker.docker import DockerInstance
+import os
 import Queue
+import sys
 import threading2
 import time
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 
-from flask.ext.cors import CORS
 
 # Initialize Flask
 app = Flask(__name__)
-
-CORS(app, resources=r'/*', headers='Content-Type')
 
 # Initialize the storage driver
 installer = Installer()
@@ -666,7 +668,6 @@ def allocate_stack():
     """
     payload = json.loads(request.form['payload'])
     key_name = request.form['key']
-    logging.warning("PAYLOAD: " + str(payload))
 
     # Check whether the user wants to start from fresh or
     # start with a snapshot.
@@ -723,10 +724,9 @@ def inspect():
     Inspect a particular stack.
     """
     uuid = request.args['uuid']
-
-    if docker.is_running(uuid) or docker.is_stopped(uuid):
-        # This is an active application stack. 
-        return docker.inspect_stack(uuid)
+    resp = docker.inspect_stack(uuid)
+    if resp:
+        return resp
     elif docker.is_installed(uuid):
         return docker.inspect_installed(uuid)
     else:
@@ -768,3 +768,26 @@ def _manage_stack_worker(uuid, action, private_key):
     reply = docker.manage_stack(stack_uuid = uuid, 
                                 private_key = private_key,
                                 action = action)
+
+@app.before_request
+def before_request():
+    context = {
+        'url': request.path,
+        'method': request.method,
+        'ip': request.environ.get("REMOTE_ADDR")
+    }
+    logging.debug("%(method)s from %(ip)s for %(url)s", context)
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
+
+if __name__ == '__main__':
+    http_server = HTTPServer(WSGIContainer(app))
+    http_server.listen(port=int(sys.argv[2]),
+                       address=sys.argv[1])
+    IOLoop.instance().start()
+
