@@ -521,11 +521,11 @@ class Installer(object):
             ip = f.read().strip()
             f.close()
 
-            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode stop' % (key, ip)
+            cmd = 'LC_ALL=C && ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode stop' % (key, ip)
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
             logging.warning(output)
-            cmd = 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode halt' % (key, ip)
+            cmd = 'LC_ALL=C && ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i %s root@%s /service/sbin/startnode halt' % (key, ip)
             logging.warning(cmd)
             output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
             logging.warning(output)
