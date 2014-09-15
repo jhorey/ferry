@@ -121,6 +121,7 @@ class SingleLauncher(object):
         # cidr, gateway, etc.)
         self._init_openstack_clients()
         self._collect_subnet_info()
+
     def _get_host_key(self):
         """
         Get the location of the private ssh key. 

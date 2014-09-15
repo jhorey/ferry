@@ -13,6 +13,15 @@
 # limitations under the License.
 #
 
+import boto
+import boto.cloudformation
+import boto.ec2
+import boto.vpc
+from boto.ec2.address import *
+from boto.ec2.networkinterface import *
+from boto.exception import BotoServerError, EC2ResponseError
+from boto.ec2.blockdevicemapping import BlockDeviceType, EBSBlockDeviceType, BlockDeviceMapping
+import ferry.install
 import json
 import logging
 import math
@@ -26,31 +35,70 @@ class AWSLauncher(object):
     Launches new instances/networks on an AWS
     cluster and initializes the instances to run Ferry processes. 
     """
-    def __init__(self, conf_file):
+    def __init__(self, controller):
         self.docker_registry = None
         self.docker_user = None
-
+        
+        self.controller = controller
         self.networks = {}
         self.stacks = {}
         self.num_network_hosts = 128
         self.num_subnet_hosts = 32
 
-        self._init_aws_stack(conf_file)
+        self._init_aws_stack()
 
-    def _init_aws_stack(self, conf_file):
-        with open(conf_file, 'r') as f:
-            args = yaml.load(f)
+    def _init_aws_stack(self):
+        conf = ferry.install.read_ferry_config()
+        provider = conf['system']['provider']
 
-            params = args['aws']['params']
-            self.default_dc = params['dc']
-            self.default_zone = params['zone']
+        params = conf[provider]['params']
+        self.default_dc = params['dc']
+        self.default_zone = params['zone']
 
-            deploy = args['hp']['deploy']
-            self.default_image = deploy['image']
-            self.ferry_volume = deploy['image-volume']
-            self.default_personality = deploy['personality']
-            self.ssh_key = deploy['ssh']
-            self.ssh_user = deploy['ssh-user']
+        # This gives us information about the image to use
+        # for the supplied provider. 
+        deploy = conf[provider]['deploy']
+
+        self.default_image = deploy['image']
+        self.default_personality = deploy['personality']
+        self.ssh_key = deploy['ssh']
+        self.ssh_user = deploy['ssh-user']
+
+        # Get user credentials
+        self.aws_user = deploy['user']
+        self.aws_access_key = deploy['access']
+        self.aws_secret_key = deploy['secret']
+        
+        # Check for an existing VPC ID. If there isn't
+        # one, we'll just go ahead and allocate one. 
+        if 'vpc' in deploy:
+            self.vpc_id = deploy['vpc']
+        else:
+            self.vpc_id = None
+
+        # Initialize the AWS clients.
+        self._init_aws_clients()
+
+    def _init_aws_clients(self):
+        # We will need to use both EC2 and VPC. 
+        self.ec2 = boto.ec2.connect_to_region(self.default_dc,
+                                              aws_access_key_id = self.aws_access_key,
+                                              aws_secret_access_key = self.aws_secret_key)
+        self.vpc = boto.vpc.VPCConnection(aws_access_key_id = self.aws_access_key,
+                                          aws_secret_access_key = self.aws_secret_key)
+        self.cf = boto.cloudformation.connect_to_region(self.default_dc, 
+                                                        aws_access_key_id = self.aws_access_key,
+                                                        aws_secret_access_key = self.aws_secret_key)
+
+    def _get_host_key(self):
+        """
+        Get the location of the private ssh key. 
+        """
+        p = self.ssh_key.split("/")
+        if len(p) == 1:
+            return "/ferry/keys/" + self.ssh_key + ".pem"
+        else:
+            return self.ssh_key + ".pem"
 
     def _define_address_range(self, num_hosts):
         """
@@ -120,13 +168,11 @@ class AWSLauncher(object):
         # to include additional ports. 
         desc = { group_name : { "Type" : "AWS::EC2::SecurityGroup",
                                 "Properties" : { "GroupDescription" : "Ferry firewall rules", 
-                                                 "VpcId" : { "Ref" : network }, 
-                                                 "SecurityGroupIngress" : [ { "IpProtocol" : "icmp",
-                                                                              "CidrIp": "0.0.0.0/0" },
-                                                                            { "IpProtocol" : "tcp",
+                                                 "VpcId" : self.vpc_id, 
+                                                 "SecurityGroupIngress" : [ { "IpProtocol" : "tcp",
                                                                               "CidrIp": "0.0.0.0/0",
-                                                                              "FromPort" : 22, 
-                                                                              "ToPort" : 22 }]}}}
+                                                                              "FromPort" : "22", 
+                                                                              "ToPort" : "22" }]}}}
         # Ports for internal connections. 
         for p in ports:
             min_port = p[0]
@@ -221,7 +267,10 @@ class AWSLauncher(object):
         """
         Update the security group. 
         """
-        sec_group_name = "ferry-sec-%s" % cluster_uuid
+
+        # We need to replace the '-' character since AWS
+        # only likes alphanumeric characters.         
+        sec_group_name = "FerrySec%s" % cluster_uuid.replace("-", "")
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated CloudFormation plan",
                  "Resources" : self._create_security_group(sec_group_name, ports, internal) }
@@ -234,10 +283,10 @@ class AWSLauncher(object):
                  "Resources" : {},
                  "Outputs" : {} }
         
-        network_name = "ferry-net-%s" % cluster_uuid
+        network_name = "FerryNet%s" % cluster_uuid.replace("-", "")
         network = self._create_network(network_name)
 
-        subnet_name = "ferry-sub-%s" % cluster_uuid
+        subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
         public_subnet, subnet_desc = self._create_subnet(subnet_name, network_name)
 
         plan["Resources"] = dict(plan["Resources"].items() + network.items())
@@ -257,7 +306,7 @@ class AWSLauncher(object):
 
         for i in range(0, num_instances):
             # Create the actual instances. 
-            instance_name = "ferry-instance-%s-%s-%d" % (cluster_uuid, ctype, i)
+            instance_name = "FerryInstance%s%s%d" % (cluster_uuid.replace("-", ""), ctype, i)
             instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, sec_group_name)
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
             desc = dict(desc.items() + instance_desc.items())
@@ -265,11 +314,26 @@ class AWSLauncher(object):
 
         return plan, desc
 
-    def _launch_heat_plan(self, stack_name, heat_plan, stack_desc):
+    def _launch_cloudformation(self, stack_name, cloud_plan, stack_desc):
         """
         Launch the cluster plan.  
         """
-        logging.info("launching heat plan: " + str(heat_plan))
+        logging.warning("launching cloud formation: " + json.dumps(cloud_plan,
+                                                                   sort_keys=True,
+                                                                   indent=2,
+                                                                   separators=(',',':')))
+        
+        try:
+            # Try to create the application stack. 
+            return self.cf.create_stack(stack_name, template_body=str(cloud_plan))
+        except boto.exception.BotoServerError as e:
+            logging.error(str(e))
+            return None
+        except:
+            # We could not create the stack. This probably means
+            # that the AWS service is temporarily down. 
+            logging.error("could not create Cloudformation stack")
+            return None
 
     def _collect_resources(self, stack_id):
         """
@@ -290,7 +354,7 @@ class AWSLauncher(object):
         """
         logging.info("creating network for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_network_plan(cluster_uuid)
-        return self._launch_heat_plan("ferry-app-NET-%s" % cluster_uuid, stack_plan, stack_desc)
+        return self._launch_cloudformation("Ferry App NET %s" % cluster_uuid.replace("-", ""), stack_plan, stack_desc)
 
 
     def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
@@ -305,7 +369,10 @@ class AWSLauncher(object):
                                                                     internal = internal_ports, 
                                                                     ctype = ctype) 
 
-        return sec_group_plan
+        stack_desc = {}
+        stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), sec_group_plan, stack_desc)
+        return stack_desc
+
         # logging.info("creating instances for %s" % cluster_uuid)
         # stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
         #                                                     num_instances = num_instances, 
@@ -334,7 +401,7 @@ class AWSLauncher(object):
 
         # return stack_plan
 
-        # stack_desc = self._launch_heat_plan("ferry-app-%s-%s" % (ctype.upper(), cluster_uuid), stack_plan, stack_desc)
+        # stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
 
         # # Now find all the IP addresses of the various
         # # machines. 
