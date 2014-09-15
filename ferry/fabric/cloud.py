@@ -299,7 +299,7 @@ class CloudFabric(object):
 
     def cmd_raw(self, key, ip, cmd, user):
         ip = user + '@' + ip
-        ssh = 'ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+        ssh = 'LC_ALL=C && ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
         logging.warning(ssh)
         return robust_com(ssh)
 

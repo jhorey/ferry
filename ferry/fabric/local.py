@@ -288,7 +288,7 @@ class LocalFabric(object):
     def cmd_raw(self, key, ip, cmd, user):
         if key:
             ip = user + '@' + ip
-            ssh = 'ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
+            ssh = 'LC_ALL=C && ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
             out, _ = robust_com(ssh)
             return out
