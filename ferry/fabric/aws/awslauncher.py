@@ -410,6 +410,47 @@ class AWSLauncher(object):
 
         return plan, desc
 
+    def _create_igw_plan(self, name, route_table, vpc, is_ref):
+        """
+        Create a new internet gateway and associate it 
+        with the VPC. 
+        """
+
+        # Determine whether we're creating a VPC that we've just created
+        # or one that already exists. 
+        if is_ref:
+            network = { "Ref" : vpc }
+        else:
+            network = vpc
+
+        # Create a new internet gateway. This one is pretty simple
+        # since there are no options ;)
+        logging.info("creating IGW")
+        igw_plan = { name : { "Type" : "AWS::EC2::InternetGateway" }}
+
+        # Attach the internet gateway to our VPC. 
+        attach_plan = { name + "Attach": { "Type" : "AWS::EC2::VPCGatewayAttachment",
+                          "Properties" : { "InternetGatewayId" : { "Ref" : igw_name },
+                                           "VpcId" : network}}}
+
+        # Also create a new route associated with this
+        # internet gateway. This will send all outbound internet
+        # traffic to the gateway. 
+        route_plan = { name + "Route": { "Type" : "AWS::EC2::Route",
+                          "Properties" : { "GatewayId" : { "Ref" : name },
+                                           "RouteTableId" : { "Ref" : route_table },
+                                           "DestinationCidrBlock" : "0.0.0.0/0" }}}
+
+        desc = { "type" : "AWS::EC2::InternetGateway",
+                 "vpc" : network }
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated Heat plan",
+                 "Resources" : {} }
+        plan["Resources"] = dict(igw_plan.items() + 
+                                 attach_plan.items() +
+                                 route_plan.items() )
+        return plan, desc
+
     def _create_instance_plan(self, cluster_uuid, subnet, num_instances, image, size, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
@@ -552,6 +593,28 @@ class AWSLauncher(object):
                                        indent=2,
                                        separators=(',',':')))
             stack_desc = self._launch_cloudformation("FerrySubnet%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
+
+        if not self.manage_subnet:
+            logging.warning("Creating manage subnet")
+            subnet_name = "FerryManage%s" % cluster_uuid.replace("-", "")
+            table_name = "FerryManageRoute%s" % cluster_uuid.replace("-", "")
+            igw_name = "FerryManageIGW%s" % cluster_uuid.replace("-", "")
+            subnet_plan, subnet_desc = self._create_subnet_plan(subnet_name, vpc_name, is_ref, is_public=False)
+            table_plan, table_desc = self._create_routetable_plan(table_name, subnet_name, vpc_name, is_ref)
+            igw_plan, igw_desc = self._create_igw_plan(igw_name, table_name, vpc_name, is_ref)
+
+            # Combine the network resources. 
+            if len(stack_plan) == 0:
+                stack_plan = subnet_plan
+            else:
+                stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
+                                               subnet_plan["Resources"].items() + 
+                                               table_plan["Resources"].items() +
+                                               igw_plan["Resources"].items() )
+            stack_desc = dict(stack_desc.items() + 
+                              subnet_desc.items() + 
+                              table_desc.items() +
+                              igw_desc.items())
 
         # # Create the main data security group. This is the security
         # # group that controls both internal and external communication with
