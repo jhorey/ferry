@@ -71,10 +71,15 @@ class AWSLauncher(object):
         
         # Check for an existing VPC ID. If there isn't
         # one, we'll just go ahead and allocate one. 
-        if 'vpc' in deploy:
-            self.vpc_id = deploy['vpc']
+        if 'data_vpc' in deploy:
+            self.data_vpc = deploy['data_vpc']
         else:
-            self.vpc_id = None
+            self.data_vpc = None
+
+        if 'manage_vpc' in deploy:
+            self.manage_vpc = deploy['manage_vpc']
+        else:
+            self.manage_vpc = None
 
         # Initialize the AWS clients.
         self._init_aws_clients()
@@ -168,7 +173,7 @@ class AWSLauncher(object):
         # to include additional ports. 
         desc = { group_name : { "Type" : "AWS::EC2::SecurityGroup",
                                 "Properties" : { "GroupDescription" : "Ferry firewall rules", 
-                                                 "VpcId" : self.vpc_id, 
+                                                 "VpcId" : self.data_vpc, 
                                                  "SecurityGroupIngress" : [ { "IpProtocol" : "tcp",
                                                                               "CidrIp": "0.0.0.0/0",
                                                                               "FromPort" : "22", 
@@ -318,14 +323,10 @@ class AWSLauncher(object):
         """
         Launch the cluster plan.  
         """
-        logging.warning("launching cloud formation: " + json.dumps(cloud_plan,
-                                                                   sort_keys=True,
-                                                                   indent=2,
-                                                                   separators=(',',':')))
-        
         try:
             # Try to create the application stack. 
-            return self.cf.create_stack(stack_name, template_body=str(cloud_plan))
+            stack_id = self.cf.create_stack(stack_name, template_body=json.dumps((cloud_plan)))
+            logging.warning(stack_id)
         except boto.exception.BotoServerError as e:
             logging.error(str(e))
             return None
@@ -334,6 +335,34 @@ class AWSLauncher(object):
             # that the AWS service is temporarily down. 
             logging.error("could not create Cloudformation stack")
             return None
+
+        # Now wait for the stack to be in a completed state
+        # before returning. That way we'll know if the stack creation
+        # has failed or not. 
+        if not self._wait_for_stack(stack_id):
+            logging.warning("Heat plan %s CREATE_FAILED" % stack_id)
+            return None
+
+        return stack_desc
+
+    def _wait_for_stack(self, stack_id):
+        """
+        Wait for stack completion.
+        """
+        stacks = self.cf.describe_stacks(stack_id)
+        for stack in stacks:
+            while(True):
+                try:
+                    if stack.stack_status == "CREATE_COMPLETE":
+                        return True
+                    elif stack.stack_status == "CREATE_FAILED":
+                        return False
+                    else:
+                        stack.update()
+                        time.sleep(4)
+                except:
+                    logging.error("could not fetch stack status (%s)" % str(stack_id))
+                    return False
 
     def _collect_resources(self, stack_id):
         """
@@ -380,6 +409,8 @@ class AWSLauncher(object):
         #                                                     size = self.default_personality, 
         #                                                     sec_group_name = sec_group_desc.keys()[0], 
         #                                                     ctype = ctype)
+
+        # return stack_desc
 
         # # See if we need to assign any floating IPs 
         # # for this stack. We need the references to the neutron
