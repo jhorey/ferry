@@ -94,7 +94,9 @@ class AWSLauncher(object):
         if 'nat_image' in deploy:
             self.nat_image = deploy['nat_image']
         else:
-            self.nat_image = "ami-49691279"
+            # The default image is the official Amazon VPC NAT
+            # with HVM (HVM is compatible with more instance types). 
+            self.nat_image = "ami-8b6912bb"
 
         # Initialize the AWS clients.
         self._init_aws_clients()
@@ -192,7 +194,7 @@ class AWSLauncher(object):
                  "table" : table }
         return plan, desc
 
-    def _create_security_group(self, group_name, network, is_ref, ports, internal):
+    def _create_security_group(self, group_name, network, is_ref, ports, internal, outbound):
         """
         Create and assign a security group to the supplied server. 
         """
@@ -233,7 +235,10 @@ class AWSLauncher(object):
                                                                             "FromPort" : min_port,
                                                                             "ToPort" : max_port })
 
-        # Outbound ports. 
+        # Outbound ports. This is not required. If the user
+        # doesn't supply egress rules, then all outgoing requests are allowed. 
+        if len(outbound) > 0:
+            desc[group_name]["Properties"]["SecurityGroupEgress"] = []
         for p in outbound:
             min_port = p[0]
             max_port = p[1]
@@ -243,7 +248,7 @@ class AWSLauncher(object):
                                                                            "ToPort" : max_port })
         return desc
         
-    def _create_port(self, name, network, sec_group, ref=True):
+    def _create_nic(self, name, network, sec_group, ref=True):
         """
         Create a network interface and attachment 
         """
@@ -293,7 +298,7 @@ class AWSLauncher(object):
           }}
         return user_data
 
-    def _create_instance(self, name, image, size, sec_group):
+    def _create_instance(self, name, subnet, image, size, sec_group, user_data):
         """
         Create a new instance
         """
@@ -302,25 +307,25 @@ class AWSLauncher(object):
                                            "InstanceType" : size,
                                            "KeyName" : self.ssh_key, 
                                            "AvailabilityZone" : self.default_zone, 
-                                           "SecurityGroups" : [ { "Ref" : sec_group } ] }}} 
+                                           "SubnetId" : subnet, 
+                                           "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}} 
         desc = { name : { "type" : "AWS::EC2::Instance",
                           "ports" : [],
                           "volumes" : [] }}
 
         # Now add the user script.
-        user_data = self._create_server_init(name)
-        plan[name]["Properties"]["UserData"] = user_data
+        if user_data:
+            plan[name]["Properties"]["UserData"] = user_data
 
         return plan, desc
 
-    def _create_security_plan(self, cluster_uuid, network, is_ref, ports, internal, outbound=[]):
+    def _create_security_plan(self, sec_group_name, network, is_ref, ports, internal, outbound=[]):
         """
         Update the security group. 
         """
 
         # We need to replace the '-' character since AWS
         # only likes alphanumeric characters.         
-        sec_group_name = "FerrySec%s" % cluster_uuid.replace("-", "")
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated CloudFormation plan",
                  "Resources" : self._create_security_group(sec_group_name, network, is_ref, ports, internal, outbound) }
@@ -377,35 +382,35 @@ class AWSLauncher(object):
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {} }
 
+        # Create a NAT security group. This security group is
+        # fairly locked down and only lets machines communicate via
+        # HTTP and make outbound SSH calls.
+        logging.info("creating NAT security group")
+        sec_group_name = "FerryNATSec%s" % subnet
+        sec_group_plan = self._create_security_group(group_name = sec_group_name, 
+                                                     network = vpc,
+                                                     is_ref = is_ref, 
+                                                     ports = [("80","80"),("443","443")],
+                                                     internal = [],
+                                                     outbound = [("80","80"),("443","443")])
+
         # Create the NAT instance. Thsi is the actual machine that
         # handles all the NAT requests. 
         instance_name = "FerryNAT%s" % subnet
         instance_plan, instance_desc = self._create_instance(name = instance_name, 
+                                                             subnet = { "Ref" : subnet }, 
                                                              image = self.nat_image, 
                                                              size = self.default_personality,
-                                                             sec_group = sec_group_name)
-
-        # We'll also need a NAT security group. This security group is
-        # fairly locked down and only lets machines communicate via
-        # HTTP and make outbound SSH calls.
-        logging.info("creating NAT security group")
-        sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
-                                                                    network = vpc,
-                                                                    is_ref = is_ref, 
-                                                                    ports = [("80","80"),("443","443")],
-                                                                    internal = [],
-                                                                    outbound = [("80","80"),("443","443")])
-
-        # Now associate the NAT instance with the new security group. 
-
+                                                             sec_group = sec_group_name,
+                                                             user_data = None)
 
         plan["Resources"] = dict(instance_plan.items() + 
                                  sec_group_plan.items())
-        desc = dict(desc.items() + instance_desc.items())
+        desc = instance_desc
 
         return plan, desc
 
-    def _create_instance_plan(self, cluster_uuid, num_instances, image, size, sec_group_name, ctype): 
+    def _create_instance_plan(self, cluster_uuid, subnet, num_instances, image, size, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
@@ -415,7 +420,8 @@ class AWSLauncher(object):
         for i in range(0, num_instances):
             # Create the actual instances. 
             instance_name = "FerryInstance%s%s%d" % (cluster_uuid.replace("-", ""), ctype, i)
-            instance_plan, instance_desc = self._create_instance(instance_name, image, size, self.manage_network, sec_group_name)
+            user_data = self._create_server_init(instance_name)
+            instance_plan, instance_desc = self._create_instance(instance_name, subnet, image, size, self.manage_network, sec_group_name, user_data)
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
             desc = dict(desc.items() + instance_desc.items())
 
@@ -445,7 +451,6 @@ class AWSLauncher(object):
             return None
 
         # Now find the physical IDs of all the resources. 
-        logging.warning(stack_desc)
         resources = self._collect_resources(stack_id)
         for r in resources:
             if r.logical_resource_id in stack_desc:
@@ -527,6 +532,7 @@ class AWSLauncher(object):
             table_name = "FerryRoute%s" % cluster_uuid.replace("-", "")
             subnet_plan, subnet_desc = self._create_subnet_plan(subnet_name, vpc_name, is_ref, is_public=False)
             table_plan, table_desc = self._create_routetable_plan(table_name, subnet_name, vpc_name, is_ref)
+            nat_plan, nat_desc = self._create_nat_plan(table_name, subnet_name, vpc_name, is_ref)
 
             # Combine the network resources. 
             if len(stack_plan) == 0:
@@ -534,25 +540,29 @@ class AWSLauncher(object):
             else:
                 stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
                                                subnet_plan["Resources"].items() + 
-                                               table_plan["Resources"].items() )
+                                               table_plan["Resources"].items() +
+                                               nat_plan["Resources"].items() )
             stack_desc = dict(stack_desc.items() + 
                               subnet_desc.items() + 
-                              table_desc.items() )
+                              table_desc.items() +
+                              nat_desc.items())
+
             logging.warning(json.dumps(stack_plan, 
                                        sort_keys=True,
                                        indent=2,
                                        separators=(',',':')))
             stack_desc = self._launch_cloudformation("FerrySubnet%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
 
-        # Create the main data security group. This is the security
-        # group that controls both internal and external communication with
-        # the data subnet. 
-        logging.info("creating security group for %s" % cluster_uuid)
-        sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
-                                                                    network = vpc_name,
-                                                                    is_ref = is_ref,
-                                                                    ports = security_group_ports,
-                                                                    internal = internal_ports)
+        # # Create the main data security group. This is the security
+        # # group that controls both internal and external communication with
+        # # the data subnet. 
+        # logging.info("creating security group for %s" % cluster_uuid)
+        # sec_group_name = "FerrySec%s" % cluster_uuid.replace("-", "")
+        # sec_group_plan, sec_group_desc = self._create_security_plan(sec_group_name = sec_group_name,
+        #                                                             network = vpc_name,
+        #                                                             is_ref = is_ref,
+        #                                                             ports = security_group_ports,
+        #                                                             internal = internal_ports)
 
         # stack_desc = dict(stack_desc.items() + sec_group_desc.items())
         # stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), sec_group_plan, stack_desc)
