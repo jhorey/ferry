@@ -40,7 +40,7 @@ class AWSLauncher(object):
         self.docker_user = None
         
         self.controller = controller
-        self.networks = {}
+        self.subnets = []
         self.stacks = {}
         self.num_network_hosts = 128
         self.num_subnet_hosts = 32
@@ -71,15 +71,20 @@ class AWSLauncher(object):
         
         # Check for an existing VPC ID. If there isn't
         # one, we'll just go ahead and allocate one. 
-        if 'data_vpc' in deploy:
-            self.data_vpc = deploy['data_vpc']
+        if 'vpc' in deploy:
+            self.vpc_id = deploy['vpc']
         else:
-            self.data_vpc = None
+            self.vpc_id = None
 
-        if 'manage_vpc' in deploy:
-            self.manage_vpc = deploy['manage_vpc']
+        if 'data_subnet' in deploy:
+            self.data_subnet = deploy['data_subnet']
         else:
-            self.manage_vpc = None
+            self.data_subnet = None
+
+        if 'manage_subnet' in deploy:
+            self.manage_subnet = deploy['manage_subnet']
+        else:
+            self.manage_subnet = None
 
         # Initialize the AWS clients.
         self._init_aws_clients()
@@ -120,7 +125,7 @@ class AWSLauncher(object):
             slot = 1
         elif num_hosts < 65536:
             slot = 2
-        addr[slot] = len(self.networks) + 1
+        addr[slot] = len(self.subnets) + 1
 
         # Now set the gateway IP and address.
         gw = "%d.%d.%d.%d" % (addr[0], addr[1], addr[2], 1)
@@ -132,14 +137,11 @@ class AWSLauncher(object):
 
         return cidr, gw, start_pool, end_pool
 
-    def _create_network(self, name):
+    def _create_vpc(self, name):
         """
         Create a network (equivalent to VPC). 
         """
         cidr, _, _, _ = self._define_address_range(self.num_network_hosts)
-        self.networks[name] = { 'cidr' : cidr,
-                                'subnets' : [] }
-
         desc = { name : { "Type" : "AWS::EC2::VPC",
                           "Properties" : { "CidrBlock" : cidr }}}
         return desc
@@ -152,16 +154,32 @@ class AWSLauncher(object):
 
         # Define the subnet range and store the information. 
         cidr, gateway, pool_start, pool_end = self._define_address_range(self.num_subnet_hosts)
-        self.networks[network]['subnets'].append( { name : { 'cidr' : cidr,
-                                                             'gw' : gateway }} )
+        self.subnets.append( { name : { 'cidr' : cidr,
+                                        'gw' : gateway }} )
 
         plan = { name : { "Type" : "AWS::EC2::Subnet",
                           "Properties" : { "CidrBlock" : cidr,
                                            "AvailabilityZone" : self.default_zone, 
-                                           "VpcId" : { "Ref" : network}}}}
+                                           "VpcId" : network}}}
 
         desc = { "type" : "AWS::EC2::Subnet",
                  "cidr" : cidr }
+        return plan, desc
+
+    def _create_routetable(self, name, subnet, vpc):
+        plan = { name : { "Type" : "AWS::EC2::RouteTable",
+                          "Properties" : { "VpcId" : vpc}}}
+        desc = { "type" : "AWS::EC2::RouteTable",
+                 "vpc" : vpc }
+        return plan, desc
+
+    def _create_routeassoc(self, name, table, subnet):
+        plan = { name : { "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+                          "Properties" : { "SubnetId" : { "Ref" : subnet},
+                                           "RouteTableId" : { "Ref" : table } }}}
+        desc = { "type" : "AWS::EC2::SubnetRouteTableAssociation",
+                 "subnet" : subnet,
+                 "table" : table }
         return plan, desc
 
     def _create_security_group(self, group_name, ports, internal):
@@ -173,7 +191,7 @@ class AWSLauncher(object):
         # to include additional ports. 
         desc = { group_name : { "Type" : "AWS::EC2::SecurityGroup",
                                 "Properties" : { "GroupDescription" : "Ferry firewall rules", 
-                                                 "VpcId" : self.data_vpc, 
+                                                 "VpcId" : self.vpc_id, 
                                                  "SecurityGroupIngress" : [ { "IpProtocol" : "tcp",
                                                                               "CidrIp": "0.0.0.0/0",
                                                                               "FromPort" : "22", 
@@ -282,25 +300,50 @@ class AWSLauncher(object):
         desc = { sec_group_name : { "type" : "AWS::EC2::SecurityGroup" }}
         return plan, desc
 
-    def _create_network_plan(self, cluster_uuid):
+    def _create_vpc_plan(self, network_name):
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
-                 "Resources" : {},
-                 "Outputs" : {} }
+                 "Resources" : {} }
         
-        network_name = "FerryNet%s" % cluster_uuid.replace("-", "")
-        network = self._create_network(network_name)
-
-        subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
-        public_subnet, subnet_desc = self._create_subnet(subnet_name, network_name)
-
+        network = self._create_vpc(network_name)
         plan["Resources"] = dict(plan["Resources"].items() + network.items())
-        plan["Resources"] = dict(plan["Resources"].items() + public_subnet.items())
-        desc = { network_name : { "type" : "OS::Neutron::Net" },
-                 subnet_name : subnet_desc }
 
-        logging.info("create Heat network: " + str(desc))
+        desc = { network_name : { "type" : "AWS::VPC" } }
         return plan, desc
+
+    def _create_subnet_plan(self, subnet_name, vpc, is_ref, is_public):
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated Heat plan",
+                 "Resources" : {} }
+
+        # Determine whether we're creating a VPC that we've just created
+        # or one that already exists. 
+        if is_ref:
+            network = { "Ref" : vpc }
+        else:
+            network = vpc
+
+        public_subnet, subnet_desc = self._create_subnet(subnet_name, network)
+        plan["Resources"] = public_subnet
+        return plan, subnet_desc
+
+    def _create_routetable_plan(self, table_name, subnet, vpc, is_ref):
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated Heat plan",
+                 "Resources" : {} }
+
+        # Determine whether we're creating a VPC that we've just created
+        # or one that already exists. 
+        if is_ref:
+            network = { "Ref" : vpc }
+        else:
+            network = vpc
+
+        route_plan, route_desc = self._create_routetable(table_name, subnet, network)
+        assoc_plan, assoc_desc = self._create_routeassoc(table_name + "Assoc", table_name, subnet)
+
+        plan["Resources"] = dict(route_plan.items() + assoc_plan.items())
+        return plan, dict(route_desc.items() + assoc_desc.items())
 
     def _create_instance_plan(self, cluster_uuid, num_instances, image, size, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
@@ -326,7 +369,6 @@ class AWSLauncher(object):
         try:
             # Try to create the application stack. 
             stack_id = self.cf.create_stack(stack_name, template_body=json.dumps((cloud_plan)))
-            logging.warning(stack_id)
         except boto.exception.BotoServerError as e:
             logging.error(str(e))
             return None
@@ -342,6 +384,18 @@ class AWSLauncher(object):
         if not self._wait_for_stack(stack_id):
             logging.warning("Heat plan %s CREATE_FAILED" % stack_id)
             return None
+
+        # Now find the physical IDs of all the resources. 
+        logging.warning(stack_desc)
+        resources = self._collect_resources(stack_id)
+        for r in resources:
+            if r.logical_resource_id in stack_desc:
+                stack_desc[r.logical_resource_id] = r.physical_resource_id
+
+        # Record the Stack ID in the description so that
+        # we can refer back to it later. 
+        stack_desc[stack_name] = { "id" : stack_id,
+                                   "type": "AWS::CloudFormation::Stack" }
 
         return stack_desc
 
@@ -370,6 +424,11 @@ class AWSLauncher(object):
         additional plans and use IDs. 
         """
         logging.warning("collect resources")
+        try:
+            resources = self.cf.list_stack_resources(stack_id)
+            return resources
+        except:
+            return []
 
     def _collect_network_info(self, stack_desc):
         """
@@ -377,29 +436,64 @@ class AWSLauncher(object):
         """
         logging.warning("collect network")
 
-    def create_app_network(self, cluster_uuid):
-        """
-        Create a network for a new application. 
-        """
-        logging.info("creating network for %s" % cluster_uuid)
-        stack_plan, stack_desc = self._create_network_plan(cluster_uuid)
-        return self._launch_cloudformation("Ferry App NET %s" % cluster_uuid.replace("-", ""), stack_plan, stack_desc)
-
-
     def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
         security groups, and floating IPs. 
         """
 
-        logging.info("creating security group for %s" % cluster_uuid)
-        sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
-                                                                    ports = security_group_ports,
-                                                                    internal = internal_ports, 
-                                                                    ctype = ctype) 
-
+        # Check if we need to create a VPC. The VPC will also optionally create two
+        # subnets (data and manage). The data subnet is used to store
+        # the storage and compute nodes, and is "private". That means no communication 
+        # from the outside. The manage subnet is used to store the connectors and 
+        # are "public" so that they can get elastic IPs. 
         stack_desc = {}
-        stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), sec_group_plan, stack_desc)
+        stack_plan = {}
+        if not self.vpc_id:
+            logging.warning("Creating VPC")
+            vpc_name = "FerryNet%s" % cluster_uuid.replace("-", "")
+            vpc_plan, vpc_desc = self._create_vpc_plan(vpc_name)
+            is_ref = True
+            stack_plan = vpc_plan
+            stack_desc = vpc_desc
+        else:
+            logging.warning("Using VPC " + str(self.vpc_id))
+            vpc_plan = {}
+            vpc_name = self.vpc_id
+            is_ref = False
+
+        if not self.data_subnet:
+            logging.warning("Creating data subnet")
+            subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
+            table_name = "FerryRoute%s" % cluster_uuid.replace("-", "")
+            subnet_plan, subnet_desc = self._create_subnet_plan(subnet_name, vpc_name, is_ref, is_public=False)
+            table_plan, table_desc = self._create_routetable_plan(table_name, subnet_name, vpc_name, is_ref)
+
+            # Combine the network resources. 
+            if len(stack_plan) == 0:
+                stack_plan = subnet_plan
+            else:
+                stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
+                                               subnet_plan["Resources"].items() + 
+                                               table_plan["Resources"].items() )
+            stack_desc = dict(stack_desc.items() + 
+                              subnet_desc.items() + 
+                              table_desc.items() )
+            logging.warning(json.dumps(stack_plan, 
+                                       sort_keys=True,
+                                       indent=2,
+                                       separators=(',',':')))
+            stack_desc = self._launch_cloudformation("FerrySubnet%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
+
+        # logging.info("creating security group for %s" % cluster_uuid)
+        # sec_group_plan, sec_group_desc = self._create_security_plan(cluster_uuid = cluster_uuid,
+        #                                                             ports = security_group_ports,
+        #                                                             internal = internal_ports, 
+        #                                                             ctype = ctype) 
+
+        # stack_desc = dict(stack_desc.items() + sec_group_desc.items())
+        # stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), sec_group_plan, stack_desc)
+
         return stack_desc
 
         # logging.info("creating instances for %s" % cluster_uuid)
