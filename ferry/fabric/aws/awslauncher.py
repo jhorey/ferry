@@ -588,12 +588,6 @@ class AWSLauncher(object):
                               table_desc.items() +
                               nat_desc.items())
 
-            logging.warning(json.dumps(stack_plan, 
-                                       sort_keys=True,
-                                       indent=2,
-                                       separators=(',',':')))
-            stack_desc = self._launch_cloudformation("FerrySubnet%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
-
         if not self.manage_subnet:
             logging.warning("Creating manage subnet")
             subnet_name = "FerryManage%s" % cluster_uuid.replace("-", "")
@@ -615,6 +609,12 @@ class AWSLauncher(object):
                               subnet_desc.items() + 
                               table_desc.items() +
                               igw_desc.items())
+
+        logging.warning(json.dumps(stack_plan, 
+                                   sort_keys=True,
+                                   indent=2,
+                                   separators=(',',':')))
+        stack_desc = self._launch_cloudformation("FerrySubnet%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
 
         # # Create the main data security group. This is the security
         # # group that controls both internal and external communication with
