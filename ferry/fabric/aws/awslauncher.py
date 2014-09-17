@@ -42,8 +42,9 @@ class AWSLauncher(object):
         self.controller = controller
         self.subnets = []
         self.stacks = {}
-        self.num_network_hosts = 128
-        self.num_subnet_hosts = 32
+        self.num_network_hosts = 1024
+        self.num_subnet_hosts = 256
+        self.vpc_cidr = None
 
         self._init_aws_stack()
 
@@ -122,7 +123,7 @@ class AWSLauncher(object):
         else:
             return self.ssh_key + ".pem"
 
-    def _define_address_range(self, num_hosts):
+    def _define_address_range(self, num_hosts, starting_address):
         """
         Choose a private address range. 
         """
@@ -132,11 +133,11 @@ class AWSLauncher(object):
 
         # Now figure out where to start counting. As a note
         # we reserve one of the networks for management. 
-        addr = [10, 0, 0, 0]
-        if num_hosts < 256:
-            slot = 1
-        elif num_hosts < 65536:
+        addr = map(int, starting_address.split("."))
+        if num_hosts <= 256:
             slot = 2
+        elif num_hosts <= 65536:
+            slot = 1
         addr[slot] = len(self.subnets) + 1
 
         # Now set the gateway IP and address.
@@ -153,7 +154,10 @@ class AWSLauncher(object):
         """
         Create a network (equivalent to VPC). 
         """
-        cidr, _, _, _ = self._define_address_range(self.num_network_hosts)
+        cidr, _, _, _ = self._define_address_range(self.num_network_hosts,
+                                                            "10.0.0.0")
+        self.vpc_cidr = cidr.split("/")[0]
+        
         desc = { name : { "Type" : "AWS::EC2::VPC",
                           "Properties" : { "CidrBlock" : cidr }}}
         return desc
@@ -165,7 +169,7 @@ class AWSLauncher(object):
         """
 
         # Define the subnet range and store the information. 
-        cidr, gateway, pool_start, pool_end = self._define_address_range(self.num_subnet_hosts)
+        cidr, gateway, pool_start, pool_end = self._define_address_range(self.num_subnet_hosts, self.vpc_cidr)
         self.subnets.append( { name : { 'cidr' : cidr,
                                         'gw' : gateway }} )
 
@@ -430,7 +434,7 @@ class AWSLauncher(object):
 
         # Attach the internet gateway to our VPC. 
         attach_plan = { name + "Attach": { "Type" : "AWS::EC2::VPCGatewayAttachment",
-                          "Properties" : { "InternetGatewayId" : { "Ref" : igw_name },
+                          "Properties" : { "InternetGatewayId" : { "Ref" : name },
                                            "VpcId" : network}}}
 
         # Also create a new route associated with this
