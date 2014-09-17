@@ -274,32 +274,42 @@ class AWSLauncher(object):
                 "",
                   [
                     "#!/bin/bash -v\n",
-                    "umount /mnt\n", 
-                    "parted --script /dev/vdb mklabel gpt\n", 
-                    "parted --script /dev/vdb mkpart primary xfs 0% 100%\n",
-                    "mkfs.xfs /dev/vdb1\n", 
-                    "mkdir /ferry/data\n",
-                    "mkdir /ferry/keys\n",
-                    "mkdir /ferry/containers\n",
-                    "mount -o noatime /dev/vdb1 /ferry/data\n",
-                    "export FERRY_SCRATCH=/ferry/data\n", 
-                    "export FERRY_DIR=/ferry/master\n",
-                    "echo export FERRY_SCRATCH=/ferry/data >> /etc/profile\n", 
-                    "echo export FERRY_DIR=/ferry/master >> /etc/profile\n",
-                    "export HOME=/root\n",
-                    "export USER=root\n",
-                    "mkdir /home/ferry/.ssh\n",
-                    "cp /home/%s/.ssh/authorized_keys /home/ferry/.ssh/\n" % self.default_user,
-                    "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user,
-                    "chown -R ferry:ferry /home/ferry/.ssh\n",
-                    "chown -R ferry:ferry /ferry/data\n",
-                    "chown -R ferry:ferry /ferry/keys\n",
-                    "chown -R ferry:ferry /ferry/containers\n",
-                    "ferry server -n\n",
-                    "sleep 3\n"
+                    "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user
                   ]
               ]
           }}
+        # user_data = {
+        #     "Fn::Base64": {
+        #       "Fn::Join": [
+        #         "",
+        #           [
+        #             "#!/bin/bash -v\n",
+        #             "umount /mnt\n", 
+        #             "parted --script /dev/vdb mklabel gpt\n", 
+        #             "parted --script /dev/vdb mkpart primary xfs 0% 100%\n",
+        #             "mkfs.xfs /dev/vdb1\n", 
+        #             "mkdir /ferry/data\n",
+        #             "mkdir /ferry/keys\n",
+        #             "mkdir /ferry/containers\n",
+        #             "mount -o noatime /dev/vdb1 /ferry/data\n",
+        #             "export FERRY_SCRATCH=/ferry/data\n", 
+        #             "export FERRY_DIR=/ferry/master\n",
+        #             "echo export FERRY_SCRATCH=/ferry/data >> /etc/profile\n", 
+        #             "echo export FERRY_DIR=/ferry/master >> /etc/profile\n",
+        #             "export HOME=/root\n",
+        #             "export USER=root\n",
+        #             "mkdir /home/ferry/.ssh\n",
+        #             "cp /home/%s/.ssh/authorized_keys /home/ferry/.ssh/\n" % self.default_user,
+        #             "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user,
+        #             "chown -R ferry:ferry /home/ferry/.ssh\n",
+        #             "chown -R ferry:ferry /ferry/data\n",
+        #             "chown -R ferry:ferry /ferry/keys\n",
+        #             "chown -R ferry:ferry /ferry/containers\n",
+        #             "ferry server -n\n",
+        #             "sleep 3\n"
+        #           ]
+        #       ]
+        #   }}
         return user_data
 
     def _create_instance(self, name, subnet, image, size, sec_group, user_data):
@@ -545,34 +555,29 @@ class AWSLauncher(object):
         """
         logging.warning("collect network")
 
-    def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
-        """
-        Create an empty application stack. This includes the instances, 
-        security groups, and floating IPs. 
-        """
-
-        # Check if we need to create a VPC. The VPC will also optionally create two
-        # subnets (data and manage). The data subnet is used to store
-        # the storage and compute nodes, and is "private". That means no communication 
-        # from the outside. The manage subnet is used to store the connectors and 
-        # are "public" so that they can get elastic IPs. 
+    def _create_network(self, cluster_uuid):
+        # Check if a VPC has been assigned to us. 
+        # If not, go ahead and create one. 
         stack_desc = {}
         stack_plan = {}
         if not self.vpc_id:
-            logging.warning("Creating VPC")
+            logging.debug("Creating VPC")
             vpc_name = "FerryNet%s" % cluster_uuid.replace("-", "")
             vpc_plan, vpc_desc = self._create_vpc_plan(vpc_name)
             is_ref = True
             stack_plan = vpc_plan
             stack_desc = vpc_desc
         else:
-            logging.warning("Using VPC " + str(self.vpc_id))
+            logging.debug("Using VPC " + str(self.vpc_id))
             vpc_plan = {}
             vpc_name = self.vpc_id
             is_ref = False
 
+        # The data subnet is used to store the storage and compute
+        # nodes, and is "private". That means no communication from the 
+        # outside.
         if not self.data_subnet:
-            logging.warning("Creating data subnet")
+            logging.debug("Creating data subnet")
             subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
             table_name = "FerryRoute%s" % cluster_uuid.replace("-", "")
             subnet_plan, subnet_desc = self._create_subnet_plan(subnet_name, vpc_name, is_ref, is_public=False)
@@ -592,8 +597,10 @@ class AWSLauncher(object):
                               table_desc.items() +
                               nat_desc.items())
 
+        # The manage subnet is used to store the connectors and 
+        # are "public" so that they can get elastic IPs. 
         if not self.manage_subnet:
-            logging.warning("Creating manage subnet")
+            logging.debug("Creating manage subnet")
             subnet_name = "FerryManage%s" % cluster_uuid.replace("-", "")
             table_name = "FerryManageRoute%s" % cluster_uuid.replace("-", "")
             igw_name = "FerryManageIGW%s" % cluster_uuid.replace("-", "")
@@ -614,37 +621,47 @@ class AWSLauncher(object):
                               table_desc.items() +
                               igw_desc.items())
 
-        logging.warning(json.dumps(stack_plan, 
-                                   sort_keys=True,
-                                   indent=2,
-                                   separators=(',',':')))
-        stack_desc = self._launch_cloudformation("FerrySubnet%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
+        logging.debug(json.dumps(stack_plan, 
+                                 sort_keys=True,
+                                 indent=2,
+                                 separators=(',',':')))
+        return self._launch_cloudformation("FerryNetwork%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
 
-        # # Create the main data security group. This is the security
-        # # group that controls both internal and external communication with
-        # # the data subnet. 
-        # logging.info("creating security group for %s" % cluster_uuid)
-        # sec_group_name = "FerrySec%s" % cluster_uuid.replace("-", "")
-        # sec_group_plan, sec_group_desc = self._create_security_plan(sec_group_name = sec_group_name,
-        #                                                             network = vpc_name,
-        #                                                             is_ref = is_ref,
-        #                                                             ports = security_group_ports,
-        #                                                             internal = internal_ports)
+    def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
+        """
+        Create an empty application stack. This includes the instances, 
+        security groups, and floating IPs. 
+        """
 
-        # stack_desc = dict(stack_desc.items() + sec_group_desc.items())
-        # stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), sec_group_plan, stack_desc)
+        # Check if a VPC and subnets has been assigned. If not
+        # we'll go ahead and create some. 
+        self._create_network(cluster_uuid)
+        
+        # Create the main data security group. This is the security
+        # group that controls both internal and external communication with
+        # the data subnet. 
+        logging.debug("creating security group for %s" % cluster_uuid)
+        sec_group_name = "FerrySec%s" % cluster_uuid.replace("-", "")
+        sec_group_plan, sec_group_desc = self._create_security_plan(sec_group_name = sec_group_name,
+                                                                    network = vpc_name,
+                                                                    is_ref = is_ref,
+                                                                    ports = security_group_ports,
+                                                                    internal = internal_ports)
 
+        logging.info("creating instances for %s" % cluster_uuid)
+        stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
+                                                            num_instances = num_instances, 
+                                                            image = self.default_image,
+                                                            size = self.default_personality, 
+                                                            sec_group_name = sec_group_name, 
+                                                            ctype = ctype)
+
+        stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
+                                       sec_group_plan["Resources"].items())
+        stack_desc = dict(stack_desc.items() + sec_group_desc.items())
+
+        stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
         return stack_desc
-
-        # logging.info("creating instances for %s" % cluster_uuid)
-        # stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
-        #                                                     num_instances = num_instances, 
-        #                                                     image = self.default_image,
-        #                                                     size = self.default_personality, 
-        #                                                     sec_group_name = sec_group_desc.keys()[0], 
-        #                                                     ctype = ctype)
-
-        # return stack_desc
 
         # # See if we need to assign any floating IPs 
         # # for this stack. We need the references to the neutron
