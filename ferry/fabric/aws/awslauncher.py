@@ -21,11 +21,13 @@ from boto.ec2.address import *
 from boto.ec2.networkinterface import *
 from boto.exception import BotoServerError, EC2ResponseError
 from boto.ec2.blockdevicemapping import BlockDeviceType, EBSBlockDeviceType, BlockDeviceMapping
+import copy
 import ferry.install
 import json
 import logging
 import math
 import os
+from pymongo import MongoClient
 import sys
 import time
 import yaml
@@ -46,7 +48,12 @@ class AWSLauncher(object):
         self.num_subnet_hosts = 256
         self.vpc_cidr = None
 
+        self._init_app_db()
         self._init_aws_stack()
+
+    def _init_app_db(self):
+        self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
+        self.apps = self.mongo['cloud']['aws']
 
     def _init_aws_stack(self):
         conf = ferry.install.read_ferry_config()
@@ -262,21 +269,14 @@ class AWSLauncher(object):
                                                                            "ToPort" : max_port })
         return desc
         
-    def _create_nic(self, name, network, sec_group, ref=True):
-        """
-        Create a network interface and attachment 
-        """
-
-        desc = { name : { "Type" : "AWS::EC2::NetworkInterface",
-                          "Properties" : { }}}
-                                           
-        return desc
-
-    def _create_server_init(self, instance_name):
+    def _create_server_init(self):
         """
         Create the server init process. These commands are run on the
         host after the host has booted up. 
         """
+
+        # "ip route add default via %s dev eth1 tab 2\n" % cidr_block
+        # "ip rule add from %s/32 tab 2 priority 600\n" % data_ip
 
         user_data = {
             "Fn::Base64": {
@@ -542,7 +542,7 @@ class AWSLauncher(object):
                                  route_plan.items() )
         return plan, desc
 
-    def _create_instance_plan(self, cluster_uuid, subnet, num_instances, image, size, sec_group_name, ctype): 
+    def _create_instance_plan(self, cluster_uuid, subnet, cidr_block, num_instances, image, size, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
@@ -552,7 +552,7 @@ class AWSLauncher(object):
         # Create all the instances. Each instance gets a unique name. 
         for i in range(0, num_instances):
             instance_name = "FerryInstance%s%s%d" % (cluster_uuid.replace("-", ""), ctype, i)
-            user_data = self._create_server_init(instance_name)
+            user_data = self._create_server_init()
             instance_plan, instance_desc = self._create_instance(name = instance_name, 
                                                                  subnet = subnet, 
                                                                  image = image, 
@@ -624,7 +624,6 @@ class AWSLauncher(object):
         Collect all the stack resources so that we can create
         additional plans and use IDs. 
         """
-        logging.warning("collect resources")
         try:
             resources = self.cf.list_stack_resources(stack_id)
             return resources
@@ -645,33 +644,10 @@ class AWSLauncher(object):
                 # resource. Boto always returns a list although we
                 # only expect a single resource. 
                 server = stack_desc[r.logical_resource_id]
-                instances = self.ec2.get_only_instances(instance_ids=[server["id"]])
-                
-                # We need to get fetch the list of ENIs and elastic
-                # IPs associated with each ENI. 
-                for instance in instances:
-                    for eni in instance.interfaces:
-                        _filter = { "network-interface-id" : eni.id }
-                        addrs = self.ec2.get_all_addresses(filters=_filter)
-
-                        server["subnet"] = eni.subnet_id
-                        if addrs and len(addrs) > 0:
-                            for a in addrs:
-                                server["nics"].append( { "ip_address" : a.private_ip_address,
-                                                         "floating_ip" : a.public_ip,
-                                                         "index" : eni.attachment.device_index, 
-                                                         "eni" : eni.id } )
-                        else:
-                            nic_info = { "ip_address" : eni.private_ip_address,
-                                         "index" : eni.attachment.device_index, 
-                                         "eni" : eni.id }
-
-                            # Sometimes the instance has a public IP automatically
-                            # assigned to it, but it's only for eth0. 
-                            if eni.attachment.device_index == 0:
-                                nic_info["floating_ip"] = instance.ip_address
-
-                            server["nics"].append( nic_info )
+                instance_info = self._inspect_instance(server["id"])
+                for k in instance_info:
+                    server[k] = instance_info[k]
+        return stack_desc
 
     def _create_network(self, cluster_uuid):
         # Check if a VPC has been assigned to us. 
@@ -822,27 +798,115 @@ class AWSLauncher(object):
 
         # Now find all the IP addresses of the various
         # machines. 
-        self._collect_network_info(stack_name, stack_desc)
-        return stack_desc
+        return self._collect_network_info(stack_name, stack_desc)
 
-    def _get_nat_info(self, subnet):
+    def _inspect_instance(self, instance_id):
+        instances = self.ec2.get_only_instances(instance_ids=[instance_id])
+        for eni in instances[0].interfaces:
+            _filter = { "network-interface-id" : eni.id }
+            addrs = self.ec2.get_all_addresses(filters=_filter)
+            subnets = self.vpc.get_all_subnets(subnet_ids=[eni.subnet_id])
+
+            instance_info = { 'vpc' : eni.vpc_id,
+                              'subnet' : eni.subnet_id,
+                              'cidr' : subnets[0].cidr_block,
+                              'nics': [] }
+
+            if addrs and len(addrs) > 0:
+                for a in addrs:
+                    instance_info["nics"].append( { "ip_address" : a.private_ip_address,
+                                             "floating_ip" : a.public_ip,
+                                             "index" : eni.attachment.device_index, 
+                                             "eni" : eni.id } )
+            else:
+                nic_info = { "ip_address" : eni.private_ip_address,
+                             "index" : eni.attachment.device_index, 
+                             "eni" : eni.id }
+
+                # Sometimes the instance has a public IP automatically
+                # assigned to it, but it's only for eth0. 
+                if eni.attachment.device_index == 0:
+                    nic_info["floating_ip"] = instances[0].ip_address
+
+                instance_info["nics"].append( nic_info )
+        return instance_info
+
+    def _get_nat_info(self, vpc, subnet, nat=True):
         """
         Determine if this subnet is a private subnet, and if so
         return information regarding the NAT instance. 
         """
 
-        # First get the routing table associated with this subnet.
-        # Then check for 
+        tables = self.vpc.get_all_route_tables(filters={ "vpc-id" : vpc })
+        for t in tables:
+            # Confirm this table is associated with the right subnet.
+            # The way we know it is a private subnet is that it
+            # is associated with an instance (not a gateway). 
+            for a in t.associations:
+                if a.subnet_id == subnet:
+                    for r in t.routes:
+                        if r.destination_cidr_block == "0.0.0.0/0":
+                            if r.instance_id:
+                                return "nat", self._inspect_instance(r.instance_id)
+                            elif r.gateway_id:
+                                return "igw", self._inspect_instance(r.gateway_id)
+        return None, None
 
-        return None
+    def _get_servers(self, resources):
+        servers = []
+        for r in resources.values(): 
+            if type(r) is dict and r["type"] == "AWS::EC2::Instance":
+                servers.append(r)
+        return servers
 
-    def _get_manage_ip(self, server):
+    def _get_net_info(self, server, resources):
+        """
+        Look up the IP address, gateway, and subnet range. 
+        """
+        # gw_type, gw_info = self._get_nat_info(server["vpc"], server["subnet"])
+        # gw = gw_info["nics"][0]["ip_address"]
+        gw = "0.0.0.0"
+        cidr = server["cidr"].split("/")[1]
+        ip = self._get_data_ip(server)
+
+        logging.warning("GATEWAY: " + str(gw_info))
+
+        # We want to use the host NIC, so modify LXC to use phys networking, and
+        # then start the docker containers on the server. 
+        lxc_opts = ["lxc.network.type = phys",
+                    "lxc.network.ipv4 = %s/%s" % (ip, cidr),
+                    "lxc.network.ipv4.gateway = %s" % gw,
+                    "lxc.network.link = %s" % self.data_device,
+                    "lxc.network.name = eth0", 
+                    "lxc.network.flags = up"]
+        return lxc_opts, ip
+
+    def _update_app_db(self, cluster_uuid, service_uuid, heat_plan):
+        # Make a copy of the plan before inserting into
+        # mongo, otherwise the "_id" field will be added
+        # silently. 
+        heat_plan["_cluster_uuid"] = cluster_uuid
+        heat_plan["_service_uuid"] = service_uuid
+        self.apps.insert(copy.deepcopy(heat_plan))
+
+    def _get_manage_ip(self, server, public=True):
         """
         Get the management IP address for this server. 
         """
         for nic in server["nics"]:
-            if nic["index"] == 0 and "floating_ip" in nic:
-                return nic["floating_ip"]
+            if nic["index"] == 0:
+                if public and "floating_ip" in nic:
+                    return nic["floating_ip"]
+                else:
+                    return nic["ip_address"]
+
+    def _get_data_ip(self, server):
+        """
+        Get the data IP address for this server. 
+        """
+        for nic in server["nics"]:
+            if nic["index"] == 1:
+                return nic["ip_address"]
 
     def alloc(self, cluster_uuid, service_uuid, container_info, ctype, proxy):
         """
@@ -905,25 +969,37 @@ class AWSLauncher(object):
         containers = []
         mounts = {}
 
-        # if resources:
-        #     # Store the resources cluster ID. 
-        #     self._update_app_db(cluster_uuid, service_uuid, resources)
+        if resources:
+            # Store the resources cluster ID. 
+            self._update_app_db(cluster_uuid, service_uuid, resources)
 
-        #     servers = self._get_servers(resources)
-        #     for i in range(0, len(container_info)):
-        #         # Fetch a server to run the Docker commands. 
-        #         server = servers[i]
+            servers = self._get_servers(resources)
+            for i in range(0, len(container_info)):
+                # Fetch a server to run the Docker commands. 
+                server = servers[i]
 
-        #         # Get the LXC networking options
-        #         lxc_opts, private_ip = self._get_net_info(server, self.subnet, resources)
+                # Get the LXC networking options
+                lxc_opts, container_ip = self._get_net_info(server, resources)
 
-        #         # Now get an addressable IP address. If we're acting as a proxy within
-        #         # the same cluster, we can just use the private address. Otherwise
-        #         # we'll need to route via the public IP address. 
-        #         if proxy:
-        #             server_ip = private_ip
-        #         else:
-        #             server_ip = self._get_public_ip(server, resources)
+                # We need a way to contact the Docker host. The IP address we 
+                # use depends on whether the controller is in the same
+                # VPC (proxy) and/or if the hosts are on a private subnet. 
+                if proxy:
+                    # Check if we need to use the NAT to proxy all
+                    # our requests. Otherwise, we can try to use the
+                    # public address of the node. 
+                    nat_type, nat_info = self._get_nat_info(server["vpc"], server["subnet"])
+                    if nat_type == "nat" and nat_info:
+                        server_ip = nat_info["nics"][0]["floating_ip"]
+                    else:
+                        logging.warning("USING PUBLIC SUBNET")
+                        server_ip = self._get_manage_ip(server, public=True)
+                else:
+                    # Just use the private IP address of the
+                    # management network. 
+                    server_ip = self._get_manage_ip(server, public=False)
+
+                logging.warning("SERVER IP:" + str(server_ip))
 
         #         # Verify that the user_data processes all started properly
         #         # and that the docker daemon is actually running. If it is
@@ -953,3 +1029,4 @@ class AWSLauncher(object):
         # else:
         #     # AWS failed to launch the application stack.
         #     return None
+

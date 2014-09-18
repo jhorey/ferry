@@ -25,7 +25,6 @@ from neutronclient.neutron import client as neutron_client
 from novaclient import client as nova_client
 import os
 from pymongo import MongoClient
-import re
 import sys
 import time
 import uuid
@@ -52,7 +51,7 @@ class SingleLauncher(object):
 
     def _init_app_db(self):
         self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
-        self.apps = self.mongo['openstack']['heat']
+        self.apps = self.mongo['cloud']['openstack']
 
     def _init_open_stack(self):
         conf = ferry.install.read_ferry_config()
