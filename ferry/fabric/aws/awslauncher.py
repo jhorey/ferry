@@ -56,12 +56,22 @@ class AWSLauncher(object):
         self.default_dc = params['dc']
         self.default_zone = params['zone']
 
+
+        # Figure out what disk volume to use for the
+        # data storage. If one is not listed, then the
+        # system will use EBS. 
+        if 'volume' in params:
+            self.data_volume = params['volume']
+        else:
+            self.data_volume = "ebs:8"
+
         # This gives us information about the image to use
         # for the supplied provider. 
         deploy = conf[provider]['deploy']
 
         self.default_image = deploy['image']
         self.default_personality = deploy['personality']
+        self.default_user = deploy['default-user']
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
 
@@ -274,62 +284,122 @@ class AWSLauncher(object):
                 "",
                   [
                     "#!/bin/bash -v\n",
-                    "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user
+                    "dhclient eth1\n", 
+                    "parted --script /dev/xvdb mklabel gpt\n", 
+                    "parted --script /dev/xvdb mkpart primary xfs 0% 100%\n",
+                    "mkfs.xfs /dev/xvdb1\n", 
+                    "mkdir /ferry/data\n",
+                    "mkdir /ferry/keys\n",
+                    "mkdir /ferry/containers\n",
+                    "mount -o noatime /dev/xvdb1 /ferry/data\n",
+                    "export FERRY_SCRATCH=/ferry/data\n", 
+                    "export FERRY_DIR=/ferry/master\n",
+                    "echo export FERRY_SCRATCH=/ferry/data >> /etc/profile\n", 
+                    "echo export FERRY_DIR=/ferry/master >> /etc/profile\n",
+                    "export HOME=/root\n",
+                    "export USER=root\n",
+                    "mkdir /home/ferry/.ssh\n",
+                    "cp /home/%s/.ssh/authorized_keys /home/ferry/.ssh/\n" % self.default_user,
+                    "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user,
+                    "chown -R ferry:ferry /home/ferry/.ssh\n",
+                    "chown -R ferry:ferry /ferry/data\n",
+                    "chown -R ferry:ferry /ferry/keys\n",
+                    "chown -R ferry:ferry /ferry/containers\n",
+                    "ferry server -n\n",
+                    "sleep 3\n"
                   ]
               ]
           }}
-        # user_data = {
-        #     "Fn::Base64": {
-        #       "Fn::Join": [
-        #         "",
-        #           [
-        #             "#!/bin/bash -v\n",
-        #             "umount /mnt\n", 
-        #             "parted --script /dev/vdb mklabel gpt\n", 
-        #             "parted --script /dev/vdb mkpart primary xfs 0% 100%\n",
-        #             "mkfs.xfs /dev/vdb1\n", 
-        #             "mkdir /ferry/data\n",
-        #             "mkdir /ferry/keys\n",
-        #             "mkdir /ferry/containers\n",
-        #             "mount -o noatime /dev/vdb1 /ferry/data\n",
-        #             "export FERRY_SCRATCH=/ferry/data\n", 
-        #             "export FERRY_DIR=/ferry/master\n",
-        #             "echo export FERRY_SCRATCH=/ferry/data >> /etc/profile\n", 
-        #             "echo export FERRY_DIR=/ferry/master >> /etc/profile\n",
-        #             "export HOME=/root\n",
-        #             "export USER=root\n",
-        #             "mkdir /home/ferry/.ssh\n",
-        #             "cp /home/%s/.ssh/authorized_keys /home/ferry/.ssh/\n" % self.default_user,
-        #             "cp /home/%s/.ssh/authorized_keys /root/.ssh/\n" % self.default_user,
-        #             "chown -R ferry:ferry /home/ferry/.ssh\n",
-        #             "chown -R ferry:ferry /ferry/data\n",
-        #             "chown -R ferry:ferry /ferry/keys\n",
-        #             "chown -R ferry:ferry /ferry/containers\n",
-        #             "ferry server -n\n",
-        #             "sleep 3\n"
-        #           ]
-        #       ]
-        #   }}
         return user_data
 
     def _create_instance(self, name, subnet, image, size, sec_group, user_data):
         """
         Create a new instance
         """
-        plan = { name : { "Type" : "AWS::EC2::Instance",
-                          "Properties" : { "ImageId" : image,
-                                           "InstanceType" : size,
-                                           "KeyName" : self.ssh_key, 
-                                           "AvailabilityZone" : self.default_zone, 
-                                           "SubnetId" : subnet, 
-                                           "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}} 
-        desc = { name : { "type" : "AWS::EC2::Instance",
-                          "ports" : [],
-                          "volumes" : [] }}
 
-        # Now add the user script.
+        v = self.data_volume.split(":")
+        if v[0] == "ephemeral":
+            # The user wants us to use an ephemeral storage.
+            # These storage types are potentially faster but
+            # do not survive restarts. 
+            volume_description = { "DeviceName" : "/dev/sdb",
+                                   "VirtualName" : "ephemeral0" }
+        else:
+            # The user wants us to use EBS storage. These storage
+            # types are persistant across restarts and more configurable,
+            # but come at a cost of network communication.
+            volume_description = { "DeviceName" : "/dev/sdb",
+                                   "Ebs" : { "VolumeSize" : "%s" % v[1] } }
+
+        # Create a secondary NIC for the actual container. 
+        # That way we can still interact with the host.
+        data_nic_name = name + "NIC"
+        data_nic_resource = {data_nic_name : { "Type" : "AWS::EC2::NetworkInterface",
+                                               "Properties" : {
+                                                   "GroupSet" : [ { "Ref" : sec_group } ],
+                                                   "SourceDestCheck" : False,
+                                                   "SubnetId" : subnet
+                                               }
+                          }}
+        attach_name = name + "NICAttach"
+        attach_resource = { attach_name : { "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+                                            "Properties" : {
+                                                "DeviceIndex": "1",
+                                                "InstanceId": { "Ref" : name },
+                                                "NetworkInterfaceId": { "Ref" : data_nic_name },
+                                            }
+                       }}
+
+        # Specify the actual instance. 
+        instance_resource = { name : { "Type" : "AWS::EC2::Instance",
+                                   "Properties" : { "ImageId" : image,
+                                                    "InstanceType" : size,
+                                                    "BlockDeviceMappings" : [ volume_description ], 
+                                                    "KeyName" : self.ssh_key, 
+                                                    "AvailabilityZone" : self.default_zone, 
+                                                    "SubnetId" : subnet, 
+                                                    "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}} 
+        desc = { name : { "type" : "AWS::EC2::Instance",
+                          "data_nic" : data_nic_name,
+                          "nics" : [] }}
+
+        # Now add the user script. This script is executed after the
+        # VM boots up.
         if user_data:
-            plan[name]["Properties"]["UserData"] = user_data
+            instance_resource[name]["Properties"]["UserData"] = user_data
+
+        plan = dict(instance_resource.items() + 
+                    data_nic_resource.items() + 
+                    attach_resource.items())
+        return plan, desc
+
+    def _create_floatingip_plan(self, cluster_uuid, instances):
+        """
+        Assign an elastic IP to the secondary device of each instance. 
+        """
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated CloudFormation plan",
+                 "Resources" :  {} }
+        desc = {}
+        for instance in instances:
+            eip_name = "FerryEIP" + instance
+            assoc_name = "FerryEIPAssoc" + instance
+            eip_resource = {
+                "Type" : "AWS::EC2::EIP",
+                "Properties" : {
+                    "Domain" : "vpc"
+                }
+            }
+            assoc_resource = {
+                "Type": "AWS::EC2::EIPAssociation",
+                "Properties": {
+                    "AllocationId": { "Ref" : eip_name },
+                    "NetworkInterfaceId": { "Ref" : instance["data_nic"] }
+                }
+            }
+            plan["Resources"][eip_name] = eip_resource
+            plan["Resources"][assoc_name] = assoc_resource
+            desc[eip_name] = { "type" : "AWS::EC2::EIP" }
 
         return plan, desc
 
@@ -418,7 +488,14 @@ class AWSLauncher(object):
                                                              sec_group = sec_group_name,
                                                              user_data = None)
 
+        # Also create a new route associated with this NAT. 
+        # This will send all outbound internet traffic to the gateway. 
+        route_plan = { "FerryRoute" + subnet: { "Type" : "AWS::EC2::Route",
+                                                "Properties" : { "InstanceId" : { "Ref" : name },
+                                                                 "RouteTableId" : { "Ref" : table_name },
+                                                                 "DestinationCidrBlock" : "0.0.0.0/0" }}}
         plan["Resources"] = dict(instance_plan.items() + 
+                                 route_plan.items() + 
                                  sec_group_plan.items())
         desc = instance_desc
 
@@ -472,11 +549,16 @@ class AWSLauncher(object):
                  "Outputs" : {} }
         desc = {}
 
+        # Create all the instances. Each instance gets a unique name. 
         for i in range(0, num_instances):
-            # Create the actual instances. 
             instance_name = "FerryInstance%s%s%d" % (cluster_uuid.replace("-", ""), ctype, i)
             user_data = self._create_server_init(instance_name)
-            instance_plan, instance_desc = self._create_instance(instance_name, subnet, image, size, self.manage_network, sec_group_name, user_data)
+            instance_plan, instance_desc = self._create_instance(name = instance_name, 
+                                                                 subnet = subnet, 
+                                                                 image = image, 
+                                                                 size = size, 
+                                                                 sec_group = sec_group_name, 
+                                                                 user_data = user_data)
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
             desc = dict(desc.items() + instance_desc.items())
 
@@ -509,7 +591,7 @@ class AWSLauncher(object):
         resources = self._collect_resources(stack_id)
         for r in resources:
             if r.logical_resource_id in stack_desc:
-                stack_desc[r.logical_resource_id] = r.physical_resource_id
+                stack_desc[r.logical_resource_id]["id"] = r.physical_resource_id
 
         # Record the Stack ID in the description so that
         # we can refer back to it later. 
@@ -549,11 +631,47 @@ class AWSLauncher(object):
         except:
             return []
 
-    def _collect_network_info(self, stack_desc):
+    def _collect_network_info(self, stack_name, stack_desc):
         """
-        Collect all the ports. 
+        Collect all the networking information. For each
+        instance, we want the list of private addresses,
+        public addresses, and subnet information.
         """
         logging.warning("collect network")
+        resources = self._collect_resources(stack_desc[stack_name]["id"])
+        for r in resources:
+            if r.logical_resource_id in stack_desc and stack_desc[r.logical_resource_id]["type"] == "AWS::EC2::Instance":
+                # Get the actual instance associated with this
+                # resource. Boto always returns a list although we
+                # only expect a single resource. 
+                server = stack_desc[r.logical_resource_id]
+                instances = self.ec2.get_only_instances(instance_ids=[server["id"]])
+                
+                # We need to get fetch the list of ENIs and elastic
+                # IPs associated with each ENI. 
+                for instance in instances:
+                    for eni in instance.interfaces:
+                        _filter = { "network-interface-id" : eni.id }
+                        addrs = self.ec2.get_all_addresses(filters=_filter)
+
+                        server["subnet"] = eni.subnet_id
+                        if addrs and len(addrs) > 0:
+                            for a in addrs:
+                                server["nics"].append( { "ip_address" : a.private_ip_address,
+                                                         "floating_ip" : a.public_ip,
+                                                         "index" : eni.attachment.device_index, 
+                                                         "eni" : eni.id } )
+                        else:
+                            nic_info = { "ip_address" : eni.private_ip_address,
+                                         "index" : eni.attachment.device_index, 
+                                         "eni" : eni.id }
+
+                            # Sometimes the instance has a public IP automatically
+                            # assigned to it, but it's only for eth0. 
+                            if eni.attachment.device_index == 0:
+                                nic_info["floating_ip"] = instance.ip_address
+
+                            server["nics"].append( nic_info )
 
     def _create_network(self, cluster_uuid):
         # Check if a VPC has been assigned to us. 
@@ -578,11 +696,11 @@ class AWSLauncher(object):
         # outside.
         if not self.data_subnet:
             logging.debug("Creating data subnet")
-            subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
+            data_subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
             table_name = "FerryRoute%s" % cluster_uuid.replace("-", "")
-            subnet_plan, subnet_desc = self._create_subnet_plan(subnet_name, vpc_name, is_ref, is_public=False)
-            table_plan, table_desc = self._create_routetable_plan(table_name, subnet_name, vpc_name, is_ref)
-            nat_plan, nat_desc = self._create_nat_plan(table_name, subnet_name, vpc_name, is_ref)
+            subnet_plan, subnet_desc = self._create_subnet_plan(data_subnet_name, vpc_name, is_ref, is_public=False)
+            table_plan, table_desc = self._create_routetable_plan(table_name, data_subnet_name, vpc_name, is_ref)
+            nat_plan, nat_desc = self._create_nat_plan(table_name, data_subnet_name, vpc_name, is_ref)
 
             # Combine the network resources. 
             if len(stack_plan) == 0:
@@ -601,11 +719,11 @@ class AWSLauncher(object):
         # are "public" so that they can get elastic IPs. 
         if not self.manage_subnet:
             logging.debug("Creating manage subnet")
-            subnet_name = "FerryManage%s" % cluster_uuid.replace("-", "")
+            manage_subnet_name = "FerryManage%s" % cluster_uuid.replace("-", "")
             table_name = "FerryManageRoute%s" % cluster_uuid.replace("-", "")
             igw_name = "FerryManageIGW%s" % cluster_uuid.replace("-", "")
-            subnet_plan, subnet_desc = self._create_subnet_plan(subnet_name, vpc_name, is_ref, is_public=False)
-            table_plan, table_desc = self._create_routetable_plan(table_name, subnet_name, vpc_name, is_ref)
+            subnet_plan, subnet_desc = self._create_subnet_plan(manage_subnet_name, vpc_name, is_ref, is_public=False)
+            table_plan, table_desc = self._create_routetable_plan(table_name, manage_subnet_name, vpc_name, is_ref)
             igw_plan, igw_desc = self._create_igw_plan(igw_name, table_name, vpc_name, is_ref)
 
             # Combine the network resources. 
@@ -621,11 +739,22 @@ class AWSLauncher(object):
                               table_desc.items() +
                               igw_desc.items())
 
-        logging.debug(json.dumps(stack_plan, 
-                                 sort_keys=True,
-                                 indent=2,
-                                 separators=(',',':')))
-        return self._launch_cloudformation("FerryNetwork%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
+        # Check if we need to create some new
+        # network resources. 
+        if len(stack_plan) > 0:
+            logging.debug(json.dumps(stack_plan, 
+                                     sort_keys=True,
+                                     indent=2,
+                                     separators=(',',':')))
+            stack_desc = self._launch_cloudformation("FerryNetwork%s" % cluster_uuid.replace("-", ""), stack_plan, stack_desc)
+
+            # Collect the network resources IDs. 
+            vpc_id = stack_desc[vpc_name]
+            data_id = stack_desc[data_subnet_name]
+            manage_id = stack_desc[manage_subnet_name]
+            return vpc_id, data_id, manage_id
+        else:
+            return self.vpc_id, self.data_subnet, self.manage_subnet
 
     def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
         """
@@ -635,7 +764,7 @@ class AWSLauncher(object):
 
         # Check if a VPC and subnets has been assigned. If not
         # we'll go ahead and create some. 
-        self._create_network(cluster_uuid)
+        vpc, data_subnet, manage_subnet = self._create_network(cluster_uuid)
         
         # Create the main data security group. This is the security
         # group that controls both internal and external communication with
@@ -643,51 +772,77 @@ class AWSLauncher(object):
         logging.debug("creating security group for %s" % cluster_uuid)
         sec_group_name = "FerrySec%s" % cluster_uuid.replace("-", "")
         sec_group_plan, sec_group_desc = self._create_security_plan(sec_group_name = sec_group_name,
-                                                                    network = vpc_name,
-                                                                    is_ref = is_ref,
+                                                                    network = vpc,
+                                                                    is_ref = False,
                                                                     ports = security_group_ports,
                                                                     internal = internal_ports)
 
+        # Connectors should go in the manage subnet so that
+        # they can interact with the outside world easier. 
+        # Everything else goes in a data-specific subnet. 
+        if ctype == "connector": 
+            subnet = manage_subnet
+        else:
+            subnet = data_subnet
+
         logging.info("creating instances for %s" % cluster_uuid)
         stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
+                                                            subnet = subnet, 
                                                             num_instances = num_instances, 
                                                             image = self.default_image,
                                                             size = self.default_personality, 
                                                             sec_group_name = sec_group_name, 
                                                             ctype = ctype)
 
-        stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
-                                       sec_group_plan["Resources"].items())
-        stack_desc = dict(stack_desc.items() + sec_group_desc.items())
+        # See if we need to assign any floating IPs 
+        # for this stack. We need the references to the neutron
+        # port which is contained in the description. 
+        if assign_floating_ip:
+            logging.info("creating floating IPs for %s" % cluster_uuid)
+            instances = []
+            for k in stack_desc.keys():
+                if stack_desc[k]["type"] == "AWS::EC2::Instance":
+                    instances.append(stack_desc[k])
+            ip_plan, ip_desc = self._create_floatingip_plan(cluster_uuid = cluster_uuid,
+                                                            instances = instances)
+        else:
+            ip_plan = { "Resources" : {}}
+            ip_desc = {}
 
-        stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
+        stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
+                                       sec_group_plan["Resources"].items() + 
+                                       ip_plan["Resources"].items() )
+        stack_desc = dict(stack_desc.items() + sec_group_desc.items() + ip_desc.items())
+        logging.warning(json.dumps(stack_plan, 
+                                   sort_keys=True,
+                                   indent=2,
+                                   separators=(',',':')))
+        stack_name = "FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", ""))
+        stack_desc = self._launch_cloudformation(stack_name, stack_plan, stack_desc)
+
+        # Now find all the IP addresses of the various
+        # machines. 
+        self._collect_network_info(stack_name, stack_desc)
         return stack_desc
 
-        # # See if we need to assign any floating IPs 
-        # # for this stack. We need the references to the neutron
-        # # port which is contained in the description. 
-        # if assign_floating_ip:
-        #     logging.info("creating floating IPs for %s" % cluster_uuid)
-        # else:
-        #     ip_plan = { "Resources" : {}}
-        #     ip_desc = {}
+    def _get_nat_info(self, subnet):
+        """
+        Determine if this subnet is a private subnet, and if so
+        return information regarding the NAT instance. 
+        """
 
-        # # Now we need to combine all these plans and
-        # # launch the cluster. 
-        # stack_plan["Resources"] = dict(sec_group_plan["Resources"].items() + 
-        #                                ip_plan["Resources"].items() + 
-        #                                stack_plan["Resources"].items())
-        # stack_desc = dict(stack_desc.items() + 
-        #                   sec_group_desc.items() +
-        #                   ip_desc.items())
+        # First get the routing table associated with this subnet.
+        # Then check for 
 
-        # return stack_plan
+        return None
 
-        # stack_desc = self._launch_cloudformation("FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", "")), stack_plan, stack_desc)
-
-        # # Now find all the IP addresses of the various
-        # # machines. 
-        # return self._collect_network_info(stack_desc)
+    def _get_manage_ip(self, server):
+        """
+        Get the management IP address for this server. 
+        """
+        for nic in server["nics"]:
+            if nic["index"] == 0 and "floating_ip" in nic:
+                return nic["floating_ip"]
 
     def alloc(self, cluster_uuid, service_uuid, container_info, ctype, proxy):
         """
@@ -709,15 +864,9 @@ class AWSLauncher(object):
                     else:
                         sec_group_ports.append( (s[0], s[0]) )
         else:
-            if proxy:
-                # If the controller is acting as a proxy, then it has
-                # direct access to the VMs, so the backend shouldn't
-                # get any floating IPs. 
-                floating_ip = False
-            else:
-                # Otherwise, the backend should also get floating IPs
-                # so that the controller can access it. 
-                floating_ip = True
+            # The storage/compute nodes do not get
+            # public IP addresses. 
+            floating_ip = False
 
             # We need to create a range tuple, so check if 
             # the exposed port is a range.
@@ -745,8 +894,11 @@ class AWSLauncher(object):
                                            internal_ports = internal_ports, 
                                            assign_floating_ip = floating_ip,
                                            ctype = ctype)
-        
-        logging.warning("STACK: " + str(resources))
+
+        logging.warning(json.dumps(resources,
+                                   sort_keys=True,
+                                   indent=2,
+                                   separators=(',',':')))
 
         # Now we need to ask the cluster to start the 
         # Docker containers.
