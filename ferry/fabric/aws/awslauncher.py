@@ -352,13 +352,14 @@ class AWSLauncher(object):
 
         # Specify the actual instance. 
         instance_resource = { name : { "Type" : "AWS::EC2::Instance",
-                                   "Properties" : { "ImageId" : image,
-                                                    "InstanceType" : size,
-                                                    "BlockDeviceMappings" : [ volume_description ], 
-                                                    "KeyName" : self.ssh_key, 
-                                                    "AvailabilityZone" : self.default_zone, 
-                                                    "SubnetId" : subnet, 
-                                                    "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}} 
+                                       "Properties" : { "Tags" : [{ "Key" : "Name", "Value" : name }],
+                                                        "ImageId" : image,
+                                                        "InstanceType" : size,
+                                                        "BlockDeviceMappings" : [ volume_description ], 
+                                                        "KeyName" : self.ssh_key, 
+                                                        "AvailabilityZone" : self.default_zone, 
+                                                        "SubnetId" : subnet, 
+                                                        "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}}
         desc = { name : { "type" : "AWS::EC2::Instance",
                           "data_nic" : data_nic_name,
                           "nics" : [] }}
@@ -542,7 +543,7 @@ class AWSLauncher(object):
                                  route_plan.items() )
         return plan, desc
 
-    def _create_instance_plan(self, cluster_uuid, subnet, cidr_block, num_instances, image, size, sec_group_name, ctype): 
+    def _create_instance_plan(self, cluster_uuid, subnet, num_instances, image, size, sec_group_name, ctype): 
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {},
@@ -868,8 +869,6 @@ class AWSLauncher(object):
         gw = "0.0.0.0"
         cidr = server["cidr"].split("/")[1]
         ip = self._get_data_ip(server)
-
-        logging.warning("GATEWAY: " + str(gw_info))
 
         # We want to use the host NIC, so modify LXC to use phys networking, and
         # then start the docker containers on the server. 
