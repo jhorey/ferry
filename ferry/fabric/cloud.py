@@ -127,7 +127,7 @@ class CloudFabric(object):
                            background = True)
         return containers
 
-    def _copy_public_keys(self, container, server):
+    def _copy_public_keys(self, container, server, proxy=None):
         """
         Copy over the public ssh key to the server so that we can start the
         container correctly. 
@@ -140,7 +140,7 @@ class CloudFabric(object):
                       to_dir = "/ferry/keys/",
                       user = self.launcher.ssh_user)
 
-    def _verify_public_keys(self, server):
+    def _verify_public_keys(self, server, proxy=None):
         """
         Verify that the public key has been copied over correctly. 
         """
@@ -154,7 +154,7 @@ class CloudFabric(object):
             logging.warning("found ssh key: " + out.strip())
             return True
 
-    def _verify_ferry_server(self, server):
+    def _verify_ferry_server(self, server, proxy=None):
         """
         Verify that the docker daemon is actually running on the server. 
         """
@@ -169,7 +169,7 @@ class CloudFabric(object):
             time.sleep(2)
         return False
 
-    def _execute_server_init(self, server):
+    def _execute_server_init(self, server, proxy=None):
         """
         Restart the Ferry docker daemon. 
         """
@@ -180,7 +180,7 @@ class CloudFabric(object):
         logging.warning("restart ferry out: " + out)
         logging.warning("restart ferry err: " + err)
         
-    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, public_ip):
+    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, server_ip, proxy_ip=None):
         """
         Run the Docker container and use the cloud inspector to get information
         about the container/VM.
@@ -205,7 +205,7 @@ class CloudFabric(object):
                                  default_cmd = cinfo['default_cmd'],
                                  args= cinfo['args'],
                                  lxc_opts = lxc_opts,
-                                 server = public_ip,
+                                 server = server_ip,
                                  user = self.launcher.ssh_user, 
                                  inspector = self.inspector,
                                  background = True)
@@ -218,7 +218,7 @@ class CloudFabric(object):
             else:
                 # Otherwise, the controller can only interact with the
                 # VMs via their public IP address. 
-                container.external_ip = public_ip
+                container.external_ip = server_ip
 
             container.vm = self.launcher.default_personality
             container.default_user = self.cli.docker_user

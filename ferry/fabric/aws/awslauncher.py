@@ -82,6 +82,12 @@ class AWSLauncher(object):
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
 
+        # Make sure that the ssh key is actually present. 
+        keypath = self._get_host_key()
+        if not os.path.exists(keypath):
+            logging.error("could not find ssh key (%s)" % self.ssh_key)
+            raise ValueError("Missing ssh keys")
+
         # Get user credentials
         self.aws_user = deploy['user']
         self.aws_access_key = deploy['access']
@@ -875,7 +881,7 @@ class AWSLauncher(object):
         lxc_opts = ["lxc.network.type = phys",
                     "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % gw,
-                    "lxc.network.link = %s" % self.data_device,
+                    "lxc.network.link = eth1",
                     "lxc.network.name = eth0", 
                     "lxc.network.flags = up"]
         return lxc_opts, ip
@@ -980,44 +986,46 @@ class AWSLauncher(object):
                 # Get the LXC networking options
                 lxc_opts, container_ip = self._get_net_info(server, resources)
 
+                # Try to contact the node using the private IP address
+                # of the management network. 
+                server_ip = self._get_manage_ip(server, public=False)
+
                 # We need a way to contact the Docker host. The IP address we 
                 # use depends on whether the controller is in the same
                 # VPC (proxy) and/or if the hosts are on a private subnet. 
+                proxy_ip = None
                 if proxy:
                     # Check if we need to use the NAT to proxy all
                     # our requests. Otherwise, we can try to use the
                     # public address of the node. 
                     nat_type, nat_info = self._get_nat_info(server["vpc"], server["subnet"])
                     if nat_type == "nat" and nat_info:
-                        server_ip = nat_info["nics"][0]["floating_ip"]
+                        proxy_ip = nat_info["nics"][0]["floating_ip"]
                     else:
                         logging.warning("USING PUBLIC SUBNET")
                         server_ip = self._get_manage_ip(server, public=True)
-                else:
-                    # Just use the private IP address of the
-                    # management network. 
-                    server_ip = self._get_manage_ip(server, public=False)
 
                 logging.warning("SERVER IP:" + str(server_ip))
+                logging.warning("PROXY IP:" + str(proxy_ip))
 
-        #         # Verify that the user_data processes all started properly
-        #         # and that the docker daemon is actually running. If it is
-        #         # not running, try re-executing. 
-        #         if not self.controller._verify_ferry_server(server_ip):
-        #             self.controller._execute_server_init(server_ip)
+                # Verify that the user_data processes all started properly
+                # and that the docker daemon is actually running. If it is
+                # not running, try re-executing. 
+                if not self.controller._verify_ferry_server(server_ip, proxy_ip):
+                    self.controller._execute_server_init(server_ip, proxy_ip)
 
-        #         # Copy over the public keys, but also verify that it does
-        #         # get copied over properly. 
-        #         self.controller._copy_public_keys(container_info[i], server_ip)
-        #         if self.controller._verify_public_keys(server_ip):
-        #             container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip)
+                # Copy over the public keys, but also verify that it does
+                # get copied over properly. 
+                self.controller._copy_public_keys(container_info[i], server_ip, proxy_ip)
+                if self.controller._verify_public_keys(server_ip, proxy_ip):
+                    container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip, proxy_ip)
                 
-        #             if container:
-        #                 mounts = dict(mounts.items() + cmounts.items())
-        #                 containers.append(container)
-        #         else:
-        #             logging.error("could not copy over ssh key!")
-        #             return None
+                    if container:
+                        mounts = dict(mounts.items() + cmounts.items())
+                        containers.append(container)
+                else:
+                    logging.error("could not copy over ssh key!")
+                    return None
 
         #     # Check if we need to set the file permissions
         #     # for the mounted volumes. 
