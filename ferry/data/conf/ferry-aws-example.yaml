@@ -1,0 +1,23 @@
+system:
+  provider: aws
+  backend: ferry.fabric.cloud/CloudFabric
+  mode: ferry.fabric.aws.awslauncher/AWSLauncher
+  proxy: false
+web:
+  workers: 1
+  bind: 0.0.0.0
+  port: 4000
+aws:
+  params:
+    dc: us-east-1
+    zone: us-east-1b
+    volume: ebs:8
+  deploy:
+     image: ami-xxxyyy
+     personality: t2.micro
+     default-user: ubuntu
+     ssh: ferry-aws
+     ssh-user: ubuntu
+     user: APIUSER
+     access: APIACCESSKEY
+     secret: APISECRETKEY
