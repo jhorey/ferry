@@ -39,6 +39,7 @@ class SingleLauncher(object):
     environments that only support a single network (i.e., HP Cloud). 
     """
     def __init__(self, controller):
+        self.name = "OpenStack launcher"
         self.docker_registry = None
         self.docker_user = None
         self.heat_server = None
@@ -48,6 +49,13 @@ class SingleLauncher(object):
         self.controller = controller
         self._init_open_stack()
         self._init_app_db()
+
+    def support_proxy(self):
+        """
+        The OpenStack backend supports proxy mode by assigning all the
+        machines a floating IP.
+        """
+        return True
 
     def _init_app_db(self):
         self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
@@ -683,14 +691,14 @@ class SingleLauncher(object):
                         sec_group_ports.append( (s[0], s[0]) )
         else:
             if proxy:
+                # Otherwise, the backend should also get floating IPs
+                # so that the controller can access it. 
+                floating_ip = True
+            else:
                 # If the controller is acting as a proxy, then it has
                 # direct access to the VMs, so the backend shouldn't
                 # get any floating IPs. 
                 floating_ip = False
-            else:
-                # Otherwise, the backend should also get floating IPs
-                # so that the controller can access it. 
-                floating_ip = True
 
             # We need to create a range tuple, so check if 
             # the exposed port is a range.

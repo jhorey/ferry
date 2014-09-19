@@ -38,6 +38,7 @@ class AWSLauncher(object):
     cluster and initializes the instances to run Ferry processes. 
     """
     def __init__(self, controller):
+        self.name = "AWS launcher"
         self.docker_registry = None
         self.docker_user = None
         
@@ -50,6 +51,13 @@ class AWSLauncher(object):
 
         self._init_app_db()
         self._init_aws_stack()
+
+    def support_proxy(self):
+        """
+        The AWS does not support proxy mode at the moment, since that makes 
+        it difficult to communicate with nodes in a private VPC subnet. 
+        """
+        return False
 
     def _init_app_db(self):
         self.mongo = MongoClient(os.environ['MONGODB'], 27017, connectTimeoutMS=6000)
@@ -99,7 +107,6 @@ class AWSLauncher(object):
             self.vpc_id = deploy['vpc']
         else:
             self.vpc_id = None
-
         # The user can also supply specific subnets for both
         # data/compute and connectors. If they aren't supplied,
         # then Ferry will just create them automatically. 
@@ -674,9 +681,8 @@ class AWSLauncher(object):
             vpc_name = self.vpc_id
             is_ref = False
 
-        # The data subnet is used to store the storage and compute
-        # nodes, and is "private". That means no communication from the 
-        # outside.
+        # The data subnet is used to store the storage and compute nodes, 
+        # and is "private". That means no communication from the outside.
         if not self.data_subnet:
             logging.debug("Creating data subnet")
             data_subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
@@ -990,35 +996,30 @@ class AWSLauncher(object):
                 # of the management network. 
                 server_ip = self._get_manage_ip(server, public=False)
 
-                # We need a way to contact the Docker host. The IP address we 
-                # use depends on whether the controller is in the same
-                # VPC (proxy) and/or if the hosts are on a private subnet. 
-                proxy_ip = None
-                if proxy:
-                    # Check if we need to use the NAT to proxy all
-                    # our requests. Otherwise, we can try to use the
-                    # public address of the node. 
-                    nat_type, nat_info = self._get_nat_info(server["vpc"], server["subnet"])
-                    if nat_type == "nat" and nat_info:
-                        proxy_ip = nat_info["nics"][0]["floating_ip"]
-                    else:
-                        logging.warning("USING PUBLIC SUBNET")
-                        server_ip = self._get_manage_ip(server, public=True)
-
-                logging.warning("SERVER IP:" + str(server_ip))
-                logging.warning("PROXY IP:" + str(proxy_ip))
+                # # We need a way to contact the Docker host. The IP address we 
+                # # use depends on whether the controller is in the same
+                # # VPC (proxy) and/or if the hosts are on a private subnet. 
+                # if proxy:
+                    # # Check if we need to use the NAT to proxy all
+                    # # our requests. Otherwise, we can try to use the
+                    # # public address of the node. 
+                    # nat_type, nat_info = self._get_nat_info(server["vpc"], server["subnet"])
+                    # if nat_type == "nat" and nat_info:
+                    #     proxy_ip = nat_info["nics"][0]["floating_ip"]
+                    # else:
+                    #     server_ip = self._get_manage_ip(server, public=True)
 
                 # Verify that the user_data processes all started properly
                 # and that the docker daemon is actually running. If it is
                 # not running, try re-executing. 
-                if not self.controller._verify_ferry_server(server_ip, proxy_ip):
-                    self.controller._execute_server_init(server_ip, proxy_ip)
+                if not self.controller._verify_ferry_server(server_ip):
+                    self.controller._execute_server_init(server_ip)
 
                 # Copy over the public keys, but also verify that it does
                 # get copied over properly. 
-                self.controller._copy_public_keys(container_info[i], server_ip, proxy_ip)
-                if self.controller._verify_public_keys(server_ip, proxy_ip):
-                    container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip, proxy_ip)
+                self.controller._copy_public_keys(container_info[i], server_ip)
+                if self.controller._verify_public_keys(server_ip):
+                    container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip)
                 
                     if container:
                         mounts = dict(mounts.items() + cmounts.items())
@@ -1027,13 +1028,13 @@ class AWSLauncher(object):
                     logging.error("could not copy over ssh key!")
                     return None
 
-        #     # Check if we need to set the file permissions
-        #     # for the mounted volumes. 
-        #     for c, i in mounts.items():
-        #         for _, v in i['vols']:
-        #             self.controller.cmd([c], 'chown -R %s %s' % (i['user'], v))
-        #     return containers
-        # else:
-        #     # AWS failed to launch the application stack.
-        #     return None
+            # Check if we need to set the file permissions
+            # for the mounted volumes. 
+            for c, i in mounts.items():
+                for _, v in i['vols']:
+                    self.controller.cmd([c], 'chown -R %s %s' % (i['user'], v))
+            return containers
+        else:
+            # AWS failed to launch the application stack.
+            return None
 

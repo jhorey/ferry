@@ -23,8 +23,9 @@ from subprocess import Popen, PIPE
 
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 
-""" Docker instance """
 class DockerInstance(object):
+    """ Docker instance """
+
     def __init__(self, json_data=None):
         if not json_data:
             self.container = ''
@@ -42,6 +43,7 @@ class DockerInstance(object):
             self.default_user = None
             self.name = None
             self.args = None
+            self.tunnel = False
         else:
             self.container = json_data['container']
             self.vm = json_data['vm']
@@ -58,6 +60,7 @@ class DockerInstance(object):
             self.keyname =json_data['keyname']
             self.privatekey = json_data['privatekey']
             self.volumes = json_data['volumes']
+            self.tunnel = json_data['tunnel']
 
     """
     Return in JSON format. 
@@ -78,7 +81,8 @@ class DockerInstance(object):
                        'volumes' : self.volumes,
                        'user' : self.default_user,
                        'name' : self.name,
-                       'args' : self.args }
+                       'args' : self.args,
+                       'tunnel' : self.tunnel }
         return json_reply
 
 

@@ -69,6 +69,10 @@ class CloudFabric(object):
         # to the network, but controller has direct access. 
         self.proxy = bool(conf["system"]["proxy"])
 
+        # Check if the launcher supports proxy mode. 
+        if proxy and not self.launcher.support_proxy():
+            logging.error("%s does not support proxy mode" % self.launcher.name)
+
     def get_data_dir(self):
         return "/ferry/data"
 
@@ -127,7 +131,7 @@ class CloudFabric(object):
                            background = True)
         return containers
 
-    def _copy_public_keys(self, container, server, proxy=None):
+    def _copy_public_keys(self, container, server):
         """
         Copy over the public ssh key to the server so that we can start the
         container correctly. 
@@ -140,7 +144,7 @@ class CloudFabric(object):
                       to_dir = "/ferry/keys/",
                       user = self.launcher.ssh_user)
 
-    def _verify_public_keys(self, server, proxy=None):
+    def _verify_public_keys(self, server):
         """
         Verify that the public key has been copied over correctly. 
         """
@@ -154,7 +158,7 @@ class CloudFabric(object):
             logging.warning("found ssh key: " + out.strip())
             return True
 
-    def _verify_ferry_server(self, server, proxy=None):
+    def _verify_ferry_server(self, server):
         """
         Verify that the docker daemon is actually running on the server. 
         """
@@ -166,10 +170,10 @@ class CloudFabric(object):
             if out.strip() != "":
                 logging.warning("docker daemon " + out.strip())
                 return True
-            time.sleep(2)
+            time.sleep(6)
         return False
 
-    def _execute_server_init(self, server, proxy=None):
+    def _execute_server_init(self, server):
         """
         Restart the Ferry docker daemon. 
         """
@@ -180,7 +184,7 @@ class CloudFabric(object):
         logging.warning("restart ferry out: " + out)
         logging.warning("restart ferry err: " + err)
         
-    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, server_ip, proxy_ip=None):
+    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, server_ip, tunnel=False):
         """
         Run the Docker container and use the cloud inspector to get information
         about the container/VM.
@@ -188,7 +192,7 @@ class CloudFabric(object):
 
         host_map = None
         host_map_keys = []
-        mounts = {}
+        mounts = {}        
 
         if not 'default_cmd' in cinfo:
             cinfo['default_cmd'] = "/service/sbin/startnode init"
@@ -212,13 +216,18 @@ class CloudFabric(object):
         if container:
             container.internal_ip = private_ip
             if self.proxy:
-                # When the fabric controller is acting in proxy mode, 
-                # it can contact the VMs via their private addresses. 
-                container.external_ip = private_ip
-            else:
                 # Otherwise, the controller can only interact with the
                 # VMs via their public IP address. 
                 container.external_ip = server_ip
+            else:
+                # When the fabric controller is acting in proxy mode, 
+                # it can contact the VMs via their private addresses. 
+                container.external_ip = private_ip
+
+            # See if we can contact the container directly, or whether
+            # we need to relay the message across another public
+            # facing NIC. 
+            container.tunnel = tunnel
 
             container.vm = self.launcher.default_personality
             container.default_user = self.cli.docker_user
