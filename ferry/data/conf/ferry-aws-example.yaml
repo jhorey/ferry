@@ -18,6 +18,7 @@ aws:
      default-user: ubuntu
      ssh: ferry-aws
      ssh-user: ubuntu
+     public: false
      user: APIUSER
      access: APIACCESSKEY
      secret: APISECRETKEY

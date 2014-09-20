@@ -119,6 +119,15 @@ class AWSLauncher(object):
         else:
             self.manage_subnet = None
 
+        # Figure out if we want to place the storage/compute in a public 
+        # or private subnet. By default it is a private subnet. Note 
+        # that the actual NIC used by the container does not get a 
+        # public IP, so it's only for the primary management NIC.
+        if 'public' in deploy:
+            self.public_data = deploy['public']
+        else:
+            self.public_data = False
+
         # The NAT image enables private subnets to communicate
         # with the outside world. The user can supply their own
         # image ID, although they probably shouldn't. 
@@ -441,7 +450,7 @@ class AWSLauncher(object):
         desc = { network_name : { "type" : "AWS::VPC" } }
         return plan, desc
 
-    def _create_subnet_plan(self, subnet_name, vpc, is_ref, is_public):
+    def _create_subnet_plan(self, subnet_name, vpc, is_ref):
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {} }
@@ -515,7 +524,7 @@ class AWSLauncher(object):
 
         return plan, desc
 
-    def _create_igw_plan(self, name, route_table, vpc, is_ref):
+    def _create_igw_plan(self, igw_name, igw_id, route_table, vpc, is_ref):
         """
         Create a new internet gateway and associate it 
         with the VPC. 
@@ -530,19 +539,27 @@ class AWSLauncher(object):
 
         # Create a new internet gateway. This one is pretty simple
         # since there are no options ;)
-        logging.info("creating IGW")
-        igw_plan = { name : { "Type" : "AWS::EC2::InternetGateway" }}
+         if not igw_id:
+             logging.info("creating IGW")
+             igw_plan = { igw_name : { "Type" : "AWS::EC2::InternetGateway" }}
+             name = { "Ref" : igw_name }
+        else:
+             logging.info("using IGW " + igw_id)
+            # The user has supplied the IGW id, so we
+            # shouldn't create one.
+            igw_plan = {}
+            name = igw_id
 
         # Attach the internet gateway to our VPC. 
-        attach_plan = { name + "Attach": { "Type" : "AWS::EC2::VPCGatewayAttachment",
-                          "Properties" : { "InternetGatewayId" : { "Ref" : name },
-                                           "VpcId" : network}}}
+        attach_plan = { igw_name + "Attach": { "Type" : "AWS::EC2::VPCGatewayAttachment",
+                                               "Properties" : { "InternetGatewayId" : name,
+                                                                "VpcId" : network}}}
 
         # Also create a new route associated with this
         # internet gateway. This will send all outbound internet
         # traffic to the gateway. 
         route_plan = { name + "Route": { "Type" : "AWS::EC2::Route",
-                          "Properties" : { "GatewayId" : { "Ref" : name },
+                          "Properties" : { "GatewayId" : name,
                                            "RouteTableId" : { "Ref" : route_table },
                                            "DestinationCidrBlock" : "0.0.0.0/0" }}}
 
@@ -554,6 +571,18 @@ class AWSLauncher(object):
         plan["Resources"] = dict(igw_plan.items() + 
                                  attach_plan.items() +
                                  route_plan.items() )
+        return plan, desc
+
+    def _route_igw_plan(self, igw_name, route_table):
+        plan = { "AWSTemplateFormatVersion" : "2010-09-09",
+                 "Description" : "Ferry generated Heat plan",
+                 "Resources" : {} }
+        plan["Resources"] = { name + "Route": { "Type" : "AWS::EC2::Route",
+                                                "Properties" : { "GatewayId" : { "Ref" : igw_name },
+                                                                 "RouteTableId" : { "Ref" : route_table },
+                                                                 "DestinationCidrBlock" : "0.0.0.0/0" }}}
+        desc = { "type" : "AWS::EC2::Route",
+                 "name" : igw_name }
         return plan, desc
 
     def _create_instance_plan(self, cluster_uuid, subnet, num_instances, image, size, sec_group_name, ctype): 
@@ -681,40 +710,20 @@ class AWSLauncher(object):
             vpc_name = self.vpc_id
             is_ref = False
 
-        # The data subnet is used to store the storage and compute nodes, 
-        # and is "private". That means no communication from the outside.
-        if not self.data_subnet:
-            logging.debug("Creating data subnet")
-            data_subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
-            table_name = "FerryRoute%s" % cluster_uuid.replace("-", "")
-            subnet_plan, subnet_desc = self._create_subnet_plan(data_subnet_name, vpc_name, is_ref, is_public=False)
-            table_plan, table_desc = self._create_routetable_plan(table_name, data_subnet_name, vpc_name, is_ref)
-            nat_plan, nat_desc = self._create_nat_plan(table_name, data_subnet_name, vpc_name, is_ref)
-
-            # Combine the network resources. 
-            if len(stack_plan) == 0:
-                stack_plan = subnet_plan
-            else:
-                stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
-                                               subnet_plan["Resources"].items() + 
-                                               table_plan["Resources"].items() +
-                                               nat_plan["Resources"].items() )
-            stack_desc = dict(stack_desc.items() + 
-                              subnet_desc.items() + 
-                              table_desc.items() +
-                              nat_desc.items())
-
         # The manage subnet is used to store the connectors and 
         # are "public" so that they can get elastic IPs. 
         if not self.manage_subnet:
             logging.debug("Creating manage subnet")
             manage_subnet_name = "FerryManage%s" % cluster_uuid.replace("-", "")
             table_name = "FerryManageRoute%s" % cluster_uuid.replace("-", "")
-            igw_name = "FerryManageIGW%s" % cluster_uuid.replace("-", "")
-            subnet_plan, subnet_desc = self._create_subnet_plan(manage_subnet_name, vpc_name, is_ref, is_public=False)
+            subnet_plan, subnet_desc = self._create_subnet_plan(manage_subnet_name, vpc_name, is_ref)
             table_plan, table_desc = self._create_routetable_plan(table_name, manage_subnet_name, vpc_name, is_ref)
-            igw_plan, igw_desc = self._create_igw_plan(igw_name, table_name, vpc_name, is_ref)
-
+            igw_name = "FerryManageIGW%s" % cluster_uuid.replace("-", "")
+            igw_plan, igw_desc = self._create_igw_plan(igw_name = igw_name, 
+                                                       igw_id = None,
+                                                       route_table = table_name, 
+                                                       vpc = vpc_name, 
+                                                       is_ref = is_ref)
             # Combine the network resources. 
             if len(stack_plan) == 0:
                 stack_plan = subnet_plan
@@ -727,6 +736,48 @@ class AWSLauncher(object):
                               subnet_desc.items() + 
                               table_desc.items() +
                               igw_desc.items())
+
+        # The data subnet is used to store the storage and compute nodes, 
+        # and is "private". That means no communication from the outside.
+        if not self.data_subnet:
+            logging.debug("Creating data subnet")
+            data_subnet_name = "FerrySub%s" % cluster_uuid.replace("-", "")
+            table_name = "FerryRoute%s" % cluster_uuid.replace("-", "")
+            subnet_plan, subnet_desc = self._create_subnet_plan(data_subnet_name, vpc_name, is_ref)
+            table_plan, table_desc = self._create_routetable_plan(table_name, data_subnet_name, vpc_name, is_ref)
+
+            if not self.public_data:
+                # Create a new NAT instance so that the 
+                # instances can contact the internet. 
+                route_plan, route_desc = self._create_nat_plan(table_name, data_subnet_name, vpc_name, is_ref)
+            elif igw_name:
+                # Use the IGW from the management subnet. We still need
+                # to modify the routing table. 
+                route_plan, route_desc = self._route_igw_plan(igw_name, table_name)
+            else:
+                # Looks like we haven't created the management network. 
+                # The user may have specified their own subnet, so try to
+                # get the IGW information.
+                igw_type, igw_id = self._get_nat_info(self.vpc_id, self.manage_subnet)
+                if igw_type == "igw":
+                    route_plan, route_desc = self._create_igw_plan(igw_name = igw_name
+                                                                   igw_id = igw_id, 
+                                                                   route_table = table_name, 
+                                                                   vpc = vpc_name, 
+                                                                   is_ref = is_ref) 
+                
+            # Combine the network resources. 
+            if len(stack_plan) == 0:
+                stack_plan = subnet_plan
+            else:
+                stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
+                                               subnet_plan["Resources"].items() + 
+                                               table_plan["Resources"].items() +
+                                               route_plan["Resources"].items() )
+            stack_desc = dict(stack_desc.items() + 
+                              subnet_desc.items() + 
+                              table_desc.items() +
+                              route_desc.items())
 
         # Check if we need to create some new
         # network resources. 
@@ -844,7 +895,7 @@ class AWSLauncher(object):
                 instance_info["nics"].append( nic_info )
         return instance_info
 
-    def _get_nat_info(self, vpc, subnet, nat=True):
+    def _get_nat_info(self, vpc, subnet):
         """
         Determine if this subnet is a private subnet, and if so
         return information regarding the NAT instance. 
