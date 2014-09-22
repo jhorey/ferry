@@ -417,7 +417,7 @@ class AWSLauncher(object):
             assoc_resource = {
                 "Type": "AWS::EC2::EIPAssociation",
                 "Properties": {
-                    "AllocationId": { "Ref" : eip_name },
+                    "AllocationId" : { "Fn::GetAtt" : [ eip_name, "AllocationId" ]},
                     "NetworkInterfaceId": { "Ref" : instance["data_nic"] }
                 }
             }
