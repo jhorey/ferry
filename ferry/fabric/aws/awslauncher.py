@@ -796,6 +796,16 @@ class AWSLauncher(object):
         else:
             return self.vpc_id, self.data_subnet, self.manage_subnet
 
+    def _check_instance_status(self, stack_desc):
+        servers = self._get_servers(stack_desc)
+        instance_ids = []
+        for s in servers:
+            instance_ids.append(s["id"])
+
+        statuses = self.ec2.get_all_instance_status(instance_ids=instance_ids)
+        for s in statuses:
+            logging.warning("STATUS: " + str(s.instance_status.details))
+
     def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
@@ -860,6 +870,10 @@ class AWSLauncher(object):
         stack_name = "FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", ""))
         stack_desc = self._launch_cloudformation(stack_name, stack_plan, stack_desc)
 
+        # Wait for the application instances to actually
+        # be available (status checks ok)
+        self._check_instance_status(stack_desc)
+
         # Now find all the IP addresses of the various
         # machines. 
         return self._collect_network_info(stack_name, stack_desc)
@@ -877,14 +891,12 @@ class AWSLauncher(object):
                               'nics': [] }
 
             if addrs and len(addrs) > 0:
-                logging.warning("INSPECT INSTANCE ADDRS: " + str(len(addrs)))
                 for a in addrs:
                     instance_info["nics"].append( { "ip_address" : a.private_ip_address,
                                              "floating_ip" : a.public_ip,
                                              "index" : eni.attachment.device_index, 
                                              "eni" : eni.id } )
             else:
-                logging.warning("INSPECT INSTANCE NO ADDRS!")
                 nic_info = { "ip_address" : eni.private_ip_address,
                              "index" : eni.attachment.device_index, 
                              "eni" : eni.id }

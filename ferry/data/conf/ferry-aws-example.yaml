@@ -17,7 +17,7 @@ aws:
      personality: t2.micro
      default-user: ubuntu
      ssh: ferry-aws
-     ssh-user: ubuntu
+     ssh-user: ferry
      public: false
      user: APIUSER
      access: APIACCESSKEY
