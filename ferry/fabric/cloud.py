@@ -61,9 +61,6 @@ class CloudFabric(object):
         launcher = conf["system"]["mode"]
         self.launcher = self._load_class(launcher)
 
-        # The name of the data network device (eth*). 
-        self.data_network = conf["system"]["network"]
-
         # Determine if we are using this fabric in proxy
         # mode. Proxy mode means that the client is external
         # to the network, but controller has direct access. 
