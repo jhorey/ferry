@@ -540,16 +540,16 @@ class AWSLauncher(object):
         # Create a new internet gateway. This one is pretty simple
         # since there are no options ;)
         if not igw_id:
-             logging.info("creating IGW")
-             igw_plan = { igw_name : { "Type" : "AWS::EC2::InternetGateway" }}
-             name = { "Ref" : igw_name }
+            logging.info("creating IGW")
+            igw_plan = { igw_name : { "Type" : "AWS::EC2::InternetGateway" }}
+            name = { "Ref" : igw_name }
         else:
-             logging.info("using IGW " + igw_id)
+            logging.info("using IGW " + igw_id)
             # The user has supplied the IGW id, so we
             # shouldn't create one.
             igw_plan = {}
             name = igw_id
-
+            
         # Attach the internet gateway to our VPC. 
         attach_plan = { igw_name + "Attach": { "Type" : "AWS::EC2::VPCGatewayAttachment",
                                                "Properties" : { "InternetGatewayId" : name,
