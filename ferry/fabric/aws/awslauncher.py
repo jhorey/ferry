@@ -801,10 +801,17 @@ class AWSLauncher(object):
         instance_ids = []
         for s in servers:
             instance_ids.append(s["id"])
-
-        statuses = self.ec2.get_all_instance_status(instance_ids=instance_ids)
-        for s in statuses:
-            logging.warning("STATUS: " + str(s.instance_status.details))
+        
+        while(True):
+            all_init = True
+            statuses = self.ec2.get_all_instance_status(instance_ids=instance_ids)
+            for s in statuses:
+                if s.instance_status.details['reachability'] == 'initializing':
+                    all_init = False
+            if all_init:
+                break
+            else:
+                time.sleep(20)
 
     def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
         """
