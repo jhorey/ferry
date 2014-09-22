@@ -1100,7 +1100,7 @@ class AWSLauncher(object):
                 # get copied over properly. 
                 self.controller._copy_public_keys(container_info[i], server_ip)
                 if self.controller._verify_public_keys(server_ip):
-                    container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, private_ip, server_ip)
+                    container, cmounts = self.controller.execute_docker_containers(container_info[i], lxc_opts, container_ip, server_ip)
                 
                     if container:
                         mounts = dict(mounts.items() + cmounts.items())
