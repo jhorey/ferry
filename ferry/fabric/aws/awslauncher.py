@@ -539,7 +539,7 @@ class AWSLauncher(object):
 
         # Create a new internet gateway. This one is pretty simple
         # since there are no options ;)
-         if not igw_id:
+        if not igw_id:
              logging.info("creating IGW")
              igw_plan = { igw_name : { "Type" : "AWS::EC2::InternetGateway" }}
              name = { "Ref" : igw_name }
