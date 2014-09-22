@@ -67,7 +67,7 @@ class CloudFabric(object):
         self.proxy = bool(conf["system"]["proxy"])
 
         # Check if the launcher supports proxy mode. 
-        if proxy and not self.launcher.support_proxy():
+        if self.proxy and not self.launcher.support_proxy():
             logging.error("%s does not support proxy mode" % self.launcher.name)
 
     def get_data_dir(self):
