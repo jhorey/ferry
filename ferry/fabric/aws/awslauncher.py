@@ -760,7 +760,7 @@ class AWSLauncher(object):
                 # get the IGW information.
                 igw_type, igw_id = self._get_nat_info(self.vpc_id, self.manage_subnet)
                 if igw_type == "igw":
-                    route_plan, route_desc = self._create_igw_plan(igw_name = igw_name
+                    route_plan, route_desc = self._create_igw_plan(igw_name = igw_name,
                                                                    igw_id = igw_id, 
                                                                    route_table = table_name, 
                                                                    vpc = vpc_name, 
