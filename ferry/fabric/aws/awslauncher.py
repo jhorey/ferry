@@ -871,10 +871,10 @@ class AWSLauncher(object):
                                        sec_group_plan["Resources"].items() + 
                                        ip_plan["Resources"].items() )
         stack_desc = dict(stack_desc.items() + sec_group_desc.items() + ip_desc.items())
-        logging.warning(json.dumps(stack_plan, 
-                                   sort_keys=True,
-                                   indent=2,
-                                   separators=(',',':')))
+        logging.debug(json.dumps(stack_plan, 
+                                 sort_keys=True,
+                                 indent=2,
+                                 separators=(',',':')))
         stack_name = "FerryApp%s%s" % (ctype.upper(), cluster_uuid.replace("-", ""))
         stack_desc = self._launch_cloudformation(stack_name, stack_plan, stack_desc)
 
@@ -1052,10 +1052,10 @@ class AWSLauncher(object):
                                            assign_floating_ip = floating_ip,
                                            ctype = ctype)
 
-        logging.warning(json.dumps(resources,
-                                   sort_keys=True,
-                                   indent=2,
-                                   separators=(',',':')))
+        logging.debug(json.dumps(resources,
+                                 sort_keys=True,
+                                 indent=2,
+                                 separators=(',',':')))
 
         # Now we need to ask the cluster to start the 
         # Docker containers.
