@@ -880,16 +880,19 @@ class AWSLauncher(object):
 
     def _inspect_instance(self, instance_id):
         instances = self.ec2.get_only_instances(instance_ids=[instance_id])
+
+        instance_info = { 'nics': [] }
         for eni in instances[0].interfaces:
             _filter = { "network-interface-id" : eni.id }
             addrs = self.ec2.get_all_addresses(filters=_filter)
             subnets = self.vpc.get_all_subnets(subnet_ids=[eni.subnet_id])
 
-            instance_info = { 'vpc' : eni.vpc_id,
-                              'subnet' : eni.subnet_id,
-                              'cidr' : subnets[0].cidr_block,
-                              'nics': [] }
+            # Capture global network info.
+            instance_info['vpc'] = eni.vpc_id
+            instance_info['subnet'] = eni.subnet_id
+            instance_info['cidr'] = subnets[0].cidr_block
 
+            # Capture NIC specific information. 
             if addrs and len(addrs) > 0:
                 for a in addrs:
                     instance_info["nics"].append( { "ip_address" : a.private_ip_address,
@@ -969,6 +972,7 @@ class AWSLauncher(object):
         """
         Get the management IP address for this server. 
         """
+        logging.warning("ALL NICS: " + str(server["nics"]))
         for nic in server["nics"]:
             logging.warning("NIC: " + str(nic))
             if nic["index"] == 0:
@@ -978,6 +982,8 @@ class AWSLauncher(object):
                 else:
                     logging.warning("FOUND PRIVATE " + str(nic["ip_address"]))
                     return nic["ip_address"]
+
+        logging.warning("COULD NOT FIND PRIMARY NIC")
 
     def _get_data_ip(self, server):
         """
