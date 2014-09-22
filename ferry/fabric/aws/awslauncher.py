@@ -980,18 +980,12 @@ class AWSLauncher(object):
         """
         Get the management IP address for this server. 
         """
-        logging.warning("ALL NICS: " + str(server["nics"]))
         for nic in server["nics"]:
-            logging.warning("NIC: " + str(nic))
             if nic["index"] == 0:
                 if public and "floating_ip" in nic:
-                    logging.warning("FOUND PUBLIC " + str(nic["floating_ip"]))
                     return nic["floating_ip"]
                 else:
-                    logging.warning("FOUND PRIVATE " + str(nic["ip_address"]))
                     return nic["ip_address"]
-
-        logging.warning("COULD NOT FIND PRIMARY NIC")
 
     def _get_data_ip(self, server):
         """
@@ -1119,4 +1113,41 @@ class AWSLauncher(object):
         else:
             # AWS failed to launch the application stack.
             return None
+
+    def _stop_stack(self, cluster_uuid, service_uuid):
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
+                                   "_service_uuid" : service_uuid } )
+        for stack in stacks:
+            servers = self._get_servers(stack)
+            instance_ids = []
+            for s in servers:
+                instance_ids.append(s["id"])
+            self.ec2.stop_instances(instance_ids=instance_ids)
+
+    def _restart_stack(self, cluster_uuid, service_uuid):
+        ips = []
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
+                                   "_service_uuid" : service_uuid } )
+        for stack in stacks:
+            # Restart all the instances. 
+            servers = self._get_servers(stack)
+            instance_ids = []
+            for s in servers:
+                instance_ids.append(s["id"])
+            self.ec2.start_instances(instance_ids=instance_ids)
+
+            # Collect the management interface for all the instances.
+            for s in servers:
+                ips.append(self._get_manage_ip(s, public=False))
+
+            # Wait for the servers to actually be initialized
+            # before returning. 
+            self._check_instance_status(stack)
+        return ips
+
+    def quit(self):
+        """
+        Nothing to really do. 
+        """
+        logging.debug("aws quit")
 

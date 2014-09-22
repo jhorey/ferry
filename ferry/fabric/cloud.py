@@ -102,7 +102,7 @@ class CloudFabric(object):
         
         # Then need to restart Ferry on all the hosts. 
         logging.warning("restarting ferry...")
-        cmd = "source /etc/profile && ferry server"
+        cmd = "source /etc/profile && ferry server -n"
         for ip in addrs:
             output, err = self.cmd_raw(self.cli.key, ip, cmd, self.docker_user)
 
@@ -268,7 +268,7 @@ class CloudFabric(object):
         ferry = 'ferry quit'
         for c in containers:
             self.cmd_raw(c.privatekey, c.external_ip, halt, c.default_user)
-            self.cmd_raw(self.cli.key, c.external_ip, ferry, c.default_user)
+            self.cmd_raw(self.cli.key, c.external_ip, ferry, self.launcher.ssh_user)
 
         # Now go ahead and stop the VMs. 
         self.launcher._stop_stack(cluster_uuid, service_uuid)
