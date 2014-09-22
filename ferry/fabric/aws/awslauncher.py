@@ -383,6 +383,7 @@ class AWSLauncher(object):
                                                         "SubnetId" : subnet, 
                                                         "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}}
         desc = { name : { "type" : "AWS::EC2::Instance",
+                          "name" : name, 
                           "data_nic" : data_nic_name,
                           "nics" : [] }}
 
@@ -405,8 +406,8 @@ class AWSLauncher(object):
                  "Resources" :  {} }
         desc = {}
         for instance in instances:
-            eip_name = "FerryEIP" + instance
-            assoc_name = "FerryEIPAssoc" + instance
+            eip_name = "FerryEIP" + instance["name"]
+            assoc_name = "FerryEIPAssoc" + instance["name"]
             eip_resource = {
                 "Type" : "AWS::EC2::EIP",
                 "Properties" : {
