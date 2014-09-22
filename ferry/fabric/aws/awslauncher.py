@@ -877,12 +877,14 @@ class AWSLauncher(object):
                               'nics': [] }
 
             if addrs and len(addrs) > 0:
+                logging.warning("INSPECT INSTANCE ADDRS: " + str(len(addrs)))
                 for a in addrs:
                     instance_info["nics"].append( { "ip_address" : a.private_ip_address,
                                              "floating_ip" : a.public_ip,
                                              "index" : eni.attachment.device_index, 
                                              "eni" : eni.id } )
             else:
+                logging.warning("INSPECT INSTANCE NO ADDRS!")
                 nic_info = { "ip_address" : eni.private_ip_address,
                              "index" : eni.attachment.device_index, 
                              "eni" : eni.id }
@@ -956,10 +958,13 @@ class AWSLauncher(object):
         Get the management IP address for this server. 
         """
         for nic in server["nics"]:
+            logging.warning("NIC: " + str(nic))
             if nic["index"] == 0:
                 if public and "floating_ip" in nic:
+                    logging.warning("FOUND PUBLIC " + str(nic["floating_ip"]))
                     return nic["floating_ip"]
                 else:
+                    logging.warning("FOUND PRIVATE " + str(nic["ip_address"]))
                     return nic["ip_address"]
 
     def _get_data_ip(self, server):
