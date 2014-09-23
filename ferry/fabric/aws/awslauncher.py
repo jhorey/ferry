@@ -713,6 +713,9 @@ class AWSLauncher(object):
         else:
             logging.debug("Using VPC " + str(self.vpc_id))
             self.vpc_cidr = self._collect_vpc_info(self.vpc_id)
+            logging.warning("VPC CIDR: " + str(self.vpc_cidr))
+            logging.warning("CIDR TYPE: " + str(type(self.vpc_cidr)))
+
             vpc_plan = {}
             vpc_name = self.vpc_id
             is_ref = False
