@@ -194,9 +194,8 @@ class AWSLauncher(object):
         Create a network (equivalent to VPC). 
         """
         cidr, _, _, _ = self._define_address_range(self.num_network_hosts,
-                                                            "10.0.0.0")
+                                                            "10.0.0.0")        
         self.vpc_cidr = cidr.split("/")[0]
-        
         desc = { name : { "Type" : "AWS::EC2::VPC",
                           "Properties" : { "CidrBlock" : cidr }}}
         return desc
@@ -713,9 +712,7 @@ class AWSLauncher(object):
         else:
             logging.debug("Using VPC " + str(self.vpc_id))
             self.vpc_cidr = self._collect_vpc_info(self.vpc_id)
-            logging.warning("VPC CIDR: " + str(self.vpc_cidr))
-            logging.warning("CIDR TYPE: " + str(type(self.vpc_cidr)))
-
+            self.vpc_cidr = self.vpc_cidr.split("/")[0]
             vpc_plan = {}
             vpc_name = self.vpc_id
             is_ref = False
