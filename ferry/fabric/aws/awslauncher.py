@@ -677,6 +677,12 @@ class AWSLauncher(object):
         for vpc in vpcs:
             return vpc.cidr_block
 
+    def _collect_subnet_info(self, vpc_id):
+        subnets = self.vpc.get_all_subnets()
+        for subnet in subnets:
+            if subnet.vpc_id == vpc_id:
+                self.subnets.append( { name : { 'cidr' : subnet.cidr_block }} )
+
     def _collect_network_info(self, stack_name, stack_desc):
         """
         Collect all the networking information. For each
@@ -710,8 +716,15 @@ class AWSLauncher(object):
             stack_desc = vpc_desc
         else:
             logging.debug("Using VPC " + str(self.vpc_id))
+
+            # Collect VPC cidr information.
             self.vpc_cidr = self._collect_vpc_info(self.vpc_id)
             self.vpc_cidr = self.vpc_cidr.split("/")[0]
+
+            # Before we create any new subnets, collect the various
+            # subnet information. 
+            self._collect_subnet_info(self.vpc_id)
+
             vpc_plan = {}
             vpc_name = self.vpc_id
             is_ref = False
