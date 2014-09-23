@@ -681,7 +681,7 @@ class AWSLauncher(object):
         subnets = self.vpc.get_all_subnets()
         for subnet in subnets:
             if subnet.vpc_id == vpc_id:
-                self.subnets.append( { name : { 'cidr' : subnet.cidr_block }} )
+                self.subnets.append( { "Subnet:" + subnet.id : { 'cidr' : subnet.cidr_block }} )
 
     def _collect_network_info(self, stack_name, stack_desc):
         """
