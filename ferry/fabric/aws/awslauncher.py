@@ -809,17 +809,17 @@ class AWSLauncher(object):
 
             # Collect the network resources IDs. 
             if vpc_name in stack_desc:
-                vpc_id = stack_desc[vpc_name]
+                vpc_id = stack_desc[vpc_name]["id"]
             else:
                 vpc_id = vpc_name
 
             if not self.data_subnet:
-                data_id = stack_desc[data_subnet_name]
+                data_id = stack_desc[data_subnet_name]["id"]
             else:
                 data_id = self.data_subnet
 
             if not self.manage_subnet:
-                manage_id = stack_desc[manage_subnet_name]
+                manage_id = stack_desc[manage_subnet_name]["id"]
             else:
                 manage_id = self.manage_subnet
 
