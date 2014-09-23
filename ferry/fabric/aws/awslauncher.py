@@ -674,6 +674,11 @@ class AWSLauncher(object):
         except:
             return []
 
+    def _collect_vpc_info(self, vpc_id):
+        vpcs = self.vpc.get_all_vpcs(vpc_ids=[vpc_id])
+        for vpc in vpcs:
+            return vpc.cidr_block
+
     def _collect_network_info(self, stack_name, stack_desc):
         """
         Collect all the networking information. For each
@@ -707,6 +712,7 @@ class AWSLauncher(object):
             stack_desc = vpc_desc
         else:
             logging.debug("Using VPC " + str(self.vpc_id))
+            self.vpc_cidr = self._collect_vpc_info(self.vpc_id)
             vpc_plan = {}
             vpc_name = self.vpc_id
             is_ref = False
