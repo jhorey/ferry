@@ -216,24 +216,24 @@ class AWSLauncher(object):
                                            "AvailabilityZone" : self.default_zone, 
                                            "VpcId" : network}}}
 
-        desc = { "type" : "AWS::EC2::Subnet",
-                 "cidr" : cidr }
+        desc = { name : { "type" : "AWS::EC2::Subnet",
+                          "cidr" : cidr }}
         return plan, desc
 
     def _create_routetable(self, name, subnet, vpc):
         plan = { name : { "Type" : "AWS::EC2::RouteTable",
                           "Properties" : { "VpcId" : vpc}}}
-        desc = { "type" : "AWS::EC2::RouteTable",
-                 "vpc" : vpc }
+        desc = { name : { "type" : "AWS::EC2::RouteTable",
+                          "vpc" : vpc }}
         return plan, desc
 
     def _create_routeassoc(self, name, table, subnet):
         plan = { name : { "Type" : "AWS::EC2::SubnetRouteTableAssociation",
                           "Properties" : { "SubnetId" : { "Ref" : subnet},
                                            "RouteTableId" : { "Ref" : table } }}}
-        desc = { "type" : "AWS::EC2::SubnetRouteTableAssociation",
-                 "subnet" : subnet,
-                 "table" : table }
+        desc = { name : { "type" : "AWS::EC2::SubnetRouteTableAssociation",
+                          "subnet" : subnet,
+                          "table" : table }}
         return plan, desc
 
     def _create_security_group(self, group_name, network, is_ref, ports, internal, outbound):
