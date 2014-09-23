@@ -801,7 +801,7 @@ class AWSLauncher(object):
         # Check if we need to create some new
         # network resources. 
         if len(stack_plan) > 0:
-            logging.debug(json.dumps(stack_plan, 
+            logging.warning(json.dumps(stack_plan, 
                                      sort_keys=True,
                                      indent=2,
                                      separators=(',',':')))
@@ -901,7 +901,7 @@ class AWSLauncher(object):
                                        sec_group_plan["Resources"].items() + 
                                        ip_plan["Resources"].items() )
         stack_desc = dict(stack_desc.items() + sec_group_desc.items() + ip_desc.items())
-        logging.debug(json.dumps(stack_plan, 
+        logging.warning(json.dumps(stack_plan, 
                                  sort_keys=True,
                                  indent=2,
                                  separators=(',',':')))
