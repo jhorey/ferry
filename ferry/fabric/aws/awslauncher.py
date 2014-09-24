@@ -803,11 +803,16 @@ class AWSLauncher(object):
         # Check if we need to create some new
         # network resources. 
         if len(stack_plan) > 0:
-            logging.warning(json.dumps(stack_plan, 
+            logging.debug(json.dumps(stack_plan, 
                                      sort_keys=True,
                                      indent=2,
                                      separators=(',',':')))
-            stack_desc = self._launch_cloudformation("FerryNetwork%s" % cluster_uuid.replace("-", ""), stack_plan, stack_desc)
+
+            # Create the VPC/subnets and update the application
+            # database so that we can delete the resources later. 
+            net_name = "FerryNetwork%s" % cluster_uuid.replace("-", "")
+            stack_desc = self._launch_cloudformation(net_name, stack_plan, stack_desc)
+            self._update_app_db(cluster_uuid, net_name, stack_plan)
 
             # Collect the network resources IDs. 
             if not self.vpc_id:
@@ -893,7 +898,7 @@ class AWSLauncher(object):
                                        sec_group_plan["Resources"].items() + 
                                        ip_plan["Resources"].items() )
         stack_desc = dict(stack_desc.items() + sec_group_desc.items() + ip_desc.items())
-        logging.warning(json.dumps(stack_plan, 
+        logging.debug(json.dumps(stack_plan, 
                                  sort_keys=True,
                                  indent=2,
                                  separators=(',',':')))
