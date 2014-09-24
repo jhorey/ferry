@@ -218,7 +218,8 @@ class AWSLauncher(object):
                                            "VpcId" : network}}}
 
         desc = { name : { "type" : "AWS::EC2::Subnet",
-                          "cidr" : cidr }}
+                          "cidr" : cidr,
+                          "gw" : gateway }}
         return plan, desc
 
     def _create_routetable(self, name, subnet, vpc):
@@ -380,6 +381,7 @@ class AWSLauncher(object):
                                                         "KeyName" : self.ssh_key, 
                                                         "AvailabilityZone" : self.default_zone, 
                                                         "SubnetId" : subnet, 
+                                                        "SourceDestCheck" : False, 
                                                         "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}}
         desc = { name : { "type" : "AWS::EC2::Instance",
                           "name" : name, 
@@ -974,9 +976,12 @@ class AWSLauncher(object):
         """
         # gw_type, gw_info = self._get_nat_info(server["vpc"], server["subnet"])
         # gw = gw_info["nics"][0]["ip_address"]
-        gw = "0.0.0.0"
+        # gw = "0.0.0.0"
         cidr = server["cidr"].split("/")[1]
         ip = self._get_data_ip(server)
+        gw_info = server["cidr"].split("/")[0].split(".")
+        gw = "%s.%s.%s.1" % (gw_info[0], gw_info[1], gw_info[2])
+        logging.warning("GATEWAY: " + gw)
 
         # We want to use the host NIC, so modify LXC to use phys networking, and
         # then start the docker containers on the server. 
