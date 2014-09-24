@@ -808,24 +808,14 @@ class AWSLauncher(object):
             stack_desc = self._launch_cloudformation("FerryNetwork%s" % cluster_uuid.replace("-", ""), stack_plan, stack_desc)
 
             # Collect the network resources IDs. 
-            if vpc_name in stack_desc:
-                vpc_id = stack_desc[vpc_name]["id"]
-            else:
-                vpc_id = vpc_name
-
+            if not self.vpc_id:
+                self.vpc_id = stack_desc[vpc_name]["id"]
             if not self.data_subnet:
-                data_id = stack_desc[data_subnet_name]["id"]
-            else:
-                data_id = self.data_subnet
-
+                self.data_subnet = stack_desc[data_subnet_name]["id"]
             if not self.manage_subnet:
-                manage_id = stack_desc[manage_subnet_name]["id"]
-            else:
-                manage_id = self.manage_subnet
+                self.manage_subnet = stack_desc[manage_subnet_name]["id"]
 
-            return vpc_id, data_id, manage_id
-        else:
-            return self.vpc_id, self.data_subnet, self.manage_subnet
+        return self.vpc_id, self.data_subnet, self.manage_subnet
 
     def _check_instance_status(self, stack_desc):
         servers = self._get_servers(stack_desc)
