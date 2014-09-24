@@ -1139,6 +1139,33 @@ class AWSLauncher(object):
             # AWS failed to launch the application stack.
             return None
 
+    def _delete_stack(self, cluster_uuid, service_uuid):
+        # Find the relevant stack information. 
+        ips = []
+        stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
+                                   "_service_uuid" : service_uuid } )
+
+        logging.warning("Deleting cluster %s" % str(cluster_uuid))
+        for stack in stacks:
+            for s in stack.values():
+                if type(s) is dict and s["type"] == "AWS::CloudFormation::Stack":
+                    stack_id = s["id"]
+
+                    # Now try to delete the stack. Wrap this in a try-block so that
+                    # we don't completely fail even if the stack doesn't exist. 
+                    try:
+                        logging.warning("Deleting stack %s" % str(stack_id))
+                        self.cf.delete_stack(stack_id)
+                    except boto.exception.BotoServerError as e:
+                        logging.error(str(e))
+                    except:
+                        # We could not delete the stack. This probably means
+                        # that the AWS service is temporarily down. 
+                        logging.error("could not delete Cloudformation stack")
+
+        self.apps.remove( { "_cluster_uuid" : cluster_uuid,
+                            "_service_uuid" : service_uuid } )
+
     def _stop_stack(self, cluster_uuid, service_uuid):
         stacks = self.apps.find( { "_cluster_uuid" : cluster_uuid,
                                    "_service_uuid" : service_uuid } )
