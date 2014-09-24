@@ -994,7 +994,7 @@ class AWSLauncher(object):
                     "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % gw,
                     "lxc.network.link = eth1",
-                    "lxc.network.name = eth0", 
+                    "lxc.network.name = eth1", 
                     "lxc.network.flags = up"]
         return lxc_opts, ip
 

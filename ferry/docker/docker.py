@@ -402,21 +402,21 @@ class DockerCLI(object):
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
 
-        if background:
-            proc = self._execute_cmd(cmd, server, user, False)
-            container = None
-        else:
-            output, error = self._execute_cmd(cmd, server, user, True)
-            err = error.strip()
-            if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
-                logging.error("Ferry docker daemon does not appear to be running")
-                return None
-            elif re.compile('Unable to find image[\'\s\w]*').match(err):
-                logging.error("%s not present" % image)
-                return None
-            container = output.strip()
+        # if background:
+        #     proc = self._execute_cmd(cmd, server, user, False)
+        #     container = None
+        # else:
+        #     output, error = self._execute_cmd(cmd, server, user, True)
+        #     err = error.strip()
+        #     if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
+        #         logging.error("Ferry docker daemon does not appear to be running")
+        #         return None
+        #     elif re.compile('Unable to find image[\'\s\w]*').match(err):
+        #         logging.error("%s not present" % image)
+        #         return None
+        #     container = output.strip()
 
-        return inspector.inspect(image, container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
+        # return inspector.inspect(image, container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
