@@ -383,7 +383,6 @@ class AWSLauncher(object):
                                                         "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}}
         desc = { name : { "type" : "AWS::EC2::Instance",
                           "name" : name, 
-                          "data_nic" : data_nic_name,
                           "nics" : [] }}
 
         # Now add the user script. This script is executed after the
