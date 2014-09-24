@@ -125,6 +125,7 @@ class AWSLauncher(object):
         # public IP, so it's only for the primary management NIC.
         if 'public' in deploy:
             self.public_data = deploy['public']
+            logging.warning("PUBLIC STATUS: " + str(self.public_data))
         else:
             self.public_data = False
 
