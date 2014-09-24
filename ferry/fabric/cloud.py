@@ -181,7 +181,7 @@ class CloudFabric(object):
         logging.warning("restart ferry out: " + out)
         logging.warning("restart ferry err: " + err)
         
-    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, server_ip, tunnel=False):
+    def execute_docker_containers(self, cinfo, lxc_opts, private_ip, server_ip, background=True, simulate=False):
         """
         Run the Docker container and use the cloud inspector to get information
         about the container/VM.
@@ -209,7 +209,8 @@ class CloudFabric(object):
                                  server = server_ip,
                                  user = self.launcher.ssh_user, 
                                  inspector = self.inspector,
-                                 background = True)
+                                 background = background,
+                                 simulate= simulate)
         if container:
             container.internal_ip = private_ip
             if self.proxy:
@@ -220,11 +221,6 @@ class CloudFabric(object):
                 # When the fabric controller is acting in proxy mode, 
                 # it can contact the VMs via their private addresses. 
                 container.external_ip = private_ip
-
-            # See if we can contact the container directly, or whether
-            # we need to relay the message across another public
-            # facing NIC. 
-            container.tunnel = tunnel
 
             container.vm = self.launcher.default_personality
             container.default_user = self.cli.docker_user

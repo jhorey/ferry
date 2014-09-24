@@ -343,7 +343,7 @@ class DockerCLI(object):
                                  service_type = service_type, 
                                  args = args)
 
-    def run(self, service_type, image, volumes, keydir, keyname, privatekey, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, user=None, inspector=None, background=False):
+    def run(self, service_type, image, volumes, keydir, keyname, privatekey, open_ports, host_map=None, expose_group=None, hostname=None, default_cmd=None, args=None, lxc_opts=None, server=None, user=None, inspector=None, background=False, simulate=False):
         """
         Start a brand new container
         """
@@ -402,21 +402,26 @@ class DockerCLI(object):
         cmd = self.docker + ' ' + self.run_cmd + ' ' + flags + ' ' + image + ' ' + default_cmd
         logging.warning(cmd)
 
-        # if background:
-        #     proc = self._execute_cmd(cmd, server, user, False)
-        #     container = None
-        # else:
-        #     output, error = self._execute_cmd(cmd, server, user, True)
-        #     err = error.strip()
-        #     if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
-        #         logging.error("Ferry docker daemon does not appear to be running")
-        #         return None
-        #     elif re.compile('Unable to find image[\'\s\w]*').match(err):
-        #         logging.error("%s not present" % image)
-        #         return None
-        #     container = output.strip()
+        # Check if this is a simulated run. If so,
+        # just return None. 
+        if simulate:
+            return None
 
-        # return inspector.inspect(image, container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
+        if background:
+            proc = self._execute_cmd(cmd, server, user, False)
+            container = None
+        else:
+            output, error = self._execute_cmd(cmd, server, user, True)
+            err = error.strip()
+            if re.compile('[/:\s\w]*Can\'t connect[\'\s\w]*').match(err):
+                logging.error("Ferry docker daemon does not appear to be running")
+                return None
+            elif re.compile('Unable to find image[\'\s\w]*').match(err):
+                logging.error("%s not present" % image)
+                return None
+            container = output.strip()
+
+        return inspector.inspect(image, container, keydir, keyname, privatekey, volumes, hostname, open_ports, host_map, service_type, args, server)
 
     def _get_lxc_net(self, lxc_tuples):
         for l in lxc_tuples:
