@@ -499,6 +499,7 @@ def _allocate_new_worker(uuid, payload):
             reply['msgs'] = output
         else:
             # One or more connectors was not instantiated properly. 
+            logging.info("cancelling services...")
             _cancel_stack(uuid, backend_info, connector_info, payload['_file'])
             reply['status'] = 'failed'
     else:
