@@ -536,10 +536,10 @@ class AWSLauncher(object):
 
         # Also create a new route associated with this NAT. 
         # This will send all outbound internet traffic to the gateway. 
-        route_plan = { "FerryRoute" + private_ subnet: { "Type" : "AWS::EC2::Route",
-                                                         "Properties" : { "InstanceId" : { "Ref" : instance_name },
-                                                                          "RouteTableId" : { "Ref" : table_name },
-                                                                          "DestinationCidrBlock" : "0.0.0.0/0" }}}
+        route_plan = { "FerryRoute" + private_subnet: { "Type" : "AWS::EC2::Route",
+                                                        "Properties" : { "InstanceId" : { "Ref" : instance_name },
+                                                                         "RouteTableId" : { "Ref" : table_name },
+                                                                         "DestinationCidrBlock" : "0.0.0.0/0" }}}
         plan["Resources"] = dict(instance_plan.items() + 
                                  route_plan.items() + 
                                  sec_group_plan.items())
