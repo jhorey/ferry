@@ -156,7 +156,7 @@ class DockerCLI(object):
             # All the possible errors that might happen when
             # we try to connect via ssh. 
             if read_output:
-                out, err = robust_com(ssh)
+                out, err, success = robust_com(ssh)
             else:
                 # The user does not want us to read the output.
                 # That means we can't really check for errors :(

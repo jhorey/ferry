@@ -31,20 +31,20 @@ def robust_com(cmd):
     permission = re.compile('.*Permission denied.*', re.DOTALL)
 
     num_tries = 0
-    while(num_tries < MAX_COM_RETRIES):
+    while(True):
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         output = proc.stdout.read()
         err = proc.stderr.read()
-        if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
-            logging.warning("com error, trying again...")
-            num_tries += 1
-            time.sleep(10)
+        if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):            
+            if num_tries < MAX_COM_RETRIES:
+                logging.warning("com error, trying again...")
+                num_tries += 1
+                time.sleep(10)
+            else: 
+                logging.error("could not communicate")
+                return None, None, False
         else:
             logging.warning("com msg: " + err)
             break
-
-    if output:
-        return output, err
-    else:
-        logging.error("could not communicate")
-        return None, None
+            
+    return output, err, True
