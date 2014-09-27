@@ -807,9 +807,10 @@ class DockerManager(object):
         logging in (via ssh), we must place these variables in the profile. 
         """
         for k in env_vars.keys():
+            logging.warning("transferring env vars")
             self.docker.cmd(containers, 
                             "echo export %s=%s >> /etc/profile" % (k, env_vars[k]))
-        logging.warning("transferred env vars")
+        logging.warning("finished transfer env vars")
 
     def _start_containers(self, cluster_uuid, service_uuid, plan, ctype):
         """

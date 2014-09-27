@@ -281,15 +281,13 @@ class AWSLauncher(object):
                                                                             "FromPort" : min_port, 
                                                                             "ToPort" : max_port })
 
-        # Additional ports for the security group. These
-        # port values can only be accessed from within the same network. 
-        for p in internal:
-            min_port = p[0]
-            max_port = p[1]
-            desc[group_name]["Properties"]["SecurityGroupIngress"].append({ "IpProtocol" : "tcp",
-                                                                            "CidrIp": self.data_cidr,
-                                                                            "FromPort" : min_port,
-                                                                            "ToPort" : max_port })
+        # Make all data subnet traffic open. This is necessary
+        # because many systems do things like open random ports
+        # for IPC. This is true even for connecting to clients. 
+        desc[group_name]["Properties"]["SecurityGroupIngress"].append({ "IpProtocol" : "tcp",
+                                                                        "CidrIp": self.data_cidr,
+                                                                        "FromPort" : "0",
+                                                                        "ToPort" : "65535" })
 
         # Outbound ports. This is not required. If the user
         # doesn't supply egress rules, then all outgoing requests are allowed. 
@@ -661,6 +659,7 @@ class AWSLauncher(object):
         """
         Wait for stack completion.
         """
+        logging.warning("waiting for cloudformation completion")
         stacks = self.cf.describe_stacks(stack_id)
         for stack in stacks:
             while(True):
@@ -848,6 +847,7 @@ class AWSLauncher(object):
         return self.vpc_id, self.data_subnet, self.manage_subnet
 
     def _check_instance_status(self, stack_desc):
+        logging.warning("waiting for instance status")
         servers = self._get_servers(stack_desc)
         instance_ids = []
         for s in servers:
