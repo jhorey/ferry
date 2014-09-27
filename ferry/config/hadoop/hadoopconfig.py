@@ -236,8 +236,11 @@ class HadoopInitializer(object):
         changes = { "YARN_MASTER":yarn_master['data_ip'] } 
 
         # Get memory information.
-        changes['MEM'] = get_total_memory()
-        changes['CMEM'] = max(get_total_memory() / 8, 512)
+        mem = get_total_memory()
+        if mem < 1024:
+            mem = 1024
+        changes['MEM'] = mem
+        changes['CMEM'] = max(mem / 8, 512)
         changes['RMEM'] = 2 * changes['CMEM']
         changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
         
@@ -300,13 +303,16 @@ class HadoopInitializer(object):
         changes = {"HISTORY_SERVER":yarn_master['data_ip']}
 
         # Get memory information.
-        changes['MMEM'] = max(get_total_memory() / 8, 512)
+        mem = get_total_memory()
+        if mem < 1024:
+            mem = 1024
+        changes['MMEM'] = max(mem / 8, 512)
         changes['RMEM'] = 2 * changes['MMEM']
         changes['MOPTS'] = '-Xmx' + str(int(0.8 * changes['MMEM'])) + 'm'
         changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
 
         # These are the mapred variables. 
-        changes['NODE_REDUCES'] = get_total_memory() / ( len(containers) - 2 ) / 2
+        changes['NODE_REDUCES'] = mem / ( len(containers) - 2 ) / 2
         changes['NODE_MAPS'] = changes['NODE_REDUCES'] * 4
         changes['JOB_MAPS'] = changes['NODE_MAPS'] * ( len(containers) - 2 )
         changes['JOB_REDUCES'] = changes['NODE_REDUCES'] * ( len(containers) - 2 )
