@@ -353,24 +353,24 @@ class AWSLauncher(object):
             volume_description = { "DeviceName" : "/dev/sdb",
                                    "Ebs" : { "VolumeSize" : "%s" % v[1] } }
 
-        # # Create a secondary NIC for the actual container. 
-        # # That way we can still interact with the host.
-        # data_nic_name = name + "NIC"
-        # data_nic_resource = {data_nic_name : { "Type" : "AWS::EC2::NetworkInterface",
-        #                                        "Properties" : {
-        #                                            "GroupSet" : [ { "Ref" : sec_group } ],
-        #                                            "SourceDestCheck" : False,
-        #                                            "SubnetId" : subnet
-        #                                        }
-        #                   }}
-        # attach_name = name + "NICAttach"
-        # attach_resource = { attach_name : { "Type" : "AWS::EC2::NetworkInterfaceAttachment",
-        #                                     "Properties" : {
-        #                                         "DeviceIndex": "1",
-        #                                         "InstanceId": { "Ref" : name },
-        #                                         "NetworkInterfaceId": { "Ref" : data_nic_name },
-        #                                     }
-        #                }}
+        # Create a secondary NIC for the actual container. 
+        # That way we can still interact with the host.
+        data_nic_name = name + "NIC"
+        data_nic_resource = {data_nic_name : { "Type" : "AWS::EC2::NetworkInterface",
+                                               "Properties" : {
+                                                   "GroupSet" : [ { "Ref" : sec_group } ],
+                                                   "SourceDestCheck" : False,
+                                                   "SubnetId" : subnet
+                                               }
+                          }}
+        attach_name = name + "NICAttach"
+        attach_resource = { attach_name : { "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+                                            "Properties" : {
+                                                "DeviceIndex": "1",
+                                                "InstanceId": { "Ref" : name },
+                                                "NetworkInterfaceId": { "Ref" : data_nic_name },
+                                            }
+                       }}
 
         # Specify the actual instance. 
         instance_resource = { name : { "Type" : "AWS::EC2::Instance",
@@ -385,6 +385,7 @@ class AWSLauncher(object):
                                                         "SecurityGroupIds" : [ { "Ref" : sec_group } ] }}}
         desc = { name : { "type" : "AWS::EC2::Instance",
                           "name" : name, 
+                          "data_nic" : data_nic_name, 
                           "nics" : [] }}
 
         # Now add the user script. This script is executed after the
@@ -392,10 +393,9 @@ class AWSLauncher(object):
         if user_data:
             instance_resource[name]["Properties"]["UserData"] = user_data
 
-        # plan = dict(instance_resource.items() + 
-        #             data_nic_resource.items() + 
-        #             attach_resource.items())
-        plan = instance_resource
+        plan = dict(instance_resource.items() + 
+                    data_nic_resource.items() + 
+                    attach_resource.items())
         return plan, desc
 
     def _create_floatingip_plan(self, cluster_uuid, instances):
@@ -419,7 +419,8 @@ class AWSLauncher(object):
                 "Type": "AWS::EC2::EIPAssociation",
                 "Properties": {
                     "AllocationId" : { "Fn::GetAtt" : [ eip_name, "AllocationId" ]},
-                    "InstanceId": { "Ref" : instance["name"] }
+                    "NetworkInterfaceId": { "Ref" : instance["data_nic"] }
+                    # "InstanceId": { "Ref" : instance["name"] }
                 }
             }
             plan["Resources"][eip_name] = eip_resource
@@ -986,15 +987,14 @@ class AWSLauncher(object):
         ip = self._get_data_ip(server)
         gw_info = server["cidr"].split("/")[0].split(".")
         gw = "%s.%s.%s.1" % (gw_info[0], gw_info[1], gw_info[2])
-        logging.warning("GATEWAY: " + gw)
 
         # We want to use the host NIC, so modify LXC to use phys networking, and
         # then start the docker containers on the server. 
         lxc_opts = ["lxc.network.type = phys",
                     "lxc.network.ipv4 = %s/%s" % (ip, cidr),
                     "lxc.network.ipv4.gateway = %s" % gw,
-                    "lxc.network.link = eth0",
-                    "lxc.network.name = eth0", 
+                    "lxc.network.link = eth1",
+                    "lxc.network.name = eth1", 
                     "lxc.network.flags = up"]
         return lxc_opts, ip
 
@@ -1022,7 +1022,7 @@ class AWSLauncher(object):
         Get the data IP address for this server. 
         """
         for nic in server["nics"]:
-            if nic["index"] == 0:
+            if nic["index"] == 1:
                 return nic["ip_address"]
 
     def alloc(self, cluster_uuid, service_uuid, container_info, ctype, proxy):
