@@ -18,6 +18,9 @@ import re
 from subprocess import Popen, PIPE
 import time
 
+# Maximum number of tries to contact. 
+MAX_COM_RETRIES = 10
+
 def robust_com(cmd):
     # All the possible errors that might happen when
     # we try to connect via ssh. 
@@ -26,14 +29,22 @@ def robust_com(cmd):
     refused_closed = re.compile('.*Connection refused.*', re.DOTALL)
     timed_out = re.compile('.*timed out*', re.DOTALL)
     permission = re.compile('.*Permission denied.*', re.DOTALL)
-    while(True):
+
+    num_tries = 0
+    while(num_tries < MAX_COM_RETRIES):
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         output = proc.stdout.read()
         err = proc.stderr.read()
         if route_closed.match(err) or conn_closed.match(err) or refused_closed.match(err) or timed_out.match(err) or permission.match(err):
             logging.warning("com error, trying again...")
+            num_tries += 1
             time.sleep(10)
         else:
             logging.warning("com msg: " + err)
             break
-    return output, err
+
+    if output:
+        return output, err
+    else:
+        logging.error("could not communicate")
+        return None, None

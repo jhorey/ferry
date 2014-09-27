@@ -1140,9 +1140,11 @@ class AWSLauncher(object):
 
                 # Verify that the user_data processes all started properly
                 # and that the docker daemon is actually running. If it is
-                # not running, try re-executing. 
+                # not running, we should cancel the stack. 
                 if not self.controller._verify_ferry_server(server_ip):
-                    self.controller._execute_server_init(server_ip)
+                    # self.controller._execute_server_init(server_ip)
+                    logging.error("could not verify Ferry, cancelling stack")
+                    return None
 
                 # Copy over the public keys, but also verify that it does
                 # get copied over properly. 

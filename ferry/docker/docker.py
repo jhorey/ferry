@@ -132,6 +132,9 @@ class DockerCLI(object):
             # The server is not supplied, so just execute
             # the command locally. 
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+            if read_output:
+                out = proc.stdout.read()
+                err = proc.stderr.read()
         else:
             # Do not store results in hosts file or warn about 
             # changing ssh keys. Also use the key given to us by the fabric. 
@@ -161,7 +164,7 @@ class DockerCLI(object):
 
         if read_output:
             # Read both the standard out and error. 
-            return proc.stdout.read(), proc.stderr.read()
+            return out, err
         else:
             # The user does not want to read the output.
             return proc
