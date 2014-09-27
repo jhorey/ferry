@@ -344,7 +344,7 @@ class AWSLauncher(object):
           }}
         return user_data
 
-    def _create_instance(self, name, subnet, image, size, sec_group, user_data):
+    def _create_instance(self, name, subnet, image, size, sec_group, user_data, single_network):
         """
         Create a new instance
         """
@@ -365,22 +365,27 @@ class AWSLauncher(object):
 
         # Create a secondary NIC for the actual container. 
         # That way we can still interact with the host.
-        data_nic_name = name + "NIC"
-        data_nic_resource = {data_nic_name : { "Type" : "AWS::EC2::NetworkInterface",
-                                               "Properties" : {
-                                                   "GroupSet" : [ { "Ref" : sec_group } ],
-                                                   "SourceDestCheck" : False,
-                                                   "SubnetId" : subnet
-                                               }
-                          }}
-        attach_name = name + "NICAttach"
-        attach_resource = { attach_name : { "Type" : "AWS::EC2::NetworkInterfaceAttachment",
-                                            "Properties" : {
-                                                "DeviceIndex": "1",
-                                                "InstanceId": { "Ref" : name },
-                                                "NetworkInterfaceId": { "Ref" : data_nic_name },
-                                            }
-                       }}
+        if not single_network:
+            data_nic_name = name + "NIC"
+            data_nic_resource = {data_nic_name : { "Type" : "AWS::EC2::NetworkInterface",
+                                                   "Properties" : {
+                                                       "GroupSet" : [ { "Ref" : sec_group } ],
+                                                       "SourceDestCheck" : False,
+                                                       "SubnetId" : subnet
+                                                   }
+                                }}
+            attach_name = name + "NICAttach"
+            attach_resource = { attach_name : { "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+                                                "Properties" : {
+                                                    "DeviceIndex": "1",
+                                                    "InstanceId": { "Ref" : name },
+                                                    "NetworkInterfaceId": { "Ref" : data_nic_name },
+                                                }
+                            }}
+        else:
+            data_nic_name = None
+            data_nic_resource = {}
+            attach_resource = {}
 
         # Specify the actual instance. 
         instance_resource = { name : { "Type" : "AWS::EC2::Instance",
@@ -497,7 +502,7 @@ class AWSLauncher(object):
         plan["Resources"] = dict(route_plan.items() + assoc_plan.items())
         return plan, dict(route_desc.items() + assoc_desc.items())
 
-    def _create_nat_plan(self, table_name, subnet, vpc, is_ref):
+    def _create_nat_plan(self, table_name, public_subnet_id, public_subnet_name, private_subnet, vpc, is_ref):
         plan = { "AWSTemplateFormatVersion" : "2010-09-09",
                  "Description" : "Ferry generated Heat plan",
                  "Resources" : {} }
@@ -506,7 +511,7 @@ class AWSLauncher(object):
         # fairly locked down and only lets machines communicate via
         # HTTP and make outbound SSH calls.
         logging.info("creating NAT security group")
-        sec_group_name = "FerryNATSec%s" % subnet
+        sec_group_name = "FerryNATSec%s" % private_subnet
         sec_group_plan = self._create_security_group(group_name = sec_group_name, 
                                                      network = vpc,
                                                      is_ref = is_ref, 
@@ -516,20 +521,25 @@ class AWSLauncher(object):
 
         # Create the NAT instance. Thsi is the actual machine that
         # handles all the NAT requests. 
-        instance_name = "FerryNAT%s" % subnet
+        if public_subnet_id:
+            public_subnet = public_subnet_id
+        else:
+            public_subnet = { "Ref" : public_subnet_name }
+        instance_name = "FerryNAT%s" % private_subnet
         instance_plan, instance_desc = self._create_instance(name = instance_name, 
-                                                             subnet = { "Ref" : subnet }, 
+                                                             subnet = public_subnet,
                                                              image = self.nat_image, 
                                                              size = self.default_personality,
                                                              sec_group = sec_group_name,
-                                                             user_data = None)
+                                                             user_data = None, 
+                                                             single_network = True)
 
         # Also create a new route associated with this NAT. 
         # This will send all outbound internet traffic to the gateway. 
-        route_plan = { "FerryRoute" + subnet: { "Type" : "AWS::EC2::Route",
-                                                "Properties" : { "InstanceId" : { "Ref" : instance_name },
-                                                                 "RouteTableId" : { "Ref" : table_name },
-                                                                 "DestinationCidrBlock" : "0.0.0.0/0" }}}
+        route_plan = { "FerryRoute" + private_ subnet: { "Type" : "AWS::EC2::Route",
+                                                         "Properties" : { "InstanceId" : { "Ref" : instance_name },
+                                                                          "RouteTableId" : { "Ref" : table_name },
+                                                                          "DestinationCidrBlock" : "0.0.0.0/0" }}}
         plan["Resources"] = dict(instance_plan.items() + 
                                  route_plan.items() + 
                                  sec_group_plan.items())
@@ -613,7 +623,8 @@ class AWSLauncher(object):
                                                                  image = image, 
                                                                  size = size, 
                                                                  sec_group = sec_group_name, 
-                                                                 user_data = user_data)
+                                                                 user_data = user_data,
+                                                                 single_network = False)
             plan["Resources"] = dict(plan["Resources"].items() + instance_plan.items())
             desc = dict(desc.items() + instance_desc.items())
 
@@ -777,6 +788,10 @@ class AWSLauncher(object):
                               subnet_desc.items() + 
                               table_desc.items() +
                               igw_desc.items())
+        else:
+            # The data subnet creation looks for the manage subnet name, so
+            # initialize it here. 
+            manage_subnet_name = None
 
         # The data subnet is used to store the storage and compute nodes, 
         # and is "private". That means no communication from the outside.
@@ -789,12 +804,13 @@ class AWSLauncher(object):
 
             self.data_cidr = subnet_desc[data_subnet_name]["cidr"]
             if not self.public_data:
-                # Create a new NAT instance so that the 
-                # instances can contact the internet. 
-                route_plan, route_desc = self._create_nat_plan(table_name, data_subnet_name, vpc_name, is_ref)
+                # The user wants to create a private subnet. A private subnet
+                # has a NAT associated with it so that nodes can still communicate
+                # with the internet. However, the NAT should reside on the public network. 
+                route_plan, route_desc = self._create_nat_plan(table_name, self.manage_subnet, manage_subnet_name, data_subnet_name, vpc_name, is_ref)
             elif igw_name:
-                # Use the IGW from the management subnet. We still need
-                # to modify the routing table. 
+                # The user wants to create a public subnet. Use the IGW from the management
+                # subnet. We still need to modify the routing table. 
                 route_plan, route_desc = self._route_igw_plan(igw_name, table_name)
             else:
                 # Looks like we haven't created the management network. 
