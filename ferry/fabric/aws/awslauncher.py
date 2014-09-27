@@ -125,7 +125,6 @@ class AWSLauncher(object):
         # public IP, so it's only for the primary management NIC.
         if 'public' in deploy:
             self.public_data = deploy['public']
-            logging.warning("PUBLIC STATUS: " + str(self.public_data))
         else:
             self.public_data = False
 
@@ -769,8 +768,6 @@ class AWSLauncher(object):
             table_plan, table_desc = self._create_routetable_plan(table_name, data_subnet_name, vpc_name, is_ref)
 
             if not self.public_data:
-                logging.warning("CREATING NAT PLAN")
-
                 # Create a new NAT instance so that the 
                 # instances can contact the internet. 
                 route_plan, route_desc = self._create_nat_plan(table_name, data_subnet_name, vpc_name, is_ref)
@@ -789,15 +786,17 @@ class AWSLauncher(object):
                                                                    route_table = table_name, 
                                                                    vpc = vpc_name, 
                                                                    is_ref = is_ref) 
+                else:
+                    route_plan = {"Resources" : {}}
+                    route_desc = {}
                 
             # Combine the network resources. 
             if len(stack_plan) == 0:
                 stack_plan = subnet_plan
-            else:
-                stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
-                                               subnet_plan["Resources"].items() + 
-                                               table_plan["Resources"].items() +
-                                               route_plan["Resources"].items() )
+            stack_plan["Resources"] = dict(stack_plan["Resources"].items() + 
+                                           subnet_plan["Resources"].items() + 
+                                           table_plan["Resources"].items() +
+                                           route_plan["Resources"].items() )
             stack_desc = dict(stack_desc.items() + 
                               subnet_desc.items() + 
                               table_desc.items() +

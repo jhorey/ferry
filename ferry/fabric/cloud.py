@@ -212,6 +212,7 @@ class CloudFabric(object):
                                  background = background,
                                  simulate= simulate)
         if container:
+            container.manage_ip = server_ip
             container.internal_ip = private_ip
             if self.proxy:
                 # Otherwise, the controller can only interact with the
@@ -264,7 +265,7 @@ class CloudFabric(object):
         ferry = 'ferry quit'
         for c in containers:
             self.cmd_raw(c.privatekey, c.external_ip, halt, c.default_user)
-            self.cmd_raw(self.cli.key, c.external_ip, ferry, self.launcher.ssh_user)
+            self.cmd_raw(self.cli.key, c.manage_ip, ferry, self.launcher.ssh_user)
 
         # Now go ahead and stop the VMs. 
         self.launcher._stop_stack(cluster_uuid, service_uuid)

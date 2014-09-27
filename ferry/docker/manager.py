@@ -809,6 +809,7 @@ class DockerManager(object):
         for k in env_vars.keys():
             self.docker.cmd(containers, 
                             "echo export %s=%s >> /etc/profile" % (k, env_vars[k]))
+        logging.warning("transferred env vars")
 
     def _start_containers(self, cluster_uuid, service_uuid, plan, ctype):
         """

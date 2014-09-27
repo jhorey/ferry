@@ -32,6 +32,7 @@ class DockerInstance(object):
             self.vm = 'local'
             self.service_type = None
             self.host_name = None
+            self.manage_ip = None
             self.external_ip = None
             self.internal_ip = None
             self.ports = {}
@@ -49,6 +50,7 @@ class DockerInstance(object):
             self.vm = json_data['vm']
             self.service_type = json_data['type']
             self.host_name = json_data['hostname']
+            self.manage_ip = json_data['manage_ip']
             self.external_ip = json_data['external_ip']
             self.internal_ip = json_data['internal_ip']
             self.ports = json_data['ports']
@@ -67,6 +69,7 @@ class DockerInstance(object):
     """
     def json(self):
         json_reply = { '_type' : 'docker',
+                       'manage_ip' : self.manage_ip,
                        'external_ip' : self.external_ip,
                        'internal_ip' : self.internal_ip,
                        'ports' : self.ports,
