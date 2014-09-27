@@ -325,7 +325,7 @@ def _allocate_connectors(cluster_uuid, payload, key_name, backend_info):
                     # The manager could not allocate the connectors
                     # properly. Return a failure so that we can update the
                     # status properly and cancel the stack.
-                    return Fail, [], connector_plan
+                    return False, [], connector_plan
                     
     return True, connector_info, connector_plan
 

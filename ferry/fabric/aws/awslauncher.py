@@ -970,6 +970,7 @@ class AWSLauncher(object):
             # Capture NIC specific information. 
             if addrs and len(addrs) > 0:
                 for a in addrs:
+                    logging.warning("USING PUBLIC ADDR:" + a.public_ip)
                     instance_info["nics"].append( { "ip_address" : a.private_ip_address,
                                              "floating_ip" : a.public_ip,
                                              "index" : eni.attachment.device_index, 
