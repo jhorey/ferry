@@ -287,7 +287,7 @@ class AWSLauncher(object):
             min_port = p[0]
             max_port = p[1]
             desc[group_name]["Properties"]["SecurityGroupIngress"].append({ "IpProtocol" : "tcp",
-                                                                            "CidrIp": self.subnet["cidr"],
+                                                                            "CidrIp": self.data_cidr,
                                                                             "FromPort" : min_port,
                                                                             "ToPort" : max_port })
 
@@ -698,6 +698,12 @@ class AWSLauncher(object):
             if subnet.vpc_id == vpc_id:
                 self.subnets.append( { "Subnet:" + subnet.id : { 'cidr' : subnet.cidr_block }} )
 
+                # Keep track of the subnet CIDRs. 
+                if self.data_subnet == subnet.id :
+                    self.data_cidr = subnet.cidr
+                elif self.manage_subnet == subnet.id :
+                    self.manage_cidr = subnet.cidr
+
     def _collect_network_info(self, stack_name, stack_desc):
         """
         Collect all the networking information. For each
@@ -834,8 +840,10 @@ class AWSLauncher(object):
                 self.vpc_id = stack_desc[vpc_name]["id"]
             if not self.data_subnet:
                 self.data_subnet = stack_desc[data_subnet_name]["id"]
+                self.data_cidr = stack_desc[data_subnet_name]["cidr"]
             if not self.manage_subnet:
                 self.manage_subnet = stack_desc[manage_subnet_name]["id"]
+                self.manage_cidr = stack_desc[manage_subnet_name]["cidr"]
 
         return self.vpc_id, self.data_subnet, self.manage_subnet
 
