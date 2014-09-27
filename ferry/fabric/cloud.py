@@ -250,9 +250,19 @@ class CloudFabric(object):
 
     def alloc(self, cluster_uuid, service_uuid, container_info, ctype):
         """
-        Allocate a new cluster. 
+        Allocate a new service cluster. 
         """
-        return self.launcher.alloc(cluster_uuid, service_uuid, container_info, ctype, self.proxy)
+        containers = self.launcher.alloc(cluster_uuid, service_uuid, container_info, ctype, self.proxy)
+        
+        if not containers:
+            # The underlying cloud infrastructure could not allocate
+            # the service cluster. Sometimes it's just a temporary glitch, so
+            # get rid of the attempt and try some more. 
+            logging.error("Failed to allocate service cluster. Trying again.")
+            self.launcher._delete_stack(cluster_uuid, service_uuid)
+            return self.launcher.alloc(cluster_uuid, service_uuid, container_info, ctype, self.proxy)
+        else:
+            return containers
 
     def stop(self, cluster_uuid, service_uuid, containers):
         """

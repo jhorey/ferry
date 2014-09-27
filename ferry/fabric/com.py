@@ -39,7 +39,7 @@ def robust_com(cmd):
             if num_tries < MAX_COM_RETRIES:
                 logging.warning("com error, trying again...")
                 num_tries += 1
-                time.sleep(10)
+                time.sleep(10 * num_tries)
             else: 
                 logging.error("could not communicate")
                 return None, None, False

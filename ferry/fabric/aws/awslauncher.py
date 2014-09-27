@@ -1069,6 +1069,7 @@ class AWSLauncher(object):
         """
         Allocate a new cluster. 
         """
+
         # Now take the cluster and create the security group
         # to expose all the right ports. 
         sec_group_ports = []
@@ -1160,7 +1161,7 @@ class AWSLauncher(object):
                 # not running, we should cancel the stack. 
                 if not self.controller._verify_ferry_server(server_ip):
                     # self.controller._execute_server_init(server_ip)
-                    logging.error("could not verify Ferry, cancelling stack")
+                    logging.error("Could not create Ferry cluster, cancelling stack")
                     return None
 
                 # Copy over the public keys, but also verify that it does
