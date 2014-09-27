@@ -758,6 +758,8 @@ class AWSLauncher(object):
             subnet_plan, subnet_desc = self._create_subnet_plan(manage_subnet_name, vpc_name, is_ref)
             table_plan, table_desc = self._create_routetable_plan(table_name, manage_subnet_name, vpc_name, is_ref)
             igw_name = "FerryManageIGW%s" % cluster_uuid.replace("-", "")
+
+            self.manage_cidr = subnet_desc[manage_subnet_name]["cidr"]
             igw_plan, igw_desc = self._create_igw_plan(igw_name = igw_name, 
                                                        igw_id = None,
                                                        route_table = table_name, 
@@ -785,6 +787,7 @@ class AWSLauncher(object):
             subnet_plan, subnet_desc = self._create_subnet_plan(data_subnet_name, vpc_name, is_ref)
             table_plan, table_desc = self._create_routetable_plan(table_name, data_subnet_name, vpc_name, is_ref)
 
+            self.data_cidr = subnet_desc[data_subnet_name]["cidr"]
             if not self.public_data:
                 # Create a new NAT instance so that the 
                 # instances can contact the internet. 
@@ -839,10 +842,8 @@ class AWSLauncher(object):
                 self.vpc_id = stack_desc[vpc_name]["id"]
             if not self.data_subnet:
                 self.data_subnet = stack_desc[data_subnet_name]["id"]
-                self.data_cidr = stack_desc[data_subnet_name]["cidr"]
             if not self.manage_subnet:
                 self.manage_subnet = stack_desc[manage_subnet_name]["id"]
-                self.manage_cidr = stack_desc[manage_subnet_name]["cidr"]
 
         return self.vpc_id, self.data_subnet, self.manage_subnet
 
