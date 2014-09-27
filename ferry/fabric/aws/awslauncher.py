@@ -49,6 +49,15 @@ class AWSLauncher(object):
         self.num_subnet_hosts = 256
         self.vpc_cidr = None
 
+        self.nat_images = { "us-east-1" : "ami-4c9e4b24",
+                            "us-west-1" : "ami-2b2b296e",
+                            "us-west-2" : "ami-8b6912bb",
+                            "eu-west-1" : "ami-3760b040",
+                            "sa-east-1" : "ami-8b72db96",
+                            "ap-northeast-1" : "ami-55c29e54",
+                            "ap-southeast-1" : "ami-b082dae2",
+                            "ap-southeast-2" : "ami-996402a3" }
+
         self._init_app_db()
         self._init_aws_stack()
 
@@ -71,6 +80,10 @@ class AWSLauncher(object):
         self.default_dc = params['dc']
         self.default_zone = params['zone']
 
+        # Check if the user has supplied a valid AWS region. 
+        if not self.default_dc in self.nat_images:
+            logging.error("%s is not a valid AWS region" % self.default_dc)
+            exit(1)
 
         # Figure out what disk volume to use for the
         # data storage. If one is not listed, then the
@@ -136,7 +149,7 @@ class AWSLauncher(object):
         else:
             # The default image is the official Amazon VPC NAT
             # with HVM (HVM is compatible with more instance types). 
-            self.nat_image = "ami-8b6912bb"
+            self.nat_image = self.nat_images[self.default_dc]
 
         # Initialize the AWS clients.
         self._init_aws_clients()
