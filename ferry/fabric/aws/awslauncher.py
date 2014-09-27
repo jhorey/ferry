@@ -769,6 +769,8 @@ class AWSLauncher(object):
             table_plan, table_desc = self._create_routetable_plan(table_name, data_subnet_name, vpc_name, is_ref)
 
             if not self.public_data:
+                logging.warning("CREATING NAT PLAN")
+
                 # Create a new NAT instance so that the 
                 # instances can contact the internet. 
                 route_plan, route_desc = self._create_nat_plan(table_name, data_subnet_name, vpc_name, is_ref)
