@@ -104,7 +104,7 @@ class CloudFabric(object):
         logging.warning("restarting ferry...")
         cmd = "source /etc/profile && ferry server -n"
         for ip in addrs:
-            output, err = self.cmd_raw(self.cli.key, ip, cmd, self.docker_user)
+            output, err, _ = self.cmd_raw(self.cli.key, ip, cmd, self.docker_user)
 
         # Finally, restart the stopped containers. 
         logging.warning("restarting containers...")
@@ -112,7 +112,7 @@ class CloudFabric(object):
         for c in containers:
             # Before restarting the containers, we need to learn their
             # container IDs. It should be stored on a cidfile. 
-            output, err = self.cmd_raw(self.cli.key, c.external_ip, cmd, self.launcher.ssh_user)
+            output, err, _ = self.cmd_raw(self.cli.key, c.external_ip, cmd, self.launcher.ssh_user)
             c.container = output.strip()
             self.cli.start(image = c.image,
                            container = c.container, 
@@ -145,15 +145,17 @@ class CloudFabric(object):
         """
         Verify that the public key has been copied over correctly. 
         """
-        out, _ = self.cmd_raw(key = self.cli.key, 
-                              ip = server, 
-                              cmd = "ls /ferry/keys",
-                              user = self.launcher.ssh_user)
-        if out.strip() == "":
+        out, _, _ = self.cmd_raw(key = self.cli.key, 
+                                 ip = server, 
+                                 cmd = "ls /ferry/keys",
+                                 user = self.launcher.ssh_user)
+        if out and out.strip() == "":
             return False
-        else:
+        elif out:
             logging.warning("found ssh key: " + out.strip())
             return True
+        else:
+            return False
 
     def _verify_ferry_server(self, server):
         """
@@ -162,24 +164,27 @@ class CloudFabric(object):
 
         # Try a couple times before giving up. 
         for i in range(0, 2):
-            out, _ = self.cmd_raw(key = self.cli.key, 
-                                  ip = server, 
-                                  cmd = "if [ -f /var/run/ferry.pid ]; then echo \"launched\"; fi",
-                                  user = self.launcher.ssh_user)
-            if out and out.strip() != "":
+            out, err, success = self.cmd_raw(key = self.cli.key, 
+                                             ip = server, 
+                                             cmd = "if [ -f /var/run/ferry.pid ]; then echo \"launched\"; fi",
+                                             user = self.launcher.ssh_user)
+            if success and out and out.strip() != "":
                 logging.warning("docker daemon " + out.strip())
                 return True
-            time.sleep(6)
+            elif not success:
+                return False
+            else:
+                time.sleep(6)
         return False
 
     def _execute_server_init(self, server):
         """
         Restart the Ferry docker daemon. 
         """
-        out, err = self.cmd_raw(key = self.cli.key, 
-                                ip = server, 
-                                cmd = "ferry server -n && sleep 3",
-                                user = self.launcher.ssh_user)
+        out, err, _ = self.cmd_raw(key = self.cli.key, 
+                                   ip = server, 
+                                   cmd = "ferry server -n && sleep 3",
+                                   user = self.launcher.ssh_user)
         logging.warning("restart ferry out: " + out)
         logging.warning("restart ferry err: " + err)
         
@@ -297,7 +302,7 @@ class CloudFabric(object):
         """
         all_output = {}
         for c in containers:
-            output, _ = self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
+            output, _, _ = self.cmd_raw(c.privatekey, c.external_ip, cmd, c.default_user)
             if output.strip() != "":
                 all_output[c.host_name] = output.strip()
         return all_output
