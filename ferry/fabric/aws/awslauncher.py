@@ -700,9 +700,9 @@ class AWSLauncher(object):
 
                 # Keep track of the subnet CIDRs. 
                 if self.data_subnet == subnet.id :
-                    self.data_cidr = subnet.cidr
+                    self.data_cidr = subnet.cidr_block
                 elif self.manage_subnet == subnet.id :
-                    self.manage_cidr = subnet.cidr
+                    self.manage_cidr = subnet.cidr_block
 
     def _collect_network_info(self, stack_name, stack_desc):
         """
