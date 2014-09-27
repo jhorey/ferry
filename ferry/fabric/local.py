@@ -290,7 +290,7 @@ class LocalFabric(object):
             ip = user + '@' + ip
             ssh = 'LC_ALL=C && ssh -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ' + key + ' -t -t ' + ip + ' \'%s\'' % cmd
             logging.warning(ssh)
-            out, _ = robust_com(ssh)
+            out, _, _ = robust_com(ssh)
             return out
         else:
             return ''
