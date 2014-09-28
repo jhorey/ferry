@@ -281,13 +281,20 @@ class AWSLauncher(object):
                                                                             "FromPort" : min_port, 
                                                                             "ToPort" : max_port })
 
-        # Make all data subnet traffic open. This is necessary
-        # because many systems do things like open random ports
-        # for IPC. This is true even for connecting to clients. 
+        # Make all data subnet traffic open. This is necessary because many systems 
+        # do things like open random ports for IPC. This is true even for connecting to clients. 
         desc[group_name]["Properties"]["SecurityGroupIngress"].append({ "IpProtocol" : "tcp",
                                                                         "CidrIp": self.data_cidr,
                                                                         "FromPort" : "0",
                                                                         "ToPort" : "65535" })
+
+        # Also need to open up communication for the manage subnet. This will
+        # allow connectors to freely communicate with the data nodes. 
+        if self.manage_cidr != self.data_cidr:
+            desc[group_name]["Properties"]["SecurityGroupIngress"].append({ "IpProtocol" : "tcp",
+                                                                            "CidrIp": self.manage_cidr,
+                                                                            "FromPort" : "0",
+                                                                            "ToPort" : "65535" })
 
         # Outbound ports. This is not required. If the user
         # doesn't supply egress rules, then all outgoing requests are allowed. 
