@@ -30,7 +30,7 @@ class HadoopClientInitializer(object):
         self.template_dir = None
         self.template_repo = None
 
-        self.hive_client = HiveClientInitializer()
+        self.hive_client = HiveClientInitializer(system)
         self.hive_client.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
 
         self.container_data_dir = None
