@@ -238,6 +238,7 @@ class HadoopInitializer(object):
         # Get memory information.
         mem = self.system.get_total_memory()
         if mem < 1024:
+            logging.warning("USING MIN MEM: " + str(mem))
             mem = 1024
         changes['MEM'] = mem
         changes['CMEM'] = max(mem / 8, 512)
