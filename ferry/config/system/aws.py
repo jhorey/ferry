@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import logging
 
 AWS_INSTANCE_INFO = {
     "t2.micro" : { "mem" : 1, "cores" : 1 },
