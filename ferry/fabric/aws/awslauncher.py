@@ -715,15 +715,13 @@ class AWSLauncher(object):
             if subnet.vpc_id == vpc_id:
                 self.subnets.append( { "Subnet:" + subnet.id : { 'cidr' : subnet.cidr_block }} )
 
-                # Keep track of the subnet CIDRs. 
-                logging.warning("COMARING CIDR %s %s " % (self.manage_subnet, subnet.id))
-
+                # Keep track of the subnet CIDRs. Check for the data and
+                # manage subnets independently since they may actually
+                # be the exact same subnet (user can specify this in configuration). 
                 if self.data_subnet == subnet.id:
                     self.data_cidr = subnet.cidr_block
-                    logging.warning("DATA CIDR: " + subnet.cidr_block)
 
                 if self.manage_subnet == subnet.id:
-                    logging.warning("MANAGE CIDR: " + subnet.cidr_block)
                     self.manage_cidr = subnet.cidr_block
 
     def _collect_network_info(self, stack_name, stack_desc):
