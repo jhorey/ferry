@@ -719,6 +719,7 @@ class AWSLauncher(object):
                 if self.data_subnet == subnet.id :
                     self.data_cidr = subnet.cidr_block
                 elif self.manage_subnet == subnet.id :
+                    logging.warning("MANAGE CIDR: " + subnet.cidr_block)
                     self.manage_cidr = subnet.cidr_block
 
     def _collect_network_info(self, stack_name, stack_desc):
