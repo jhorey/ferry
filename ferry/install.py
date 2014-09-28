@@ -203,7 +203,7 @@ class Installer(object):
     def __init__(self, cli=None):
         self.network = DHCPClient()
         self.fabric = LocalFabric(bootstrap=True)
-        self.mongo = MongoInitializer()
+        self.mongo = MongoInitializer(self.fabric.system)
         self.mongo.fabric = self.fabric
         self.mongo.template_dir = DEFAULT_TEMPLATE_DIR + '/mongo/'
         self.cli = cli
