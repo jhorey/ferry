@@ -43,7 +43,6 @@ AWS_INSTANCE_INFO = {
 
 class System(object):
     def __init__(self):
-        logging.warning("USING AWS CONFIG")
         self.instance_type = "t2.small"
 
     def get_total_memory(self):
@@ -51,9 +50,9 @@ class System(object):
         Get total memory of current system. 
         """
         if self.instance_type in AWS_INSTANCE_INFO:
-            logging.warning("AWS mem: " + AWS_INSTANCE_INFO[self.instance_type]["mem"])
             return AWS_INSTANCE_INFO[self.instance_type]["mem"] * 1024
         else:
+            logging.warning("AWS system could not find " + self.instance_type)
             return 1024
 
     def get_free_memory(self):

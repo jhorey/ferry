@@ -60,8 +60,9 @@ class AWSLauncher(object):
                             "ap-southeast-2" : "ami-996402a3" }        
         self._init_app_db()
         self._init_aws_stack()
+
         self.system = System()
-        self.system.instance_type = self.default_image
+        self.system.instance_type = self.default_personality
 
     def support_proxy(self):
         """
