@@ -129,7 +129,6 @@ class AWSLauncher(object):
             self.data_subnet = None
         if 'manage_subnet' in deploy:
             self.manage_subnet = deploy['manage_subnet']
-            logging.warning("MANAGE SUBNET: " + self.manage_subnet)
         else:
             self.manage_subnet = None
 
@@ -722,7 +721,8 @@ class AWSLauncher(object):
                 if self.data_subnet == subnet.id:
                     self.data_cidr = subnet.cidr_block
                     logging.warning("DATA CIDR: " + subnet.cidr_block)
-                elif self.manage_subnet == subnet.id:
+
+                if self.manage_subnet == subnet.id:
                     logging.warning("MANAGE CIDR: " + subnet.cidr_block)
                     self.manage_cidr = subnet.cidr_block
 
