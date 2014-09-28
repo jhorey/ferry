@@ -21,23 +21,23 @@ from string import Template
 from ferry.install import FERRY_HOME
 from ferry.config.hadoop.hiveconfig import *
 from ferry.config.hadoop.metastore  import *
-from ferry.config.system.info import *
 
 class HadoopInitializer(object):
 
-    def __init__(self):
+    def __init__(self, system):
         """
         Create a new initializer
         Param user The user login for the git repo
         """
+        self.system = system
         self.template_dir = None
         self.template_repo = None
 
         self.container_data_dir = HadoopConfig.data_directory
         self.container_log_dir = HadoopConfig.log_directory
 
-        self.hive_client = HiveClientInitializer()
-        self.hive_ms = MetaStoreInitializer()
+        self.hive_client = HiveClientInitializer(system)
+        self.hive_ms = MetaStoreInitializer(system)
         self.hive_client.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
         self.hive_ms.template_dir = FERRY_HOME + '/data/templates/hive-metastore/'
 
@@ -236,15 +236,19 @@ class HadoopInitializer(object):
         changes = { "YARN_MASTER":yarn_master['data_ip'] } 
 
         # Get memory information.
-        mem = get_total_memory()
+        mem = self.system.get_total_memory()
         if mem < 1024:
             mem = 1024
-        logging.warning("MEM: " + mem)
         changes['MEM'] = mem
         changes['CMEM'] = max(mem / 8, 512)
         changes['RMEM'] = 2 * changes['CMEM']
         changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
-        
+
+        cores = self.system.get_num_cores() / 2
+        if cores < 1:
+            cores = 1
+        changes['CORES'] = cores
+
         # Generate the staging table. This differs depending on whether
         # we need to be container specific or not. 
         if container:
@@ -304,7 +308,7 @@ class HadoopInitializer(object):
         changes = {"HISTORY_SERVER":yarn_master['data_ip']}
 
         # Get memory information.
-        mem = get_total_memory()
+        mem = self.system.get_total_memory()
         if mem < 1024:
             mem = 1024
         changes['MMEM'] = max(mem / 8, 512)

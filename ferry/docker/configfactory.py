@@ -33,21 +33,22 @@ from ferry.config.mongo.mongoconfig         import *
 from ferry.config.mongo.mongoclientconfig   import *
 
 class ConfigFactory(object):
-    def __init__(self):
-        self.gluster = GlusterInitializer()
-        self.hadoop = HadoopInitializer()
-        self.yarn = HadoopInitializer()
-        self.hive = MetaStoreInitializer()
-        self.spark = SparkInitializer()
-        self.cassandra = CassandraInitializer()
-        self.titan = TitanInitializer()
-        self.mpi = OpenMPIInitializer()
-        self.mongo = MongoInitializer()
-        self.mongo_client = MongoClientInitializer()
-        self.cassandra_client = CassandraClientInitializer()
-        self.mpi_client = OpenMPIClientInitializer()
-        self.hadoop_client = HadoopClientInitializer()
-        self.spark_client = SparkClientInitializer()
+    def __init__(self, system):
+        self.system = system
+        self.gluster = GlusterInitializer(self.system)
+        self.hadoop = HadoopInitializer(self.system)
+        self.yarn = HadoopInitializer(self.system)
+        self.hive = MetaStoreInitializer(self.system)
+        self.spark = SparkInitializer(self.system)
+        self.cassandra = CassandraInitializer(self.system)
+        self.titan = TitanInitializer(self.system)
+        self.mpi = OpenMPIInitializer(self.system)
+        self.mongo = MongoInitializer(self.system)
+        self.mongo_client = MongoClientInitializer(self.system)
+        self.cassandra_client = CassandraClientInitializer(self.system)
+        self.mpi_client = OpenMPIClientInitializer(self.system)
+        self.hadoop_client = HadoopClientInitializer(self.system)
+        self.spark_client = SparkClientInitializer(self.system)
 
         # Get the Ferry home to find the templates.
         template_dir = DEFAULT_TEMPLATE_DIR

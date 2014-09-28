@@ -22,7 +22,7 @@ import time
 from string import Template
 
 class MongoInitializer(object):
-    def __init__(self):
+    def __init__(self, system):
         """
         Create a new initializer
         Param user The user login for the git repo

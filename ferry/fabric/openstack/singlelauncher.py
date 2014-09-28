@@ -16,6 +16,7 @@
 import copy
 import ferry.install
 from ferry.install import Installer
+from ferry.config.system.info import System
 from heatclient import client as heat_client
 from heatclient.exc import HTTPUnauthorized, HTTPNotFound, HTTPBadRequest
 import json
@@ -45,6 +46,7 @@ class SingleLauncher(object):
         self.heat_server = None
         self.openstack_key = None
 
+        self.system = System()
         self.installer = Installer()
         self.controller = controller
         self._init_open_stack()

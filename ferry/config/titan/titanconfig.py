@@ -22,7 +22,7 @@ class TitanInitializer(object):
     Create a new initializer
     Param user The user login for the git repo
     """
-    def __init__(self):
+    def __init__(self, system):
         self.template_dir = None
         self.template_repo = None
 

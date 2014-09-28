@@ -20,8 +20,8 @@ from string import Template
 from ferry.config.openmpi.mpiconfig import *
 
 class OpenMPIClientInitializer(object):
-    def __init__(self):
-        self.mpi = OpenMPIInitializer()
+    def __init__(self, system):
+        self.mpi = OpenMPIInitializer(system)
         self.container_data_dir = self.mpi.container_data_dir
         self.container_log_dir = self.mpi.container_log_dir
 

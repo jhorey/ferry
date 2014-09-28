@@ -38,6 +38,10 @@ class CloudFabric(object):
         self.docker_user = self.cli.docker_user
         self.inspector = CloudInspector(self)
 
+        # The system returns information regarding 
+        # the instance types. 
+        self.system = self.launcher.system
+
     def _load_class(self, class_name):
         """
         Dynamically load a class

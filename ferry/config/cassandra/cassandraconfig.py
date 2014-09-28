@@ -25,11 +25,11 @@ class CassandraInitializer(object):
     Create a new initializer
     Param user The user login for the git repo
     """
-    def __init__(self):
+    def __init__(self, system):
         self.template_dir = None
         self.template_repo = None
 
-        self.titan = TitanInitializer()
+        self.titan = TitanInitializer(system)
         self.titan.template_dir = FERRY_HOME + '/data/templates/titan'
 
         self.container_data_dir = CassandraConfig.data_directory

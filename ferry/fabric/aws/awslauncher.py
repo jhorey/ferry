@@ -23,6 +23,7 @@ from boto.exception import BotoServerError, EC2ResponseError
 from boto.ec2.blockdevicemapping import BlockDeviceType, EBSBlockDeviceType, BlockDeviceMapping
 import copy
 import ferry.install
+from ferry.config.system.aws import System
 import json
 import logging
 import math
@@ -56,10 +57,11 @@ class AWSLauncher(object):
                             "sa-east-1" : "ami-8b72db96",
                             "ap-northeast-1" : "ami-55c29e54",
                             "ap-southeast-1" : "ami-b082dae2",
-                            "ap-southeast-2" : "ami-996402a3" }
-
+                            "ap-southeast-2" : "ami-996402a3" }        
         self._init_app_db()
         self._init_aws_stack()
+        self.system = System()
+        self.system.instance_type = self.default_image
 
     def support_proxy(self):
         """

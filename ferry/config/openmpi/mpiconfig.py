@@ -19,7 +19,7 @@ import sys
 from string import Template
 
 class OpenMPIInitializer(object):
-    def __init__(self):
+    def __init__(self, system):
         self.template_dir = None
         self.template_repo = None
 

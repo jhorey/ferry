@@ -39,8 +39,12 @@ class DockerManager(object):
     SSH_PORT = '22'
 
     def __init__(self):
+        # Figure out the cloud backend. For example,
+        # AWS, Openstack, local, etc. 
+        self.docker = self._get_system_backend()
+
         # Generate configuration.
-        self.config = ConfigFactory()
+        self.config = ConfigFactory(self.docker.system)
         self.resolver = DefaultResolver()
 
         # Service mappings
@@ -75,7 +79,6 @@ class DockerManager(object):
             }
 
         # Initialize the state. 
-        self.docker = self._get_system_backend()
         self._init_state_db()
         self._clean_state_db()
         logging.warning("using backend %s ver:%s " %(self.docker.name, self.docker.version()))

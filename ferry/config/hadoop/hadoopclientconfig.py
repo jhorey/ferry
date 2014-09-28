@@ -19,14 +19,14 @@ import sh
 from string import Template
 from ferry.install import FERRY_HOME
 from ferry.config.hadoop.hiveconfig import *
-from ferry.config.system.info import *
 
 class HadoopClientInitializer(object):
     """
     Create a new initializer
     Param user The user login for the git repo
     """
-    def __init__(self):
+    def __init__(self, system):
+        self.system = system
         self.template_dir = None
         self.template_repo = None
 
@@ -149,10 +149,18 @@ class HadoopClientInitializer(object):
                     "DATA_STAGING":"/service/data/client/staging" }
 
         # Get memory information.
-        changes['MEM'] = get_total_memory()
-        changes['CMEM'] = max(get_total_memory() / 8, 512)
+        mem = self.system.get_total_memory()
+        if mem < 1024:
+            mem = 1024
+        changes['MEM'] = mem
+        changes['CMEM'] = max(mem / 8, 512)
         changes['RMEM'] = 2 * changes['CMEM']
         changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
+
+        cores = self.system.get_num_cores() / 2
+        if cores < 1:
+            cores = 1
+        changes['CORES'] = cores
 
         for line in yarn_in_file:
             s = Template(line).substitute(changes)
@@ -179,7 +187,10 @@ class HadoopClientInitializer(object):
                     "DATA_TMP":"/service/data/client/tmp" }
 
         # Get memory information.
-        changes['MMEM'] = max(get_total_memory() / 8, 512)
+        mem = self.system.get_total_memory()
+        if mem < 1024:
+            mem = 1024
+        changes['MMEM'] = max(mem / 8, 512)
         changes['RMEM'] = 2 * changes['MMEM']
         changes['MOPTS'] = '-Xmx' + str(int(0.8 * changes['MMEM'])) + 'm'
         changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'

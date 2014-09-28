@@ -17,6 +17,7 @@ from ferry.docker.docker import DockerCLI
 from ferry.docker.docker import DockerInspector
 from ferry.fabric.com import robust_com
 from ferry.ip.client import DHCPClient
+from ferry.config.system.info import System
 import ferry.install
 import json
 import logging
@@ -33,6 +34,10 @@ class LocalFabric(object):
         self.docker_user = self.cli.docker_user
         self.inspector = DockerInspector(self.cli)
         self.bootstrap = bootstrap
+
+        # The system returns information regarding 
+        # the instance types. 
+        self.system = System()
 
         # Bootstrap mode means that the DHCP network
         # isn't available yet, so we can't use the network. 

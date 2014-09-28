@@ -19,12 +19,12 @@ from string import Template
 from ferry.config.mongo.mongoconfig import *
 
 class MongoClientInitializer(object):
-    def __init__(self):
+    def __init__(self, system):
         """
         Create a new initializer
         Param user The user login for the git repo
         """
-        self.mongo = MongoInitializer()
+        self.mongo = MongoInitializer(system)
         self.container_data_dir = self.mongo.container_data_dir
         self.container_log_dir = self.mongo.container_log_dir
 

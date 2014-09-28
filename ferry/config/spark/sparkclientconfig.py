@@ -24,8 +24,8 @@ class SparkClientInitializer(object):
     Create a new initializer
     Param user The user login for the git repo
     """
-    def __init__(self):
-        self.spark = SparkInitializer()
+    def __init__(self, system):
+        self.spark = SparkInitializer(system)
         self.container_data_dir = self.spark.container_data_dir
         self.container_log_dir = self.spark.container_log_dir
 
