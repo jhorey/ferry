@@ -41,6 +41,12 @@ Launch Summary
 Launching
 ---------
 
+The very first step is to have a functioning [Ferry](http://ferry.opencore.io) installation. For the AWS
+backend to work properly, Ferry has to be running in the *same* VPC that the instances will be running. 
+Otherwise, Ferry won't be able to communicate with your instances (Note: future editions will remove this restriction). 
+
+The quickest way to get a functioning Ferry installation is to use our public client image. After spinning 
+up the client VM, ssh into it so that we can modify the configuration file. 
 
 Configuration
 -------------
@@ -70,15 +76,67 @@ You want your configuration to look like this:
         zone: us-east-1b
         volume: ebs:8
       deploy:
-         image: ami-xxxyyy
-         personality: t2.micro
-         default-user: ubuntu
-         ssh: ferry-aws
-         ssh-user: ferry
-         public: false
-         user: APIUSER
-         access: APIACCESSKEY
-         secret: APISECRETKEY
+        image: ami-52c4723a
+        personality: $EC2_TYPE
+        vpc: $VPC_ID
+        manage_subnet: $SUBNET_ID
+        data_subnet: $SUBNET_ID
+        default-user: ubuntu
+        ssh: $EC2_KEYPAIR
+        ssh-user: ferry
+        public: false
+        user: $API USER
+        access: $API_ACCESS
+        secret: $API_SECRETY
+
+The most important parameters are:
+
+* $EC2_TYPE: This is the instance type for all the VMs created by Ferry. The minimum size supported is `t2.small`, although
+you'll want something larger for production environments
+* $EC2_KEYPAIR: This is the key pair that Ferry will use to communicate with the VMs. You *must* place the private in 
+`/ferry/keys/` so that Ferry can find it. 
+* $API_USER: Your EC2 user handle. 
+* $API_ACCESS: Your EC2 access token. You can find these credentials from the AWS homepage by clicking Account, Security Credentials,
+Access Credentials.
+* $API_SECRET: Your EC2 secret key. You can find these credentials from the AWS homepage by clicking Account, Security Credentials,
+Access Credentials.
+
+You can specify the storage capabilities of the VMs via the `volume` parameter. 
+The syntax for modifying this parameter is:
+
+* [ebs,ephemeral]:(size)
+
+For example, to use 32GB EBS data volumes, set the value to: `ebs:32`. To use
+the instance store, just set the value to `ephemeral`. You can't specify the
+ephemeral block size since that is determined by your instance type. 
+
+You can specify the networking configuration via the following parameters:
+
+* `vpc`: (Mandatory) Replace this with your VPC ID. 
+* `manage_subnet`: (Optional) If you specify a subnet ID, connectors will be launched into
+that subnet. Otherwise a new public subnet will be created. 
+* `data_subnet`: (Optional) If you specify a subnet ID, backend nodes will be launched into
+that subnet. Otherwise a new data subnet will be created. 
+* `public`: (Optional) If set to `true`, then the data subnet will be public. Otherwise, the
+data subnet will be private. The default value is `false`. 
+
+Finally, you can specify the EC2 region via the following parameters:
+
+* `dc`: The EC2 region to use. 
+* `zone`: The availability zone to use.
+
+Depending on which EC2 region you specify, you'll need to change the AMI. 
+
++------------+----------------+
+| Region     | AMI            |
++============+================+
+| us-east-1  | ami-52c4723a   |
++------------+----------------+
+| us-west-1  | ami-dd535898   |
++------------+----------------+
+
+*(Please note that only `us-east-1` and `us-west-1`are officially supported. Please file a [GitHub
+issue](https://github.com/opencore/ferry/issues) for additional region support). 
 
 Running Examples
 ----------------
@@ -132,12 +190,29 @@ Afterwards, run a simple Hadoop job:
 
     $ /service/runscripts/test/test01.sh hive
 
-That's it! Once you're done, you can stop and delete the entire Hadoop cluster:
+Terminating the Cluster
+-----------------------
+
+If you want to stop your cluster, just type:
 
 .. code-block:: bash
 
     $ sudo ferry stop sa-bfa98eda
+
+You can restart the same cluster by typing:
+
+.. code-block:: bash
+
+    $ sudo ferry start sa-bfa98eda
+
+Once you're finished, you can delete the entire cluster by typing:
+
+.. code-block:: bash
+
     $ sudo ferry rm sa-bfa98eda
+
+This will remove all the resources associated with the cluster. *Be warned, however, that
+doing so will delete all the data associated with the cluster!*. 
 
 Future Features
 ---------------
