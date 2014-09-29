@@ -101,7 +101,8 @@ Access Credentials.
 * $API_SECRET: Your EC2 secret key. You can find these credentials from the AWS homepage by clicking Account, Security Credentials,
 Access Credentials.
 
-### Storage
+Storage
+-------
 
 You can specify the storage capabilities of the VMs via the `volume` parameter. 
 The syntax for modifying this parameter is:
@@ -112,7 +113,8 @@ For example, to use 32GB EBS data volumes, set the value to: `ebs:32`. To use
 the instance store, just set the value to `ephemeral`. You can't specify the
 ephemeral block size since that is determined by your instance type. 
 
-### Networking
+Networking
+----------
 
 You can specify the networking configuration via the following parameters:
 
@@ -124,7 +126,8 @@ that subnet. Otherwise a new data subnet will be created.
 * public: (Optional) If set to `true`, then the data subnet will be public. Otherwise, the
 data subnet will be private. The default value is `false`. 
 
-### Region and AMI
+Region and AMI
+--------------
 
 Finally, you can specify the EC2 region via the following parameters:
 
