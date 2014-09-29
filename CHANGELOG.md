@@ -2,6 +2,11 @@
 
 ## 0.3 series
 
+### 0.3.2 (2014-09-29)
+
+- AWS backend
+- Various bug fixes
+
 ### 0.3.1 (2014-09-01)
 
 - Fix local mode refactor
