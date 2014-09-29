@@ -9,7 +9,7 @@ Amazon Web Services
 
 Ferry comes with built-in support for AWS, and lets you launch, run, and manage
 big data clusters on Amazon EC2. This means that you can quickly spin up a new
-Hadoop, Spark, Cassandra, or Open MPI cluster with just a few simple commands. 
+Hadoop, Spark, Cassandra, or Open MPI cluster on AWS with just a few simple commands. 
 
 Ferry on AWS offers several advantages over tools such as Elastic MapReduce. 
 
@@ -22,7 +22,7 @@ Before You Start
 ----------------
 
 This documentation assumes that you have access to an Amazon Web Services account. If you don't, go ahead and create 
-one [now](http://aws.amazon.com/ec2/). You'll also probably want to create a new key pair for Ferry. While you can use
+one `now <http://aws.amazon.com/ec2/>`_. You'll also probably want to create a new key pair for Ferry. While you can use
 an existing key pair, that is considered poor practice. 
 
 In summary, you will need:
@@ -41,7 +41,7 @@ Launch Summary
 Launching
 ---------
 
-The very first step is to have a functioning [Ferry](http://ferry.opencore.io) installation. For the AWS
+The very first step is to have a functioning `Ferry <http://ferry.opencore.io/>`_ installation. For the AWS
 backend to work properly, Ferry has to be running in the *same* VPC that the instances will be running. 
 Otherwise, Ferry won't be able to communicate with your instances (Note: future editions will remove this restriction). 
 
@@ -101,6 +101,8 @@ Access Credentials.
 * $API_SECRET: Your EC2 secret key. You can find these credentials from the AWS homepage by clicking Account, Security Credentials,
 Access Credentials.
 
+### Storage
+
 You can specify the storage capabilities of the VMs via the `volume` parameter. 
 The syntax for modifying this parameter is:
 
@@ -110,20 +112,24 @@ For example, to use 32GB EBS data volumes, set the value to: `ebs:32`. To use
 the instance store, just set the value to `ephemeral`. You can't specify the
 ephemeral block size since that is determined by your instance type. 
 
+### Networking
+
 You can specify the networking configuration via the following parameters:
 
-* `vpc`: (Mandatory) Replace this with your VPC ID. 
-* `manage_subnet`: (Optional) If you specify a subnet ID, connectors will be launched into
+* vpc: (Mandatory) Replace this with your VPC ID. 
+* manage_subnet: (Optional) If you specify a subnet ID, connectors will be launched into
 that subnet. Otherwise a new public subnet will be created. 
-* `data_subnet`: (Optional) If you specify a subnet ID, backend nodes will be launched into
+* data_subnet: (Optional) If you specify a subnet ID, backend nodes will be launched into
 that subnet. Otherwise a new data subnet will be created. 
-* `public`: (Optional) If set to `true`, then the data subnet will be public. Otherwise, the
+* public: (Optional) If set to `true`, then the data subnet will be public. Otherwise, the
 data subnet will be private. The default value is `false`. 
+
+### Region and AMI
 
 Finally, you can specify the EC2 region via the following parameters:
 
-* `dc`: The EC2 region to use. 
-* `zone`: The availability zone to use.
+* dc: The EC2 region to use. 
+* zone: The availability zone to use.
 
 Depending on which EC2 region you specify, you'll need to change the AMI. 
 
@@ -135,8 +141,8 @@ Depending on which EC2 region you specify, you'll need to change the AMI.
 | us-west-1  | ami-dd535898   |
 +------------+----------------+
 
-*(Please note that only `us-east-1` and `us-west-1`are officially supported. Please file a [GitHub
-issue](https://github.com/opencore/ferry/issues) for additional region support). 
+*(Please note that only `us-east-1` and `us-west-1`are officially supported. Please file a `GitHub issue <https://github.com/opencore/ferry/issues/>`_ 
+for additional region support). 
 
 Running Examples
 ----------------
@@ -217,10 +223,10 @@ doing so will delete all the data associated with the cluster!*.
 Future Features
 ---------------
 
-There are a few features that aren't quite implemented yet (please consider [contributing](https://github.com/opencore/ferry)). 
+There are a few features that aren't quite implemented yet. 
 
 1. Spot instance support. All instances are currently allocated in an on-demand manner. 
 2. Heterogeneous instance types. At the moment, all instances use the same instance type. 
 3. Resizing clusters. Once a cluster is created, the size of the cluster is fixed. 
 
-If any of these features are particularly important to you, please submit an [issue](https://github.com/opencore/ferry/issues). 
+If any of these features are particularly important to you, please consider `contributing <https://github.com/opencore/ferry/>`_. 
