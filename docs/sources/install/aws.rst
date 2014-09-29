@@ -144,8 +144,8 @@ Depending on which EC2 region you specify, you'll need to change the AMI.
 | us-west-1  | ami-dd535898   |
 +------------+----------------+
 
-*(Please note that only `us-east-1` and `us-west-1`are officially supported. Please file a `GitHub issue <https://github.com/opencore/ferry/issues/>`_ 
-for additional region support). 
+Please note that only `us-east-1` and `us-west-1` are officially supported. 
+Please file a `GitHub issue <https://github.com/opencore/ferry/issues/>`_ for additional region support.
 
 Running Examples
 ----------------
