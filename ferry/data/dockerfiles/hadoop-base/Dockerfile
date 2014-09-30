@@ -6,16 +6,16 @@ RUN mkdir -p /service/packages /service/conf /service/data/main /service/data/hi
 
 # Download some dependencies
 RUN apt-get --yes install openjdk-7-jdk zlib1g lib32z1 libpostgresql-jdbc-java software-properties-common
-RUN wget $DOWNLOAD_URL/hadoop-2.3.0.tar.gz -P /service/packages
+RUN wget $DOWNLOAD_URL/hadoop-2.5.1.tar.gz -P /service/packages
 RUN wget $DOWNLOAD_URL/hive-0.13.1.tar.gz -P /service/packages
-RUN cd /service/packages;tar -xzf hadoop-2.3.0.tar.gz
+RUN cd /service/packages;tar -xzf hadoop-2.5.1.tar.gz
 RUN cd /service/packages;tar -xzf hive-0.13.1.tar.gz
 
 # Get rid of the tarballs. 
 RUN rm /service/packages/*.tar.gz
 
 # Make symlinks
-RUN ln -s /service/packages/hadoop-2.3.0 /service/packages/hadoop
+RUN ln -s /service/packages/hadoop-2.5.1 /service/packages/hadoop
 RUN ln -s /service/packages/hadoop/etc/hadoop /service/conf/hadoop
 RUN ln -s /service/packages/hadoop/logs /service/logs/hadoop
 
