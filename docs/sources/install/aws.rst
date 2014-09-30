@@ -25,15 +25,28 @@ This documentation assumes that you have access to an Amazon Web Services accoun
 one `now <http://aws.amazon.com/ec2/>`_. You'll also probably want to create a new key pair for Ferry. While you can use
 an existing key pair, that is considered poor practice. 
 
+Ferry launches new instances into private subnets within a VPC. While more secure than legacy EC2, it does mean
+that you'll need to have a VPC set up for Ferry to use. Most likely your AWS account already has this set up. If
+not, just navigate to Services -> VPC on your AWS homepage. Click on the "Your VPCs" menu to browse available VPCs.
+If do you have a VPC set up, you'll want to remember the "VPC ID" (we'll use it during the configuration stage). 
+
+Otherwise, if you don't have any VPCs set up, just click on "Create VPC". Amazon doesn't charge you for creating a 
+VPC, so don't be afraid of messing up. After your VPC is set up, just note the "VPC ID". For those that need more
+help, here's a friendly [VPC tutorial](http://docs.aws.amazon.com/AmazonVPC/latest/GettingStartedGuide/Wizard.html). 
+
+Once the VPC is set up, Ferry will automatically handle the creation of the various subnets (unless you provide your
+own subnet information). 
+
 In summary, you will need:
 
 1. An active Amazon Web Services account
 2. A keypair used for communicating with Ferry EC2 instances
+3. A working VPC
 
 Launch Summary
 --------------
 
-1. Create new Ferry client VM using the "Ferry Server (small)" image
+1. Create new Ferry client VM
 2. Create a new Ferry configuration file
 3. Start the Ferry server as root via `sudo ferry server`
 4. Launch new clusters via `sudo ferry start hadoop`
@@ -41,12 +54,30 @@ Launch Summary
 Launching
 ---------
 
-The very first step is to have a functioning `Ferry <http://ferry.opencore.io/>`_ installation. For the AWS
-backend to work properly, Ferry has to be running in the *same* VPC that the instances will be running. 
-Otherwise, Ferry won't be able to communicate with your instances (Note: future editions will remove this restriction). 
+The very first step is to have a functioning `Ferry <http://ferry.opencore.io/>`_ installation. 
+The quickest way to get a functioning Ferry installation is to use our public client image. Search for "Ferry"
+under "Community Images". The image is currently available in the US East and US West (N. California) regions. 
 
-The quickest way to get a functioning Ferry installation is to use our public client image. After spinning 
-up the client VM, ssh into it so that we can modify the configuration file. 
+Please note that for the AWS backend to work properly, the client has to be running in the *same* VPC that the Ferry instances  will be running. 
+Otherwise, the client won't be able to communicate with your instances when they're launched in a private subnet. 
+
+After spinning up the client VM, ssh into it:
+
+.. code-block:: bash
+
+    $ ssh -i MY_AWS_KEY.pem ubuntu@MY_IP_ADDRESS
+
+Please note that as of right now, Ferry requires root accesss, type the following:
+
+.. code-block:: bash
+
+    $ sudo su
+    $ export FERRY_DIR=/ferry/master
+
+That last command tells Ferry where to find all the Ferry images. If you're using your own
+client installation (instead of our AWS image), you can probably skip that part. 
+
+Now it's time to create the configuration file. 
 
 Configuration
 -------------

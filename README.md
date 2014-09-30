@@ -1,7 +1,8 @@
 Ferry: Big Data Development Environment using Docker
 ====================================================
 
-Ferry lets you deploy virtual clusters on your local machine and share your big data application using [Docker](https://www.docker.io). Ferry currently supports:
+Ferry lets you launch, run, and manage big data clusters on AWS, OpenStack, and your local machine. It does this by leveraging awesome technologies such as 
+[Docker](https://www.docker.io). Ferry currently supports:
 
 * Hadoop/YARN (version 2.3.0)
 * Cassandra (version 2.0.6) + Titan (0.3.1)
