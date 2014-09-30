@@ -320,6 +320,12 @@ start_rpc: true
 rpc_address: 0.0.0.0
 rpc_port: 9160
 
+# RPC address to broadcast to drivers and other Cassandra nodes. This cannot 
+# be set to 0.0.0.0. If left blank, this will be set to the value of 
+# rpc_address. If rpc_address is set to 0.0.0.0, broadcast_rpc_address must 
+# be set. 
+broadcast_rpc_address: $LOCAL_ADDRESS
+
 # enable or disable keepalive on rpc connections
 rpc_keepalive: true
 
