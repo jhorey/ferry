@@ -23,7 +23,7 @@ function run_as_ferry {
 source /etc/profile
 if [ $1 == "python" ]; then
     if [ $# == 2 ]; then
-	run_as_ferry "$SPARK_HOME/bin/pyspark /service/examples/python/$2 spark://$BACKEND_COMPUTE_MASTER:7077" "Running $2"
+	run_as_ferry "$SPARK_HOME/bin/spark-submit /service/examples/python/$2 spark://$BACKEND_COMPUTE_MASTER:7077" "Running $2"
     fi
 elif [ $1 == "load" ]; then
     MKDIR='hdfs dfs -mkdir -p /spark/data'
