@@ -94,13 +94,11 @@ def _has_ferry_user():
 def _supported_arch():
     return struct.calcsize("P") * 8 == 64
 
-def _supported_lxc():
-    output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
-
+def _supported_tuple(tuple_string, tuple_min):
     # Ignore all non-numeric strings in the
     # versioning information. 
     cleaned = []
-    tuples = output.strip().split(".")[:3]
+    tuples = tuple_string.split(".")[:3]
     for t in tuples: 
         m = re.compile('(\d)*').match(t)
         if m and len(m.groups()) > 0 and m.group(1) != '':
@@ -117,7 +115,20 @@ def _supported_lxc():
     # assumes that lxc-version info is consistent across distributions
     # which may not be true...
     ver = tuple(map(int, cleaned))
-    return ver > (0, 7, 5)
+    return ver > tuple_min, ver
+
+def _get_docker_version():
+    output = Popen("(docker --version 2>/dev/null) | awk '{print $3}'", stdout=PIPE, shell=True).stdout.read()
+    return = _supported_tuple(output.strip(), (0, 8, 0))
+
+def _supported_docker():
+    supported, _ = _get_docker_version()
+    return supported
+
+def _supported_lxc():
+    output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
+    supported, _ _supported_tuple(output.strip(), (0, 7, 5))
+    return supported
 
 def _supported_python():
     return sys.version_info[0] == 2
@@ -309,6 +320,9 @@ class Installer(object):
 
         if not _supported_lxc():
             return 'You appear to be running an older version of LXC.\nOnly versions > 0.7.5 are supported.'
+
+        if not _supported_docker():
+            return 'You appear to be running an older version of Docker.\nOnly versions > 0.8 are supported.'
 
         if not _has_ferry_user():
             return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
@@ -813,8 +827,13 @@ class Installer(object):
         # Check if the docker daemon is already running
         try:
             if not self._docker_running():
-                # Use the LXC backend. 
-                lflag = ' -e lxc'
+                # Use the LXC backend. This backend option must be specified
+                # for Docker versions greater than 0.9.0. 
+                _, ver = _get_docker_version()
+                if ver > (0, 9, 0):
+                    lflag = ' -e lxc'
+                else:
+                    lflag = ''
 
                 # Figure out which storage backend to use. Right
                 # now we only support BTRFS or DeviceMapper, since
