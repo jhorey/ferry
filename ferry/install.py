@@ -152,7 +152,8 @@ DEFAULT_DOCKER_REPO='ferry'
 GUEST_DOCKER_REPO='ferry-user'
 DEFAULT_FERRY_OWNER='ferry:docker'
 DOCKER_REGISTRY=_get_docker_registry()
-DOCKER_CMD='docker-ferry'
+# DOCKER_CMD='docker-ferry'
+DOCKER_CMD='docker'
 DOCKER_SOCK='unix:////var/run/ferry.sock'
 DOCKER_PID='/var/run/ferry.pid'
 DOCKER_DIR=_get_ferry_dir(server=True)
@@ -849,7 +850,7 @@ class Installer(object):
     def _stop_docker_daemon(self, force=False):
         if force or self._docker_running():
             logging.warning("stopping docker daemon")
-            cmd = 'pkill -f docker-ferry'
+            cmd = 'pkill -f ' + DOCKER_CMD
             Popen(cmd, stdout=PIPE, shell=True)
             try:
                 os.remove('/var/run/ferry.sock')

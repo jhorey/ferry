@@ -92,7 +92,8 @@ class DockerInstance(object):
 """ Alternative API for Docker that uses external commands """
 class DockerCLI(object):
     def __init__(self, registry=None):
-        self.docker = 'docker-ferry -H=' + DOCKER_SOCK
+        # self.docker = 'docker-ferry -H=' + DOCKER_SOCK
+        self.docker = 'docker -H=' + DOCKER_SOCK
         self.version_cmd = 'version'
         self.start_cmd = 'start'
         self.run_cmd = 'run -privileged'
@@ -359,12 +360,6 @@ class DockerCLI(object):
         if hostname != None:
             flags += self.host_flag
             flags += ' %s ' % hostname
-
-        # # Add the port value if provided a valid port. 
-        # if expose_group != None and len(expose_group) > 0:
-        #     for p in expose_group:
-        #         flags += self.expose_flag
-        #         flags += ' %s' % str(p)
 
         # Add all the bind mounts
         if volumes != None:
