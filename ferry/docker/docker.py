@@ -457,8 +457,8 @@ class DockerInspector(object):
             return None
 
         # Otherwise start collecting the various container information. 
+        instance.container = container
         instance.image = data['Config']['Image']
-        instance.container = data['ID']
         instance.internal_ip = data['NetworkSettings']['IPAddress']
 
         # If we've used the lxc config, then the networking information
