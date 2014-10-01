@@ -10,6 +10,10 @@ RUN cd /service/packages;tar -xzf pig-0.13.0.tar.gz
 
 # Create a symlink to the package dir. 
 RUN ln -s /service/packages/pig-0.13.0 /service/packages/pig;
+RUN ln -s /service/packages/pig/bin/pig /usr/local/bin/;
+
+# Make ferry owner of everything. 
+RUN chown -R ferry:docker /service
 
 # Environment variables. 
 ENV PIG_HOME /service/packages/pig
