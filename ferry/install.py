@@ -127,7 +127,7 @@ def _supported_docker():
 
 def _supported_lxc():
     output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
-    supported, _ _supported_tuple(output.strip(), (0, 7, 5))
+    supported, _ = _supported_tuple(output.strip(), (0, 7, 5))
     return supported
 
 def _supported_python():
