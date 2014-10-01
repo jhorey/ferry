@@ -19,8 +19,6 @@ RUN cd /service/packages; tar -xzf spark-1.1.0-bin-hadoop2.4.tgz
 # Make some symlinks
 RUN ln -s /service/packages/spark-1.1.0-bin-hadoop2.4 /service/packages/spark
 RUN ln -s /service/packages/spark/conf /service/conf/spark
-RUN ln -s /service/packages/spark/bin/pyspark /usr/local/bin/
-RUN ln -s /service/packages/spark/bin/spark-submit /usr/local/bin/
 
 # Add all the scripts. 
 ADD ./startnode /service/sbin/
