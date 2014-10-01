@@ -19,6 +19,7 @@ RUN cd /service/packages; tar -xzf spark-1.1.0-bin-hadoop2.4.tgz
 # Make some symlinks
 RUN ln -s /service/packages/spark-1.1.0-bin-hadoop2.4 /service/packages/spark
 RUN ln -s /service/packages/spark/conf /service/conf/spark
+RUN ln -s /service/packages/spark/bin/* /usr/local/bin/
 
 # Add all the scripts. 
 ADD ./startnode /service/sbin/
@@ -30,10 +31,16 @@ RUN chmod a+x /service/sbin/startnode;chmod a+x /service/runscripts/start/*;chmo
 
 # Example scripts
 RUN mkdir -p /service/examples/python
+RUN mkdir -p /service/examples/data
 ADD ./classification.py /service/examples/python/
 ADD ./clustering.py /service/examples/python/
 ADD ./filtering.py /service/examples/python/
 ADD ./regression.py /service/examples/python/
+ADD ./kmeans_test.data /service/examples/data/
+ADD ./lpsa_test.data /service/examples/data/
+ADD ./svm_test.data /service/examples/data/
+ADD ./als_test.data /service/examples/data/
+ADD ./tree_test.data /service/examples/data/
 
 # Environment variables
 ENV SPARK_HOME /service/packages/spark
