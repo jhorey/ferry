@@ -12,12 +12,12 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install build-essential git sca
 RUN pip install numpy
 
 # Add the binaries
-RUN wget $DOWNLOAD_URL/spark-0.9.1-bin-hadoop2.tgz -P /service/packages/ 
-RUN wget $DOWNLOAD_URL/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar -P /service/packages/
-RUN cd /service/packages; tar -xzf spark-0.9.1-bin-hadoop2.tgz
+RUN wget $DOWNLOAD_URL/spark-1.1.0-bin-hadoop2.4.tgz -P /service/packages/ 
+# RUN wget $DOWNLOAD_URL/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar -P /service/packages/
+RUN cd /service/packages; tar -xzf spark-1.1.0-bin-hadoop2.4.tgz
 
 # Make some symlinks
-RUN ln -s /service/packages/spark-0.9.1-bin-hadoop2 /service/packages/spark
+RUN ln -s /service/packages/spark-1.1.0-bin-hadoop2.4 /service/packages/spark
 RUN ln -s /service/packages/spark/conf /service/conf/spark
 
 # Add all the scripts. 
@@ -38,8 +38,10 @@ ADD ./regression.py /service/examples/python/
 # Environment variables
 ENV SPARK_HOME /service/packages/spark
 RUN echo export SPARK_HOME=/service/packages/spark >> /etc/profile
-ENV SPARK_JAR /service/packages/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar
-RUN echo export SPARK_JAR=/service/packages/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar >> /etc/profile
+# ENV SPARK_JAR /service/packages/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar
+ENV SPARK_JAR /service/packages/spark/lib/spark-assembly-1.1.0-hadoop2.4.0.jar
+# RUN echo export SPARK_JAR=/service/packages/spark-assembly_2.10-0.9.1-hadoop2.3.0.jar >> /etc/profile
+RUN echo export SPARK_JAR=/service/packages/spark/lib/spark-assembly-1.1.0-hadoop2.4.0.jar >> /etc/profile
 RUN echo export PATH=$$PATH:$$SPARK_HOME/sbin:$$SPARK_HOME/bin >> /etc/profile
 ENV SPARK_YARN_APP_JAR /service/packages/spark/examples/target/spark-examples_2.10-0.9.1-sources.jar
 RUN echo export SPARK_YARN_APP_JAR=/service/packages/spark/examples/target/spark-examples_2.10-0.9.1-sources.jar >> /etc/profile
