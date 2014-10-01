@@ -813,7 +813,12 @@ class Installer(object):
         # Check if the docker daemon is already running
         try:
             if not self._docker_running():
-                bflag = ''
+                # Use the LXC backend. 
+                lflag = ' -e lxc'
+
+                # Figure out which storage backend to use. Right
+                # now we only support BTRFS or DeviceMapper, since
+                # AUFS seems to break on some occasions. 
                 if self._is_running_btrfs():
                     logging.warning("using btrfs backend")
                     bflag = ' -s btrfs'
@@ -833,7 +838,7 @@ class Installer(object):
 
                 # We need to fix this so that ICC is set to false. 
                 icc = ' --icc=true'
-                cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + dflag + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
+                cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + dflag + lflag + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
                 logging.warning(cmd)
                 Popen(cmd, stdout=PIPE, shell=True)
 
