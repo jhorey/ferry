@@ -119,7 +119,7 @@ def _supported_tuple(tuple_string, tuple_min):
 
 def _get_docker_version():
     output = Popen("(docker --version 2>/dev/null) | awk '{print $3}'", stdout=PIPE, shell=True).stdout.read()
-    return = _supported_tuple(output.strip(), (0, 8, 0))
+    return _supported_tuple(output.strip(), (0, 8, 0))
 
 def _supported_docker():
     supported, _ = _get_docker_version()
