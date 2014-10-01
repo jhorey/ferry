@@ -5,11 +5,11 @@ NAME gluster
 RUN mkdir -p /service/data /service/logs /service/conf /service/sbin;chown -R ferry:docker /service/data;chown -R ferry:docker /service/logs;chown -R ferry:docker /service/conf
 
 # Add the latest stable GlusterFS repo
-RUN apt-get update; apt-get --yes install software-properties-common;add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4
+RUN apt-get update; apt-get --yes install software-properties-common;add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.5
 
 # Tell apt to use the latest repo packages. 
 RUN echo "Package: *" >> /etc/apt/preferences
-RUN echo "Pin: release o=LP-PPA-semiosis-ubuntu-glusterfs-3.4,a=quantal" >> /etc/apt/preferences
+RUN echo "Pin: release o=LP-PPA-semiosis-ubuntu-glusterfs-3.5,a=trusty" >> /etc/apt/preferences
 RUN echo "Pin-Priority: 900" >> /etc/apt/preferences
 
 # Download the various packages needed
