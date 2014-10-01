@@ -360,11 +360,11 @@ class DockerCLI(object):
             flags += self.host_flag
             flags += ' %s ' % hostname
 
-        # Add the port value if provided a valid port. 
-        if expose_group != None and len(expose_group) > 0:
-            for p in expose_group:
-                flags += self.expose_flag
-                flags += ' %s' % str(p)
+        # # Add the port value if provided a valid port. 
+        # if expose_group != None and len(expose_group) > 0:
+        #     for p in expose_group:
+        #         flags += self.expose_flag
+        #         flags += ' %s' % str(p)
 
         # Add all the bind mounts
         if volumes != None:
