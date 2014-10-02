@@ -61,14 +61,14 @@ class NAT(object):
             self._save_nat(r['src_ip'], r['src_port'],r['ip'], r['port'])
                               
     def _save_nat(self, source_ip, source_port, dest_ip, dest_port):
-        cmds = ['iptables -I FORWARD 1 ! -i drydock0 -o drydock0  -p tcp --dport %s -d %s -j ACCEPT' % (str(dest_port), dest_ip),
+        cmds = ['iptables -I FORWARD 1 ! -i ferry0 -o ferry0  -p tcp --dport %s -d %s -j ACCEPT' % (str(dest_port), dest_ip),
                 'iptables -t nat -A FERRY_CHAIN -d %s -p tcp --dport %s -j DNAT --to-destination %s:%s' % (source_ip, str(source_port), dest_ip, str(dest_port))]
         for c in cmds:
             logging.warning(c)
             Popen(c, shell=True)
 
     def _delete_nat(self, source_ip, source_port, dest_ip, dest_port):
-        cmds = ['iptables -D FORWARD ! -i drydock0 -o drydock0  -p tcp --dport %s -d %s -j ACCEPT' % (str(dest_port), dest_ip),
+        cmds = ['iptables -D FORWARD ! -i ferry0 -o ferry0  -p tcp --dport %s -d %s -j ACCEPT' % (str(dest_port), dest_ip),
                 'iptables -t nat -D FERRY_CHAIN -d %s -p tcp --dport %s -j DNAT --to-destination %s:%s' % (source_ip, str(source_port), dest_ip, str(dest_port))]
                 
         for c in cmds:

@@ -38,6 +38,30 @@ from ferry.fabric.local import LocalFabric
 from string import Template
 from subprocess import Popen, PIPE
 
+def _get_gateway():
+    cmd = "LC_MESSAGES=C ifconfig ferry0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
+    gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+    
+    cmd = "LC_MESSAGES=C ifconfig ferry0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
+    netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
+    mask = map(int, netmask.split("."))
+    cidr = 1
+    if mask[3] == 0:
+        cidr = 8
+    if mask[2] == 0:
+        cidr *= 2
+    return "%s/%d" % (gw, 32 - cidr)
+
+def _create_bridge():
+    # Check if the Ferry bridge already exists. 
+    # If not go ahead and create a new bridge. 
+    check = Popen("ifconfig ferry0 2> /dev/null", stdout=PIPE, shell=True).stdout.read().strip()
+    if check == "":
+        logging.warning("Creating Ferry bridge 172.18.42.1/16")
+        Popen("brctl addbr ferry0", stdout=PIPE, shell=True).stdout.read().strip()
+        Popen("ip addr add 172.18.42.1/16 dev ferry0", stdout=PIPE, shell=True).stdout.read().strip()
+        Popen("ip link set dev ferry0 up", stdout=PIPE, shell=True).stdout.read().strip()
+
 def _get_download_url():
     if 'DOWNLOAD_URL' in os.environ:
         return os.environ['DOWNLOAD_URL']
@@ -824,6 +848,9 @@ class Installer(object):
         return False
         
     def _start_docker_daemon(self, options=None):
+        # Check if the Ferry bridge has been created. 
+        _create_bridge()
+
         # Check if the docker daemon is already running
         try:
             if not self._docker_running():
@@ -880,18 +907,3 @@ class Installer(object):
                 os.remove('/var/run/ferry.sock')
             except OSError:
                 pass
-
-    def _get_gateway(self):
-        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
-        gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
-
-        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
-        netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
-        mask = map(int, netmask.split("."))
-        cidr = 1
-        if mask[3] == 0:
-            cidr = 8
-        if mask[2] == 0:
-            cidr *= 2
-
-        return "%s/%d" % (gw, 32 - cidr)

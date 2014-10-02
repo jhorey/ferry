@@ -44,25 +44,6 @@ class LocalFabric(object):
         if not bootstrap:
             self.network = DHCPClient(self._get_gateway())
 
-    def _get_gateway(self):
-        """
-        Get the gateway address in CIDR notation. This defines the
-        range of IP addresses available to the containers. 
-        """
-        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
-        gw = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
-
-        cmd = "LC_MESSAGES=C ifconfig drydock0 | grep 'inet addr:' | cut -d: -f4 | awk '{ print $1}'"
-        netmask = Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
-        mask = map(int, netmask.split("."))
-        cidr = 1
-        if mask[3] == 0:
-            cidr = 8
-        if mask[2] == 0:
-            cidr *= 2
-
-        return "%s/%d" % (gw, 32 - cidr)
-
     def _get_host(self):
         cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
         return Popen(cmd, stdout=PIPE, shell=True).stdout.read().strip()
@@ -128,7 +109,7 @@ class LocalFabric(object):
         for c in container_info:
             # Get a new IP address for this container and construct
             # a default command. 
-            gw = self._get_gateway().split("/")[0]
+            gw = ferry.install._get_gateway().split("/")[0]
 
             # Check if we should use the manual LXC option. 
             if not 'netenable' in c:
@@ -136,7 +117,7 @@ class LocalFabric(object):
                 lxc_opts = ["lxc.network.type = veth",
                             "lxc.network.ipv4 = %s/24" % ip, 
                             "lxc.network.ipv4.gateway = %s" % gw,
-                            "lxc.network.link = drydock0",
+                            "lxc.network.link = ferry0",
                             "lxc.network.name = eth0",
                             "lxc.network.flags = up"]
 
