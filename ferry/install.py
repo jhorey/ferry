@@ -854,6 +854,9 @@ class Installer(object):
         # Check if the docker daemon is already running
         try:
             if not self._docker_running():
+                # Use the ferry0 bridge.
+                nflag = ' -b ferry0'
+
                 # Use the LXC backend. This backend option must be specified
                 # for Docker versions greater than 0.9.0. 
                 _, ver = _get_docker_version()
@@ -884,7 +887,7 @@ class Installer(object):
 
                 # We need to fix this so that ICC is set to false. 
                 icc = ' --icc=true'
-                cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + dflag + lflag + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
+                cmd = 'nohup ' + DOCKER_CMD + ' -d' + ' -H=' + DOCKER_SOCK + ' -g=' + DOCKER_DIR + ' -p=' + DOCKER_PID + nflag + dflag + lflag + bflag + icc + ' 1>%s  2>&1 &' % DEFAULT_DOCKER_LOG
                 logging.warning(cmd)
                 Popen(cmd, stdout=PIPE, shell=True)
 
