@@ -2,6 +2,14 @@
 
 ## 0.3 series
 
+### 0.3.3 (2014-10-06)
+
+- Upgrade Spark to 1.1.0
+- Upgrade Hadoop to 2.5.1
+- Upgrade Cassandra to 2.1.0
+- Upgrade GlusterFS to 3.5.0
+- Remove Docker fork
+
 ### 0.3.2 (2014-09-29)
 
 - AWS backend
