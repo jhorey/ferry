@@ -32,21 +32,11 @@ This will create your Vagrant box and initialize everything. Please note that th
 
 Now you can get :ref:`started <GettingStarted>`. Please note that this Vagrant box does not contain very much besides the basic Ferry installation, so you'll probably want to install your favorite text editor, etc.
 
-Ubuntu
-------
+Linux (Requirements)
+--------------------
 
-There are two ways to install Ferry in Linux. The first via `pip` will install Ferry in your local environment. The second is via Docker-in-Docker, in which
-Ferry will install and run itself in a self-enclosed Docker container. This method is described :ref:`here <alternative>`
-
-If you are upgrading from a prior installation, head over :ref:`here <upgrade>` for a more in-depth explanation. 
-
-If you choose to install via ``pip`` you want to make sure that you're running Python2 (Python3 is currently not supported). The easiest way to get ``pip`` installed is by typing:
-
-.. code-block:: bash
-
-    $ sudo apt-get install python-pip
-
-Afterwards we'll need to install Docker.
+Before installing Ferry, you'll need to have Docker installed. Here are the commands for a relatively
+new version of Ubuntu: 
 
 .. code-block:: bash
 
@@ -70,23 +60,52 @@ Ferry as a non-root user.
     $ sudo usermod -a -G docker $USER
 
 You may need to logout and log back in for the group changes to take effect.
-Make sure that Docker is running before installing the rest of Ferry. You can do that by typing in your terminal: 
+
+You'll also need to install `pip`. On an Ubuntu machine, type: 
 
 .. code-block:: bash
 
-    $ sudo service docker start
-    $ docker info
+    $ sudo apt-get install python-pip
 
-You should see some versioning information printed to the screen. Next you'll want to install Ferry. 
-You can do this via ``pip``. 
+Linux (Preferred)
+-----------------
+
+The preferred way of running Ferry on your Linux box is to use our installation script `ferry-dust`. You can obtain this script via `pip`. Just type
+the following: 
 
 .. code-block:: bash
 
     $ sudo pip install -U ferry
 
-If you don't have ``pip`` installed, you can also clone Ferry from the GitHub repo and manually
-install the packages (look for ``setup.py``). After installing Ferry, check if everything is working 
-and start building the various Ferry images. These images contain the actual logic for running Hadoop, Cassandra, etc. Just type:
+Afterwards, type the following to get the images installed:
+
+.. code-block:: bash
+
+    $ export FERRY_DIR=/var/lib/ferry
+    $ ferry-dust install
+
+Note that you can set `FERRY_DIR` to any directory that you'd like. This simply tells Ferry where to store all the Ferry images. The `install` command 
+will pull all the images and may take quite a while. 
+
+After the `install` completes, you can start using Ferry. To enter a console, type:
+
+.. code-block:: bash
+
+    $ ferry-dust start
+
+Linux (Manual)
+--------------
+
+These instructions are for installing Ferry manually (without using `ferry-dust`). While the instructions aren't long, please
+be warned this process is a bit more fragile. Also, if you are upgrading from a prior installation, head over :ref:`here <upgrade>` for a more in-depth explanation. 
+
+First you'll need to install Ferry via ``pip``. 
+
+.. code-block:: bash
+
+    $ sudo pip install -U ferry
+
+After installing Ferry, we'll need to install the Ferry images (containing Hadoop, Spark, etc.). 
 
 .. code-block:: bash
 
@@ -94,7 +113,7 @@ and start building the various Ferry images. These images contain the actual log
 
 By default Ferry will use a default set of public/private keys so that you can interact with the
 connectors afterwards. You can instruct ``ferry`` to use your own keys by supplying a directory like this 
-``ferry install -k $KEY_DIR``. The build process may take a while, so sit back and relax. 
+``ferry -k $KEY_DIR install``. The build process may take a while, so sit back and relax. 
 
 Running Ferry
 -------------
