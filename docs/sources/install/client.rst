@@ -43,9 +43,11 @@ new version of Ubuntu:
     $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
     $ sudo sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
     $ sudo apt-get update
-    $ sudo apt-get install lxc-docker
+    $ sudo apt-get install lxc lxc-docker
 
-If you'd like a more in-depth explanation of what's going on, visit the Docker_ homepage for more detailed instructions. 
+Note that Ferry requires the use of LXC. Since newer versions of Docker uses `libcontainer` by default, 
+we need to include `lxc` in the installation as well. If you'd like a more in-depth explanation of what's going on, 
+visit the Docker_ homepage for more detailed instructions. 
 
 .. _Docker: http://docs.docker.io/en/latest/installation/
 
