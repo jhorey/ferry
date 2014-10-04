@@ -4,11 +4,11 @@ Ferry: Big Data Development Environment using Docker
 Ferry lets you launch, run, and manage big data clusters on AWS, OpenStack, and your local machine. It does this by leveraging awesome technologies such as 
 [Docker](https://www.docker.io). Ferry currently supports:
 
-* Hadoop/YARN (version 2.3.0)
-* Cassandra (version 2.0.6) + Titan (0.3.1)
-* Spark (version 0.9.1)
-* GlusterFS (version 3.4)
-* Open MPI (version 1.7.3)
+* Hadoop/YARN (version 2.5.1)
+* Cassandra (version 2.1.0) + Titan (0.3.1)
+* Spark (version 1.1.0)
+* GlusterFS (version 3.5)
+* Open MPI (version 1.8.1)
 
 All you have to do to start is specify your stack using YAML or download a pre-existing application. 
 
