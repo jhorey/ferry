@@ -1187,7 +1187,6 @@ class AWSLauncher(object):
                     if container:
                         mounts = dict(mounts.items() + cmounts.items())
                         containers.append(container)
-                        logging.warning("CONTAINER MOUNTS: " + str(mounts))
                 else:
                     logging.error("could not copy over ssh key!")
                     return None
@@ -1195,9 +1194,7 @@ class AWSLauncher(object):
             # Check if we need to set the file permissions
             # for the mounted volumes. 
             for c, i in mounts.items():
-                logging.warning("CHOWNING VOLS: " + str(i['vols']))
                 for _, v in i['vols']:
-                    logging.warning("CHOWNING : " + str(v))
                     self.controller.cmd([c], 'chown -R %s %s' % (i['user'], v))
             return containers
         else:
