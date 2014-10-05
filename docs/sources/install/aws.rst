@@ -107,7 +107,7 @@ You want your configuration to look like this:
         zone: us-east-1b
         volume: ebs:8
       deploy:
-        image: ami-486ad920
+        image: ami-20ef5d48
         personality: $EC2_TYPE
         vpc: $VPC_ID
         manage_subnet: $SUBNET_ID
@@ -170,9 +170,9 @@ Depending on which EC2 region you specify, you'll need to change the AMI.
 +------------+----------------+
 | Region     | AMI            |
 +============+================+
-| us-east-1  | ami-486ad920   |
+| us-east-1  | ami-20ef5d48   |
 +------------+----------------+
-| us-west-1  | ami-c7888382   |
+| us-west-1  | ami-bb919afe   |
 +------------+----------------+
 
 Please note that only `us-east-1` and `us-west-1` are officially supported. 
