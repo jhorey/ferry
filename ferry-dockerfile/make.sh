@@ -7,7 +7,7 @@ ORANGE='\e[0;33m'
 BLUE='\e[0;34m'
 NC='\e[0m'
 
-VERSION='0.3.3'
+VERSION='0.3.3.1'
 
 # Prepare the docker environment for docker-in-docker. This code is from
 # jpetazzo/dind

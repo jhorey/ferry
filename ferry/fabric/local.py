@@ -42,7 +42,7 @@ class LocalFabric(object):
         # Bootstrap mode means that the DHCP network
         # isn't available yet, so we can't use the network. 
         if not bootstrap:
-            self.network = DHCPClient(self._get_gateway())
+            self.network = DHCPClient(ferry.install._get_gateway())
 
     def _get_host(self):
         cmd = "ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"
