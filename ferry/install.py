@@ -143,7 +143,7 @@ def _supported_tuple(tuple_string, tuple_min):
 
 def _get_docker_version():
     output = Popen("(docker --version 2>/dev/null) | awk '{print $3}'", stdout=PIPE, shell=True).stdout.read()
-    return _supported_tuple(output.strip(), (0, 8, 0))
+    return _supported_tuple(output.strip(), (1, 2, 0))
 
 def _supported_docker():
     supported, _ = _get_docker_version()
@@ -346,7 +346,7 @@ class Installer(object):
             return 'You appear to be running an older version of LXC.\nOnly versions > 0.7.5 are supported.'
 
         if not _supported_docker():
-            return 'You appear to be running an older version of Docker.\nOnly versions > 0.8 are supported.'
+            return 'You appear to be running an older version of Docker.\nOnly versions > 1.2 are supported.'
 
         if not _has_ferry_user():
             return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'
