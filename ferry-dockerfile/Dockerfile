@@ -6,10 +6,10 @@ RUN sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.l
 
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get --yes upgrade
-RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install lxc docker iptables ca-certificates cgroup-lite aufs-tools build-essential python-dev python-pip python-babel openssh-server
+RUN DEBIAN_FRONTEND=noninteractive apt-get --yes install lxc lxc-docker iptables ca-certificates cgroup-lite aufs-tools build-essential python-dev python-pip python-babel openssh-server
 
 # Create docker group & ferry user
-RUN groupadd docker
+# RUN groupadd docker
 RUN adduser --disabled-password --gecos "" ferry;usermod -a -G docker ferry
 
 RUN mkdir -p /service/sbin /var/run/sshd
