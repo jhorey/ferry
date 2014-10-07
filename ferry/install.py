@@ -139,7 +139,7 @@ def _supported_tuple(tuple_string, tuple_min):
     # assumes that lxc-version info is consistent across distributions
     # which may not be true...
     ver = tuple(map(int, cleaned))
-    return ver > tuple_min, ver
+    return ver >= tuple_min, ver
 
 def _get_docker_version():
     output = Popen("(docker --version 2>/dev/null) | awk '{print $3}'", stdout=PIPE, shell=True).stdout.read()
