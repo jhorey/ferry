@@ -38,6 +38,6 @@ class System(object):
         """
         Get total number of cores. 
         """
-        cmd = "cat /proc/cpuinfo | grep cores | awk '{print $4}'"
+        cmd = "nproc"
         output = Popen(cmd, stdout=PIPE, shell=True).stdout.read()
         return int(output.strip())
