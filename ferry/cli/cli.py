@@ -24,6 +24,7 @@ import os.path
 import pwd
 import requests
 import re
+import sets
 import StringIO
 import sys
 from termcolor import colored
@@ -310,7 +311,10 @@ class CLI(object):
 
     def _format_images_query(self, json_data):
         t = PrettyTable()
-        t.add_column("Image", json_data.keys())
+        unique = sets.Set()
+        for j in json_data:
+            unique.add(j)
+        t.add_column("Image", list(unique))
         return t.get_string(sortby="Image",
                             padding_width=2)
 
