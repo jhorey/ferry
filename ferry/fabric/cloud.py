@@ -77,6 +77,20 @@ class CloudFabric(object):
     def get_data_dir(self):
         return "/ferry/data"
 
+    def installed_images(self):
+        """
+        List all the installed Docker images. We should really
+        contact the index server responsible for serving out
+        images and ask it. 
+        """
+        images = []
+        image_string = self.cli.images()
+        for image in image_string.split():
+            image_name = image.strip()
+            if image_name != "REPOSITORY" and image_name != "<none>":
+                images.append(image_name)
+        return images
+
     def version(self):
         """
         Fetch the current docker version.

@@ -432,6 +432,12 @@ class DockerManager(object):
         builtin = self._query_application(ferry.install.DEFAULT_BUILTIN_APPS, app)
         installed = self._query_application(ferry.install.DEFAULT_FERRY_APPS, app)
         return json.dumps(dict(builtin.items() + installed.items()))
+
+    def query_images(self):
+        """
+        Get list of installed applications.
+        """
+        return json.dumps(self.docker.installed_images())
         
     def query_snapshots(self, constraints=None):
         """
@@ -1062,11 +1068,18 @@ class DockerManager(object):
             # The containers were instantiated successfully. 
             # Generate storage-specific configuration and transfer
             # it over to the new containers. 
-            config_dirs, entry_point = self.config.generate_compute_configuration(service_uuid, 
-                                                                                  containers, 
-                                                                                  service, 
-                                                                                  args, 
-                                                                                  [storage_entry])
+            try:
+                config_dirs, entry_point = self.config.generate_compute_configuration(service_uuid, 
+                                                                                      containers, 
+                                                                                      service, 
+                                                                                      args, 
+                                                                                      [storage_entry])
+            except Error as e:
+                # Could not generate the configuration. This is probably an 
+                # internal error, but try to catch it so that we can cancel the stack.
+                logging.error(str(e))
+                return None, None
+                
             self._transfer_config(config_dirs)
         else:
             # The container allocator did not allocate any containers
@@ -1195,10 +1208,17 @@ class DockerManager(object):
             # The containers were instantiated successfully. 
             # Generate storage-specific configuration and transfer
             # it over to the new containers. 
-            config_dirs, entry_point = self.config.generate_storage_configuration(service_uuid, 
-                                                                                  containers, 
-                                                                                  service, 
-                                                                                  args)
+            try:
+                config_dirs, entry_point = self.config.generate_storage_configuration(service_uuid, 
+                                                                                      containers, 
+                                                                                      service, 
+                                                                                      args)
+            except Error as e:
+                # Could not generate the configuration. This is probably an 
+                # internal error, but try to catch it so that we can cancel the stack.
+                logging.error(str(e))
+                return None, None
+
             self._transfer_config(config_dirs)
         else:
             # The container allocator did not allocate any containers
@@ -1369,12 +1389,19 @@ class DockerManager(object):
         services, backend_names = self._get_client_services(storage_entry, compute_entry)
         entry_points = {}
         for service in services:
-            config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-                                                                                    connectors, 
-                                                                                    service,
-                                                                                    storage_entry,
-                                                                                    compute_entry,
-                                                                                    connectors[0].args)
+            try:
+                config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+                                                                                        connectors, 
+                                                                                        service,
+                                                                                        storage_entry,
+                                                                                        compute_entry,
+                                                                                        connectors[0].args)
+            except Error as e:
+                # Could not generate the configuration. This is probably an 
+                # internal error, but try to catch it so that we can cancel the stack.
+                logging.error(str(e))
+                return None, None
+            
             # Merge all the entry points. 
             entry_points = dict(entry_point.items() + entry_points.items())
 
@@ -1444,12 +1471,19 @@ class DockerManager(object):
             backend_names = []
             services, backend_names = self._get_client_services(storage_entry, compute_entry)
             for service in services:
-                config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
-                                                                                        containers, 
-                                                                                        service,
-                                                                                        storage_entry,
-                                                                                        compute_entry,
-                                                                                        args)
+                try:
+                    config_dirs, entry_point = self.config.generate_connector_configuration(service_uuid, 
+                                                                                            containers, 
+                                                                                            service,
+                                                                                            storage_entry,
+                                                                                            compute_entry,
+                                                                                            args)
+                except Error as e:
+                    # Could not generate the configuration. This is probably an 
+                    # internal error, but try to catch it so that we can cancel the stack.
+                    logging.error(str(e))
+                    return None, None
+                    
                 # Merge all the entry points. 
                 entry_points = dict(entry_point.items() + entry_points.items())
 

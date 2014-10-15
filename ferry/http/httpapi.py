@@ -719,6 +719,13 @@ def apps():
 
     return docker.query_applications(app)
 
+@app.route('/images', methods=['GET'])
+def images():
+    """
+    Get list of installed Docker images.
+    """
+    return docker.query_images()
+
 @app.route('/stack', methods=['GET'])
 def inspect():
     """

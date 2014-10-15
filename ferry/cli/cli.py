@@ -58,6 +58,7 @@ class CLI(object):
         self.cmds.add_cmd("login", "Login to Ferry servers")
         self.cmds.add_cmd("logs", "Copy over the logs to the host")
         self.cmds.add_cmd("ls", "View installed applications")
+        self.cmds.add_cmd("ls-images", "View installed images")
         self.cmds.add_cmd("ps", "List deployed and running services")
         self.cmds.add_cmd("pull", "Pull a remote image")
         self.cmds.add_cmd("push", "Push an image to a remote registry")
@@ -307,6 +308,12 @@ class CLI(object):
         prompt = colored(' >> ', 'green')
         return raw_input(question + prompt)
 
+    def _format_images_query(self, json_data):
+        t = PrettyTable()
+        t.add_column("Image", json_data.keys())
+        return t.get_string(sortby="Image",
+                            padding_width=2)
+
     def _format_apps_query(self, json_data):
         authors = []
         versions = []
@@ -441,6 +448,18 @@ class CLI(object):
             res = requests.get(self.ferry_server + '/apps')
             json_reply = json.loads(res.text)
             return self._format_apps_query(json_reply)
+        except ConnectionError:
+            logging.error("could not connect to ferry server")
+            return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
+
+    def _list_images(self):
+        """
+        List all installed Docker images.
+        """
+        try:
+            res = requests.get(self.ferry_server + '/images')
+            json_reply = json.loads(res.text)
+            return self._format_images_query(json_reply)
         except ConnectionError:
             logging.error("could not connect to ferry server")
             return "It appears Ferry servers are not running.\nType sudo ferry server and try again."
@@ -703,6 +722,8 @@ class CLI(object):
             return 'stopped ferry'
         elif(cmd == 'ls'):
             return self._list_apps()
+        elif(cmd == 'ls-images'):
+            return self._list_images()
         elif(cmd == 'info'):
             return self._print_info()
         elif(cmd == 'build'):

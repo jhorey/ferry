@@ -146,13 +146,28 @@ def _get_docker_version():
     return _supported_tuple(output.strip(), (1, 2, 0))
 
 def _supported_docker():
+    output = Popen("which docker 2>/dev/null", stdout=PIPE, shell=True).stdout.read()
+    if output.strip() == "":
+        return False
+
     supported, _ = _get_docker_version()
     return supported
 
 def _supported_lxc():
+    output = Popen("which lxc-start 2>/dev/null", stdout=PIPE, shell=True).stdout.read()
+    if output.strip() == "":
+        return False
+
     output = Popen("(lxc-version 2>/dev/null || lxc-start --version) | sed 's/.* //'", stdout=PIPE, shell=True).stdout.read()
     supported, _ = _supported_tuple(output.strip(), (0, 7, 5))
     return supported
+
+def _supported_bridge():
+    output = Popen("which brctl 2>/dev/null", stdout=PIPE, shell=True).stdout.read()
+    if output.strip() == "":
+        return False
+    else:
+        return True
 
 def _supported_python():
     return sys.version_info[0] == 2
@@ -343,10 +358,13 @@ class Installer(object):
             return 'You appear to be running Python3.\nOnly Python2 is supported at the moment.'
 
         if not _supported_lxc():
-            return 'You appear to be running an older version of LXC.\nOnly versions > 0.7.5 are supported.'
+            return 'Either LXC is not installed or you are running an older version of LXC.\nOnly versions > 0.7.5 are supported.'
 
         if not _supported_docker():
-            return 'You appear to be running an older version of Docker.\nOnly versions > 1.2 are supported.'
+            return 'Either Docker is not installed or you are running an older version of Docker.\nOnly versions >= 1.2.0 are supported.'
+
+        if not _supported_bridge():
+            return 'The brctl command was not found. Please install the network bridge utilities.'
 
         if not _has_ferry_user():
             return 'You do not appear to have the \'docker\' group configured. Please create the \'docker\' group and try again.'

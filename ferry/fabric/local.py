@@ -59,6 +59,18 @@ class LocalFabric(object):
 
         return scratch_dir
 
+    def installed_images(self):
+        """
+        List all the installed Docker images. 
+        """
+        images = []
+        image_string = self.cli.images()
+        for image in image_string.split():
+            image_name = image.strip()
+            if image_name != "REPOSITORY" and image_name != "<none>":
+                images.append(image_name)
+        return images
+
     def version(self):
         """
         Fetch the current docker version.
