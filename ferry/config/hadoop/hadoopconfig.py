@@ -318,8 +318,13 @@ class HadoopInitializer(object):
         changes['MOPTS'] = '-Xmx' + str(int(0.8 * changes['MMEM'])) + 'm'
         changes['ROPTS'] = '-Xmx' + str(int(0.8 * changes['RMEM'])) + 'm'
 
-        # These are the mapred variables. 
-        changes['NODE_REDUCES'] = mem / ( len(containers) - 2 ) / 2
+        # These are the mapred variables.
+        cores = self.system.get_num_cores()
+        if cores < 1:
+            cores = 1
+
+        # changes['NODE_REDUCES'] = mem / ( len(containers) - 2 ) / 2
+        changes['NODE_REDUCES'] = cores
         changes['NODE_MAPS'] = changes['NODE_REDUCES'] * 4
         changes['JOB_MAPS'] = changes['NODE_MAPS'] * ( len(containers) - 2 )
         changes['JOB_REDUCES'] = changes['NODE_REDUCES'] * ( len(containers) - 2 )
