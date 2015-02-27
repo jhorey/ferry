@@ -101,10 +101,15 @@ class AWSLauncher(object):
         deploy = conf[provider]['deploy']
 
         self.default_image = deploy['image']
-        self.default_personality = deploy['personality']
         self.default_user = deploy['default-user']
         self.ssh_key = deploy['ssh']
         self.ssh_user = deploy['ssh-user']
+
+        # The personality can either be global, or container
+        # type-specific. That enables users to create heterogenous clusters. 
+        self.default_personality = deploy['personality']
+        if 'personalities' in deploy:
+            self.container_personalities = deploy['personalities']
 
         # Make sure that the ssh key is actually present. 
         keypath = self._get_host_key()
@@ -895,7 +900,7 @@ class AWSLauncher(object):
             else:
                 time.sleep(20)
 
-    def _create_app_stack(self, cluster_uuid, num_instances, security_group_ports, internal_ports, assign_floating_ip, ctype):
+    def _create_app_stack(self, cluster_uuid, container_info, security_group_ports, internal_ports, assign_floating_ip, ctype):
         """
         Create an empty application stack. This includes the instances, 
         security groups, and floating IPs. 
@@ -925,9 +930,38 @@ class AWSLauncher(object):
             subnet = data_subnet
 
         logging.info("creating instances for %s" % cluster_uuid)
+
+        # Divide the containers into specific types. That way each type
+        # can get its own instance type (i.e., Hive metastore -> t2.micro, etc.). 
+        container_types = {}
+        for c in container_info:
+            if not c["type"] in container_types: 
+                container_types[c["type"]] = []
+            container_types[c["type"]].append(c)
+            
+        logging.debug(json.dumps(container_types, 
+                                 sort_keys=True,
+                                 indent=2,
+                                 separators=(',',':')))
+
+        # Now figure out the personalities associated with
+        # each instance type. 
+        for t in container_types.keys():
+            num_instances = len(container_types[t])
+            if t in self.container_personalities:
+                personality = self.container_personalities[t]
+            else:
+                personality = self.default_personality
+            logging.debug("Create %d %s instances of type %s" % (num_instances, t, personality))
+
+        #
+        # LEGACY
+        # We should create separate plans for each type and then merge
+        # all the plans!
+        #
         stack_plan, stack_desc = self._create_instance_plan(cluster_uuid = cluster_uuid, 
                                                             subnet = subnet, 
-                                                            num_instances = num_instances, 
+                                                            num_instances = len(container_info), 
                                                             image = self.default_image,
                                                             size = self.default_personality, 
                                                             sec_group_name = sec_group_name, 
@@ -1125,7 +1159,7 @@ class AWSLauncher(object):
 
         # Tell AWS to allocate the cluster. 
         resources = self._create_app_stack(cluster_uuid = cluster_uuid, 
-                                           num_instances = len(container_info), 
+                                           container_info = container_info, 
                                            security_group_ports = sec_group_ports,
                                            internal_ports = internal_ports, 
                                            assign_floating_ip = floating_ip,

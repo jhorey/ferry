@@ -15,6 +15,9 @@ aws:
   deploy:
      image: ami-xxxyyy
      personality: t2.micro
+     personalities: 
+        hive: t2.micro
+        hadoop: t2.small
      default-user: ubuntu
      ssh: ferry-aws
      ssh-user: ferry
